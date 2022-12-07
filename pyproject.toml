@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nmagnum"
+version = "0.0.1"
+description = "nmagnum is a micromagnetic GPU code implementing the nodal FD discretization"
+requires-python = ">=3.8, <3.11"
+
+authors = [{ name = "Claas Abert", email = "claas.abert@univie.ac.at" }]
+
+dependencies = ["numpy", "sympy", "pyvista", "scipy", "torch", "numba"]
+
+[project.optional-dependencies]
+dev = ["pytest", "pre-commit"]
+
+[tool.setuptools]
+packages = [
+  "magnumnf",
+  "magnumnf.common",
+  "magnumnf.field_terms",
+  "magnumnf.solvers",
+]
