@@ -1,0 +1,30 @@
+default:
+  tags:
+    - cloud-gpu
+    - nvidia-cc80
+
+# Dot in front of the job will hide it from the CI
+.setup_python_containers_and_test:
+  before_script:
+    - python -v  # Print out Python version for debugging
+    # Install dependencies for the testing environment
+    # and install nmagnum with dev dependencies
+    - pip install .[dev]
+  script:
+    - pytest --verbose
+    # TODO: include pre-commits once we have set it up.
+
+test_py38:
+  image: "python:3.8"
+  stage: test
+  extends: .setup_python_containers_and_test
+
+test_py39:
+  image: "python:3.9"
+  stage: test
+  extends: .setup_python_containers_and_test
+
+test_py310:
+  image: "python:3.10"
+  stage: test
+  extends: .setup_python_containers_and_test
