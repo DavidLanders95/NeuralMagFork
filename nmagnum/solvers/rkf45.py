@@ -1,5 +1,5 @@
 import torch
-from magnumnf.common import logging
+from ..common import logging
 
 __all__ = ["RKF45"]
 
