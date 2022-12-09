@@ -16,9 +16,4 @@ dependencies = ["numpy", "sympy", "pyvista", "scipy", "torch", "numba"]
 dev = ["pytest", "pre-commit"]
 
 [tool.setuptools]
-packages = [
-  "magnumnf",
-  "magnumnf.common",
-  "magnumnf.field_terms",
-  "magnumnf.solvers",
-]
+packages = ["nmagnum"]
