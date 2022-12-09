@@ -43,10 +43,14 @@ test_py310:
   script: *gen-script
 
 test_code_formating:
+  image: "python:3.9"
+  tags:
+    - shared
+    - docker
+    - cloud
   stage: test
   before_script:
-    - conda create -n test_env -c conda-forge 'python=3.8'
-    - *before-script-after
-  script:
+    - python -m pip install pre-commit
     - pre-commit install
+  script:
     - pre-commit run --all-files
