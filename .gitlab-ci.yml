@@ -42,7 +42,7 @@ test_py310:
     - *before-script-after
   script: *gen-script
 
-test_code_formating:
+test_code_formatting:
   image: "python:3.9"
   tags:
     - shared
