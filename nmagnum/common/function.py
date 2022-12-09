@@ -1,12 +1,14 @@
-import torch
-import pyvista as pv
 import os
-import numpy as np
 
-__all__ = ['Function', 'VectorFunction', 'CellFunction', 'VectorCellFunction']
+import numpy as np
+import pyvista as pv
+import torch
+
+__all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
+
 
 class Function(object):
-    def __init__(self, state, ftype = 'node', shape = (), tensor = None, name = None):
+    def __init__(self, state, ftype="node", shape=(), tensor=None, name=None):
         self._state = state
         self._ftype = ftype
         self._shape = shape
@@ -15,9 +17,9 @@ class Function(object):
         else:
             self._name = name
 
-        if ftype == 'node':
-            self._size = tuple([n+1 for n in state.mesh.n])
-        elif ftype == 'cell':
+        if ftype == "node":
+            self._size = tuple([n + 1 for n in state.mesh.n])
+        elif ftype == "cell":
             self._size = state.mesh.n
         else:
             raise NotImplemented(f'Unknown ftype "{ftype}".')
@@ -25,7 +27,9 @@ class Function(object):
         self._size += shape
 
         if tensor is None:
-            self._tensor = torch.zeros(self._size, dtype=state.dtype, device=state.device)
+            self._tensor = torch.zeros(
+                self._size, dtype=state.dtype, device=state.device
+            )
         elif isinstance(tensor, torch.Tensor):
             self._tensor = tensor
         else:
@@ -50,7 +54,7 @@ class Function(object):
         elif isinstance(constant, (list, tuple)):
             assert self._shape == (3,)
             for i in range(3):
-                self._tensor[...,i] = constant[i]
+                self._tensor[..., i] = constant[i]
         else:
             raise NotImplemented("Unsupported shape.")
 
@@ -58,13 +62,15 @@ class Function(object):
 
     def from_numpy(self, array):
         assert array.shape == self._size
-        self._tensor = torch.tensor(data=array, dtype=self._state.dtype, device=self._state.device)
+        self._tensor = torch.tensor(
+            data=array, dtype=self._state.dtype, device=self._state.device
+        )
         return self
 
     def avg(self):
-        return self._tensor.mean(dim = (0,1,2))
+        return self._tensor.mean(dim=(0, 1, 2))
 
-    #def normalize(self):
+    # def normalize(self):
     #    self /= torch.linalg.norm(self, dim = -1, keepdim = True)
     #    self[...] = torch.nan_to_num(self, posinf=0, neginf=0)
     #    return self
@@ -74,21 +80,18 @@ class Function(object):
         dx = self._state.mesh.dx
         origin = self._state.mesh.origin
 
-        grid = pv.UniformGrid(dimensions = np.array(n) + 1,
-                              spacing = dx,
-                              origin = origin)
-
+        grid = pv.UniformGrid(dimensions=np.array(n) + 1, spacing=dx, origin=origin)
 
         if self.shape == ():
-            data = self.tensor.detach().cpu().numpy().flatten('F')
+            data = self.tensor.detach().cpu().numpy().flatten("F")
         elif self.shape == (3,):
-            data = self.tensor.detach().cpu().numpy().reshape(-1,3, order='F')
+            data = self.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
         else:
             raise NotImplemented("Unsupported shape.")
 
-        if self._ftype == 'node':
+        if self._ftype == "node":
             grid.point_data.set_array(data, self._name)
-        elif self._ftype == 'cell':
+        elif self._ftype == "cell":
             grid.cell_data.set_array(data, self._name)
         else:
             raise NotImplemented("Unsupported ftype.")
@@ -99,22 +102,25 @@ class Function(object):
 
         grid.save(filename)
 
+
 class CellFunction(Function):
     def __init__(self, *args, **kwargs):
-        assert 'ftype' not in kwargs
-        kwargs['ftype'] = 'cell'
+        assert "ftype" not in kwargs
+        kwargs["ftype"] = "cell"
         super().__init__(*args, **kwargs)
+
 
 class VectorFunction(Function):
     def __init__(self, *args, **kwargs):
-        assert 'shape' not in kwargs
-        kwargs['shape'] = (3,)
+        assert "shape" not in kwargs
+        kwargs["shape"] = (3,)
         super().__init__(*args, **kwargs)
+
 
 class VectorCellFunction(Function):
     def __init__(self, *args, **kwargs):
-        assert 'ftype' not in kwargs
-        assert 'shape' not in kwargs
-        kwargs['ftype'] = 'cell'
-        kwargs['shape'] = (3,)
+        assert "ftype" not in kwargs
+        assert "shape" not in kwargs
+        kwargs["ftype"] = "cell"
+        kwargs["shape"] = (3,)
         super().__init__(*args, **kwargs)

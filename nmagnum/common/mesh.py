@@ -2,8 +2,9 @@ from . import logging
 
 __all__ = ["Mesh"]
 
+
 class Mesh(object):
-    def __init__(self, n, dx, origin=(0,0,0)):
+    def __init__(self, n, dx, origin=(0, 0, 0)):
         self.n = tuple(n)
         self.dx = tuple(dx)
         self.origin = tuple(origin)
@@ -22,7 +23,7 @@ class Mesh(object):
 
     @property
     def num_nodes(self):
-        return (self.n[0]+1) * (self.n[1]+1) * (self.n[2]+1)
+        return (self.n[0] + 1) * (self.n[1] + 1) * (self.n[2] + 1)
 
     def __str__(self):
         return "%dx%dx%d_%gx%gx%g" % (self.n + self.dx)
