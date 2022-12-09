@@ -16,11 +16,12 @@ default:
     # because `conda activate` doesnot work out of the box!!
     - source ~/.bashrc
     - conda activate test_env
+    - pre-commit install
   script: &gen-script
     - python -v  # For debugging
     - pip install .[dev]
     - python -m pytest --verbose
-    # TODO: include pre-commits once we have set it up.
+    - pre-commit run --all-files
 
 test_py38:
   stage: test
