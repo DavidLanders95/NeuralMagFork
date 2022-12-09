@@ -1,5 +1,5 @@
 import pytest
-from magnumnf import *
+from nmagnum import *
 import numpy as np
 import torch
 

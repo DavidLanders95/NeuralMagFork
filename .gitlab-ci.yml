@@ -1,0 +1,44 @@
+default:
+  image: continuumio/miniconda3:4.10.3p1
+  tags:
+    - cloud-gpu
+    - nvidia-cc80
+
+# Dot in front of the job will hide it from the CI
+.setup_python_containers_and_test:
+  before_script: &before-script-after
+    - apt update -y -qq && apt install -y -qq libgl1  # for pyvista/vtk
+    # Find and install cudatoolkit for numba
+    - export CUDA_Version=$(nvidia-smi | grep CUDA | sed 's/.*CUDA Version..\(.*\)..*/\1/')
+    - conda install -y -n test_env -c conda-forge cudatoolkit=$CUDA_Version
+    # load the conda infrastructure
+    - conda init bash
+    # because `conda activate` doesnot work out of the box!!
+    - source ~/.bashrc
+    - conda activate test_env
+  script: &gen-script
+    - python -v  # For debugging
+    - pip install .[dev]
+    - python -m pytest --verbose
+    # TODO: include pre-commits once we have set it up.
+
+test_py38:
+  stage: test
+  before_script:
+    - conda create -n test_env -c conda-forge 'python=3.8'
+    - *before-script-after
+  script: *gen-script
+
+test_py39:
+  stage: test
+  before_script:
+    - conda create -n test_env -c conda-forge 'python=3.9'
+    - *before-script-after
+  script: *gen-script
+
+test_py310:
+  stage: test
+  before_script:
+    - conda create -n test_env -c conda-forge 'python=3.10'
+    - *before-script-after
+  script: *gen-script

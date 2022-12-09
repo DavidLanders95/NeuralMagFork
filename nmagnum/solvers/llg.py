@@ -1,4 +1,4 @@
-from magnumnf.common import logging, constants
+from ..common import logging, constants
 from .rkf45 import RKF45
 import torch
 
