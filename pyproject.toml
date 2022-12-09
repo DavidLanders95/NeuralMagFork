@@ -17,3 +17,10 @@ dev = ["pytest", "pre-commit"]
 
 [tool.setuptools]
 packages = ["nmagnum"]
+
+[tool.black]
+experimental-string-processing = true
+
+[tool.isort]
+profile = "black"
+skip_gitignore = true  # ignores files listed in .gitignore
