@@ -1,4 +1,5 @@
-__all__ = ['FieldTerm']
+__all__ = ["FieldTerm"]
+
 
 class FieldTerm(object):
     pass

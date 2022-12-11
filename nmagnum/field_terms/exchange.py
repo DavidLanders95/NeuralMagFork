@@ -2,7 +2,8 @@ from ..common import VectorFunction
 from .field_term import FieldTerm
 from .kernels.exchange import kernel, mesh_d, mesh_N
 
-__all__ = ['ExchangeField']
+__all__ = ["ExchangeField"]
+
 
 class ExchangeField(FieldTerm):
     def __init__(self):
@@ -26,6 +27,11 @@ class ExchangeField(FieldTerm):
             mesh_d[:] = state.mesh.dx
             mesh_N[:] = state.mesh.n
 
-        kernel[self._bpg, self._tpb](state.m.tensor, state.material.A.tensor, state.material.Ms.tensor, self._h.tensor)
+        kernel[self._bpg, self._tpb](
+            state.m.tensor,
+            state.material.A.tensor,
+            state.material.Ms.tensor,
+            self._h.tensor,
+        )
 
         return self._h

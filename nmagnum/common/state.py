@@ -1,18 +1,25 @@
-import torch
 import os
+
 import numpy as np
+import torch
+
 from . import logging
 
 __all__ = ["State"]
 
-class Material: pass
+
+class Material:
+    pass
+
 
 class State(object):
-    def __init__(self, mesh, t0=0., device=None):
+    def __init__(self, mesh, t0=0.0, device=None):
         self.mesh = mesh
         if device == None:
-            CUDA_DEVICE = os.environ.get('CUDA_DEVICE', '0')
-            self._device = torch.device(f"cuda:{CUDA_DEVICE}" if torch.cuda.is_available() else "cpu")
+            CUDA_DEVICE = os.environ.get("CUDA_DEVICE", "0")
+            self._device = torch.device(
+                f"cuda:{CUDA_DEVICE}" if torch.cuda.is_available() else "cpu"
+            )
         else:
             self._device = device
 

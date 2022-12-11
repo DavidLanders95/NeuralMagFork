@@ -1,12 +1,15 @@
-from ..common import logging, constants
-from .rkf45 import RKF45
 import torch
+
+from ..common import constants, logging
+from .rkf45 import RKF45
 
 __all__ = ["LLGSolver"]
 
+
 class LLGSolver(object):
-    def __init__(self, terms, atol = 1e-5):
+    def __init__(self, terms, atol=1e-5):
         self._terms = terms
+
         def dm(state, t, m):
             t0 = state.t
             m0 = state.m.tensor.detach()
@@ -16,21 +19,23 @@ class LLGSolver(object):
             state.t = t0
             state.m.tensor[:] = m0
             return dm
+
         self._solver = RKF45(dm, atol=atol)
 
     def _dm(self, state):
-        gamma_prime = constants.gamma / (1. + state.material.alpha**2)
+        gamma_prime = constants.gamma / (1.0 + state.material.alpha**2)
         alpha_prime = state.material.alpha * gamma_prime
 
         h = sum([term.h(state).tensor for term in self._terms])
-        return - gamma_prime * torch.cross(state.m.tensor, h) \
-               - alpha_prime * torch.cross(state.m.tensor, torch.cross(state.m.tensor, h))
+        return -gamma_prime * torch.cross(
+            state.m.tensor, h
+        ) - alpha_prime * torch.cross(state.m.tensor, torch.cross(state.m.tensor, h))
 
     def step(self, state, dt):
         self._solver.step(state, dt)
         logging.info_blue("[LLG] step: dt= %g  t=%g" % (dt, state.t))
 
-    #def relax(self, state, maxiter = 500, rtol = 1e-5, dt = 1e-11):
+    # def relax(self, state, maxiter = 500, rtol = 1e-5, dt = 1e-11):
     #    alpha0 = state.material.alpha
     #    t0 = state.t
     #    state.material.alpha = 1.0
