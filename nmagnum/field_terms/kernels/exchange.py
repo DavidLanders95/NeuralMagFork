@@ -5,7 +5,7 @@ mesh_d = np.zeros(3)
 mesh_N = np.zeros(3)
 
 
-@cuda.jit
+@cuda.jit(cache=True)
 def kernel(m, A, Ms, h):
     d = cuda.const.array_like(mesh_d)
     N = cuda.const.array_like(mesh_N)
