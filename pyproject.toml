@@ -15,8 +15,8 @@ dependencies = ["numpy", "sympy", "pyvista", "scipy", "torch", "numba"]
 [project.optional-dependencies]
 dev = ["pytest", "pre-commit"]
 
-[tool.setuptools]
-packages = ["nmagnum"]
+[tool.setuptools.packages.find]
+include = ["nmagnum*"]
 
 [tool.black]
 experimental-string-processing = true
