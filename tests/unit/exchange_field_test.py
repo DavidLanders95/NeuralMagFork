@@ -19,4 +19,8 @@ def test_h():
     exchange_torch = ExchangeTorchField()
     h_torch = exchange_torch.h(state).tensor
 
+    exchange_torch2 = ExchangeTorchField2()
+    h_torch2 = exchange_torch.h(state).tensor
+
     torch.testing.assert_close(h, h_torch, rtol=1e-8, atol=1.0)
+    torch.testing.assert_close(h, h_torch2, rtol=1e-8, atol=1.0)
