@@ -3,8 +3,9 @@ import sympy.vector as sv
 import re
 
 from itertools import product
+from functools import reduce
 
-dx, dy, dz = sp.symbols('_dx_[0] _dx_[1] _dx_[2]')
+dx, dy, dz = sp.symbols('_dx[0]_ _dx[1]_ _dx[2]_', real=True, positive=True)
 N = sv.CoordSys3D('N')
 
 def Variable(name, space, shape = ()):
@@ -21,22 +22,22 @@ def Variable(name, space, shape = ()):
                   (N.y + j * (dy - 2*N.y)) / dy * \
                   (N.z + k * (dz - 2*N.z)) / dz
             if shape == ():
-                expr += sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_") * phi
+                expr += sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True) * phi
             elif shape == (3,):
                 for l in range(3):
-                    expr += sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_") * phi * [N.i, N.j, N.k][l]
+                    expr += sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l]
     elif space == 'dg':
         if shape == ():
-            expr = sp.Symbol(f"_{name}:{space}:{shape}:[0,0,0]_")
+            expr = sp.Symbol(f"_{name}:{space}:{shape}:[0,0,0]_", real=True)
         elif shape == (3,):
             for l in range(3):
-                expr += sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0,l]}_") * [N.i, N.j, N.k][l]
+                expr += sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0,l]}_", real=True) * [N.i, N.j, N.k][l]
     else:
         raise NotImplemented
     return expr
 
 
-def kernel_cmds(expr):
+def slices_linear_form(expr):
     cmds = {}
     v = {}
 
@@ -48,7 +49,9 @@ def kernel_cmds(expr):
             v[symb][1:] = [eval(x) for x in v[symb][1:]]
 
     # process test functions
+    variables = []
     for vsymb in v:
+        # Build RHS
         vexpr = expr.subs([(s, 1.) if s == vsymb else (s, 0.) for s in v])
         iexpr = sp.factor(sp.integrate(sp.integrate(sp.integrate(vexpr, (N.x, 0, dx)), (N.y, 0, dy)), (N.z, 0, dz)))
         rhs = str(iexpr)
@@ -62,58 +65,53 @@ def kernel_cmds(expr):
             name, space = match[1].split(':')[:2]
             shape, idx = [eval(x) for x in match[1].split(':')[2:]]
 
+            variables.append(name)
+
             if space == 'cg':
                 sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(idx)]))
             else:
                 sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(idx)]))
             rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
+        rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
 
+        # Build LHS
         if vspace == 'cg':
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))
-        lhs = f"_result_[{sidx}]"
+        lhs = f"result[{sidx}]"
 
+        # Store RHS and LHS
         if lhs not in cmds:
             cmds[lhs] = []
         cmds[lhs].append(rhs)
 
-    return cmds
-
-def kernel_code(expr):
-    code = ""
-    cmds = kernel_cmds(expr)
+    # Assemble Function
+    code = f"def assemble_linear_form(result, dx, {', '.join(set(variables))}):\n"
+    code += "    result[:] = 0\n"
     for lhs, rhs in cmds.items():
-        code += f"{lhs} += {' + '.join(rhs)}\n"
-    #for lhs, rhs in cmds.items():
-    #    if condition is None:
-    #        for cmd in cmdlist:
-    #            code += cmd + "\n"
-    #    else:
-    #        code += "if " + condition + ":\n"
-    #        for cmd in cmdlist:
-    #            code += "    " + cmd + "\n"
+        code += f"    {lhs} += {' + '.join(rhs)}\n"
 
     return code
 
+def gateaux_derivate(expr, var):
+    result = []
+    for symb in var.free_symbols:
+        if not hasattr(symb, "name") or not re.match(r"^_(.*:.*:.*:.*)_$", symb.name):
+            continue
+        v = sp.Symbol(re.sub(r"^_.*:(.*:.*:.*_)$", r"_v:\1", symb.name))
+        result.append(v * expr.diff(symb))
+    return sp.simplify(reduce(lambda x,y: x+y, result))
+
+
 # Exchange
-v = Variable('v', 'cg', (3,))
 m = Variable('m', 'cg', (3,))
 A = Variable('A', 'dg')
-expr = 2. * A * (m.diff(N.x).dot(v.diff(N.x)) + \
-                 m.diff(N.y).dot(v.diff(N.y)) + \
-                 m.diff(N.z).dot(v.diff(N.z)))
+energy_expr = A * (
+        m.diff(N.x).dot(m.diff(N.x)) + 
+        m.diff(N.y).dot(m.diff(N.y)) +
+        m.diff(N.z).dot(m.diff(N.z))
+        )
+field_expr = gateaux_derivate(energy_expr, m)
 
-# Anisotropy
-#v = Variable('v', 'cg', (3,))
-#m = Variable('m', 'cg', (3,))
-#K = Variable('K', 'dg')
-#Kaxis = Variable('Kaxis', 'dg', (3,))
-#expr = - 2. * K * (Kaxis.dot(m) * Kaxis.dot(v)) 
-
-# MASS Matrix
-#v = Variable('v', 'cg', (3,))
-#Ms = Variable('Ms', 'dg', (3,))
-#expr = Ms.dot(v)
-
-print(kernel_code(expr))
+print(slices_linear_form(field_expr))
