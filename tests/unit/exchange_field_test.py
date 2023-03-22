@@ -20,7 +20,7 @@ def test_h():
     h_torch = exchange_torch.h(state).tensor
 
     exchange_torch2 = ExchangeTorchField2()
-    h_torch2 = exchange_torch.h(state).tensor
+    h_torch2 = exchange_torch2.h(state).tensor
 
     torch.testing.assert_close(h, h_torch, rtol=1e-8, atol=1.0)
     torch.testing.assert_close(h, h_torch2, rtol=1e-8, atol=1.0)
