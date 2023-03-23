@@ -1,7 +1,7 @@
 from scipy import constants
 from ..common import Function, VectorFunction
 from .field_term import FieldTerm
-from .cache.exchange import assemble_linear_form
+from .cache.exchange import assemble_linear_form, assemble_functional
 
 __all__ = ["ExchangeTorchField2"]
 
@@ -9,6 +9,12 @@ __all__ = ["ExchangeTorchField2"]
 class ExchangeTorchField2(FieldTerm):
     def __init__(self):
         self._state = None
+
+    def E(self, state):
+        if self._state is None:
+            self._state = state
+
+        return assemble_functional(state.mesh.dx, state.m.tensor, state.material.A.tensor)
 
     def h(self, state):
         if self._state is None:

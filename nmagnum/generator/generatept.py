@@ -9,35 +9,61 @@ dx, dy, dz = sp.symbols('_dx[0]_ _dx[1]_ _dx[2]_', real=True, positive=True)
 N = sv.CoordSys3D('N')
 
 def Variable(name, space, shape = ()):
-    if shape == ():
-        expr = 0
-    elif shape == (3,):
-        expr = sp.vector.Vector.zero
-    else:
-        raise NotImplemented
-
+    result = []
     if space == 'cg':
         for i,j,k in product([0,1],[0,1],[0,1]):
             phi = (N.x + i * (dx - 2*N.x)) / dx * \
                   (N.y + j * (dy - 2*N.y)) / dy * \
                   (N.z + k * (dz - 2*N.z)) / dz
             if shape == ():
-                expr += sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True) * phi
+                result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True) * phi)
             elif shape == (3,):
                 for l in range(3):
-                    expr += sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l]
+                    result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l])
     elif space == 'dg':
         if shape == ():
-            expr = sp.Symbol(f"_{name}:{space}:{shape}:[0,0,0]_", real=True)
+            result.append(sp.Symbol(f"_{name}:{space}:{shape}:[0,0,0]_", real=True))
         elif shape == (3,):
             for l in range(3):
-                expr += sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0,l]}_", real=True) * [N.i, N.j, N.k][l]
+                result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0,l]}_", real=True) * [N.i, N.j, N.k][l])
     else:
         raise NotImplemented
-    return expr
+    return reduce(lambda x,y: x+y, result)
 
 
-def slices_linear_form(expr):
+def compile_functional(expr):
+    variables = set()
+    iexpr = sp.integrate(sp.integrate(sp.integrate(expr, (N.x, 0, dx)), (N.y, 0, dy)), (N.z, 0, dz))
+    # TODO factor too expensive?
+    rhs = str(iexpr)
+    for symb in iexpr.free_symbols:
+        match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
+        if not match:
+            continue
+
+        name, space = match[1].split(':')[:2]
+        shape, idx = [eval(x) for x in match[1].split(':')[2:]]
+
+        variables.add(name)
+        if space == 'cg':
+            sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(idx)]))
+        else:
+            sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(idx)]))
+        rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
+
+    rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
+    return rhs, variables
+
+def functional_code(expr):
+    rhs, variables = compile_functional(expr)
+
+    # Assemble Function
+    code = f"def assemble_functional(dx, {', '.join(variables)}):\n"
+    code += f"    return ({rhs}).sum()\n"
+    return code
+
+
+def linear_form_code(expr):
     cmds = {}
     v = {}
 
@@ -49,60 +75,35 @@ def slices_linear_form(expr):
             v[symb][1:] = [eval(x) for x in v[symb][1:]]
 
     # process test functions
-    variables = []
+    variables = set()
     for vsymb in v:
-        # Build RHS
         vexpr = expr.subs([(s, 1.) if s == vsymb else (s, 0.) for s in v])
-        iexpr = sp.factor(sp.integrate(sp.integrate(sp.integrate(vexpr, (N.x, 0, dx)), (N.y, 0, dy)), (N.z, 0, dz)))
-        rhs = str(iexpr)
-
+        rhs, vvars = compile_functional(vexpr)
+        variables = variables.union(vvars)
         vspace, vshape, vidx = v[vsymb]
-        for symb in iexpr.free_symbols:
-            match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
-            if not match:
-                continue
-
-            name, space = match[1].split(':')[:2]
-            shape, idx = [eval(x) for x in match[1].split(':')[2:]]
-
-            variables.append(name)
-
-            if space == 'cg':
-                sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(idx)]))
-            else:
-                sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(idx)]))
-            rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
-        rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
-
-        # Build LHS
         if vspace == 'cg':
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))
         lhs = f"result[{sidx}]"
-
-        # Store RHS and LHS
-        if lhs not in cmds:
-            cmds[lhs] = []
-        cmds[lhs].append(rhs)
+        cmds[lhs] = rhs
 
     # Assemble Function
-    code = f"def assemble_linear_form(result, dx, {', '.join(set(variables))}):\n"
+    code = f"def assemble_linear_form(result, dx, {', '.join(variables)}):\n"
     code += "    result[:] = 0\n"
     for lhs, rhs in cmds.items():
-        code += f"    {lhs} += {' + '.join(rhs)}\n"
+        code += f"    {lhs} += {rhs}\n"
 
     return code
 
-def gateaux_derivate(expr, var):
+def gateaux_derivative(expr, var):
     result = []
     for symb in var.free_symbols:
         if not hasattr(symb, "name") or not re.match(r"^_(.*:.*:.*:.*)_$", symb.name):
             continue
         v = sp.Symbol(re.sub(r"^_.*:(.*:.*:.*_)$", r"_v:\1", symb.name))
         result.append(v * expr.diff(symb))
-    return sp.simplify(reduce(lambda x,y: x+y, result))
-
+    return reduce(lambda x,y: x+y, result)
 
 # Exchange
 m = Variable('m', 'cg', (3,))
@@ -112,6 +113,9 @@ energy_expr = A * (
         m.diff(N.y).dot(m.diff(N.y)) +
         m.diff(N.z).dot(m.diff(N.z))
         )
-field_expr = gateaux_derivate(energy_expr, m)
 
-print(slices_linear_form(field_expr))
+print(functional_code(energy_expr))
+print("")
+field_expr = gateaux_derivative(energy_expr, m)
+print(linear_form_code(field_expr))
+
