@@ -1,7 +1,9 @@
 import sympy as sp
+import numpy as np
 import sympy.vector as sv
 import re
 
+import itertools
 from itertools import product
 from functools import reduce
 
@@ -30,7 +32,6 @@ def Variable(name, space, shape = ()):
         raise NotImplemented
     return reduce(lambda x,y: x+y, result)
 
-
 def compile_functional(expr):
     variables = set()
     iexpr = sp.integrate(sp.integrate(sp.integrate(expr, (N.x, 0, dx)), (N.y, 0, dy)), (N.z, 0, dz))
@@ -44,8 +45,6 @@ def compile_functional(expr):
         csymbs.append(symb)
     rhs = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), csymbs))
 
-    # TODO factor too expensive?
-    #rhs = str(iexpr)
     for symb in iexpr.free_symbols:
         match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
         if not match:
@@ -68,7 +67,7 @@ def functional_code(expr):
     rhs, variables = compile_functional(expr)
 
     # Assemble Function
-    code = "@torch.compile\n"
+    code = "@jax.jit\n"
     code += f"def assemble_functional(dx, {', '.join(variables)}):\n"
     code += f"    return ({rhs}).sum()\n"
     return code
@@ -96,15 +95,16 @@ def linear_form_code(expr):
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))
-        lhs = f"result[{sidx}]"
-        cmds[lhs] = rhs
+        cmds[sidx] = rhs
 
     # Assemble Function
-    code = "@torch.compile\n"
-    code += f"def assemble_linear_form(result, dx, {', '.join(variables)}):\n"
-    code += "    result[:] = 0\n"
-    for lhs, rhs in cmds.items():
-        code += f"    {lhs} += {rhs}\n"
+    # TODO use @partial(jax.jit, static_argnames=['dx', 'dy', 'dz']) instead? (check speedup)
+    code = "@jax.jit\n"
+    code += f"def assemble_linear_form(dx, {', '.join(variables)}):\n"
+    code += "    result = jnp.zeros_like(m)\n" # TODO m should not be hardcoded
+    for sidx, rhs in cmds.items():
+        code += f"    result = result.at[{sidx}].add({rhs}, indices_are_sorted=True, unique_indices=True)\n"
+    code += "    return result\n"
 
     return code
 
@@ -126,7 +126,8 @@ energy_expr = A * (
         m.diff(N.z).dot(m.diff(N.z))
         )
 
-print("import torch")
+print("import jax")
+print("import jax.numpy as jnp")
 print("")
 print(functional_code(energy_expr))
 print("")
