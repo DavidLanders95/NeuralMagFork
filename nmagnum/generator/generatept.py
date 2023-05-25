@@ -126,6 +126,12 @@ energy_expr = A * (
         m.diff(N.z).dot(m.diff(N.z))
         )
 
+## Anisotropy
+#m = Variable('m', 'cg', (3,))
+#K = Variable('K', 'dg')
+#Kaxis = Variable('Kaxis', 'dg', (3,))
+#energy_expr = K * (m.dot(Kaxis))**2
+
 print("import torch")
 print("")
 print(functional_code(energy_expr))
