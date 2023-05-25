@@ -22,7 +22,7 @@ def Variable(name, space, shape = ()):
                     result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l])
     elif space == 'dg':
         if shape == ():
-            result.append(sp.Symbol(f"_{name}:{space}:{shape}:[0,0,0]_", real=True))
+            result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0]}_", real=True))
         elif shape == (3,):
             for l in range(3):
                 result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0,l]}_", real=True) * [N.i, N.j, N.k][l])
@@ -35,22 +35,14 @@ def compile_functional(expr):
     variables = set()
     iexpr = sp.integrate(sp.integrate(sp.integrate(expr, (N.x, 0, dx)), (N.y, 0, dy)), (N.z, 0, dz))
 
-    # factor by all coefficients
-    csymbs = []
-    for symb in iexpr.free_symbols:
-        match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
-        if not match:
-            continue
-        csymbs.append(symb)
-    rhs = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), csymbs))
+    # find all named symbols (fields)
+    symbs = [symb for symb in iexpr.free_symbols if re.match(r"^_(.*:.*:.*:.*)_$", symb.name)]
 
-    # TODO factor too expensive?
-    #rhs = str(iexpr)
-    for symb in iexpr.free_symbols:
-        match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
-        if not match:
-            continue
+    # try to reduce multiplications of fields for better performance
+    rhs = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
 
+    for symb in symbs:
+        match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
         name, space = match[1].split(':')[:2]
         shape, idx = [eval(x) for x in match[1].split(':')[2:]]
 
@@ -126,11 +118,11 @@ energy_expr = A * (
         m.diff(N.z).dot(m.diff(N.z))
         )
 
-## Anisotropy
-#m = Variable('m', 'cg', (3,))
-#K = Variable('K', 'dg')
-#Kaxis = Variable('Kaxis', 'dg', (3,))
-#energy_expr = K * (m.dot(Kaxis))**2
+# Anisotropy
+m = Variable('m', 'cg', (3,))
+K = Variable('K', 'dg')
+Kaxis = Variable('Kaxis', 'dg', (3,))
+energy_expr = - K * (m.dot(Kaxis))**2
 
 print("import torch")
 print("")
