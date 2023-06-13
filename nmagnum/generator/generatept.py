@@ -12,9 +12,13 @@ def Variable(name, space, shape = ()):
     result = []
     if space == 'cg':
         for i,j,k in product([0,1],[0,1],[0,1]):
-            phi = (N.x + i * (dx - 2*N.x)) / dx * \
-                  (N.y + j * (dy - 2*N.y)) / dy * \
-                  (N.z + k * (dz - 2*N.z)) / dz
+            #phi = (N.x + i * (dx - 2*N.x)) / dx * \
+            #      (N.y + j * (dy - 2*N.y)) / dy * \
+            #      (N.z + k * (dz - 2*N.z)) / dz
+            phi = (1 - N.x/dx + 2*i*N.x/dx - i) * \
+                  (1 - N.y/dy + 2*j*N.y/dy - j) * \
+                  (1 - N.z/dz + 2*k*N.z/dz - k)
+
             if shape == ():
                 result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True) * phi)
             elif shape == (3,):
@@ -49,6 +53,7 @@ def compile_functional(expr):
         variables.add(name)
         if space == 'cg':
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(idx)]))
+            #sidx = ','.join(([['1:',':-1'][j] if i < 3 else str(j) for i, j in enumerate(idx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(idx)]))
         rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
@@ -86,6 +91,7 @@ def linear_form_code(expr):
         vspace, vshape, vidx = v[vsymb]
         if vspace == 'cg':
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
+            #sidx = ','.join(([['1:',':-1'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))
         lhs = f"result[{sidx}]"
@@ -119,10 +125,10 @@ energy_expr = A * (
         )
 
 # Anisotropy
-m = Variable('m', 'cg', (3,))
-K = Variable('K', 'dg')
-Kaxis = Variable('Kaxis', 'dg', (3,))
-energy_expr = - K * (m.dot(Kaxis))**2
+#m = Variable('m', 'cg', (3,))
+#K = Variable('K', 'dg')
+#Kaxis = Variable('Kaxis', 'dg', (3,))
+#energy_expr = - K * (m.dot(Kaxis))**2
 
 print("import torch")
 print("")
@@ -130,4 +136,3 @@ print(functional_code(energy_expr))
 print("")
 field_expr = gateaux_derivative(energy_expr, m)
 print(linear_form_code(field_expr))
-

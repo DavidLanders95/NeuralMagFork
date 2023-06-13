@@ -14,14 +14,16 @@ class ExchangeTorchField2(FieldTerm):
         if self._state is None:
             self._state = state
 
-        return assemble_functional(state.mesh.dx, state.m.tensor, state.material.A.tensor)
+        #return assemble_functional(state.mesh.dx, state.m.tensor, state.material.A.tensor)
+        return assemble_functional(state.mesh.dx, state.material.A.tensor, state.m.tensor)
 
     def h(self, state):
         if self._state is None:
             self._state = state
             self._h = VectorFunction(state)
 
-        assemble_linear_form(self._h.tensor, state.mesh.dx, state.m.tensor, state.material.A.tensor)
+        #assemble_linear_form(self._h.tensor, state.mesh.dx, state.m.tensor, state.material.A.tensor)
+        assemble_linear_form(self._h.tensor, state.mesh.dx, state.material.A.tensor, state.m.tensor)
 
         # compute lumped mass
         V = state.mesh.cell_volume
