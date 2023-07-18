@@ -15,7 +15,7 @@ class ExchangeTorchField2(FieldTerm):
             self._state = state
 
         #return assemble_functional(state.mesh.dx, state.m.tensor, state.material.A.tensor)
-        return assemble_functional(state.mesh.dx, state.material.A.tensor, state.m.tensor)
+        return assemble_functional(state.mesh.dx, state.m.tensor, state.material.A.tensor)
 
     def h(self, state):
         if self._state is None:
@@ -23,7 +23,7 @@ class ExchangeTorchField2(FieldTerm):
             self._h = VectorFunction(state)
 
         #assemble_linear_form(self._h.tensor, state.mesh.dx, state.m.tensor, state.material.A.tensor)
-        assemble_linear_form(self._h.tensor, state.mesh.dx, state.material.A.tensor, state.m.tensor)
+        assemble_linear_form(self._h.tensor, state.mesh.dx, state.m.tensor, state.material.A.tensor)
 
         # compute lumped mass
         V = state.mesh.cell_volume
