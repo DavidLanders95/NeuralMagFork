@@ -33,4 +33,8 @@ def test_E():
     state.material.Ms = CellFunction(state).from_constant(8e5)
 
     exchange_torch2 = ExchangeTorchField2()
-    assert exchange_torch2.E(state) == pytest.approx(2.3587200000000006e-16)
+    exchange_energy = exchange_torch2.E(state)
+    if exchange_energy.device.type == "cpu":
+        exchange_energy == pytest.approx(2.3587200000000006e-16)
+    else:
+        exchange_energy.cpu() == pytest.approx(2.3587200000000006e-16)
