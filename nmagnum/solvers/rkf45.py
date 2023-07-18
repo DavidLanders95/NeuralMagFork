@@ -4,6 +4,7 @@ from ..common import logging
 
 __all__ = ["RKF45"]
 
+
 # Runge-Kutta-Fehlberg method with stepsize control
 class RKF45(object):
     def __init__(self, f, dt=1e-15, atol=1e-5):

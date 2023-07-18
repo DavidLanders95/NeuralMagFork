@@ -4,6 +4,7 @@ import torch
 
 from nmagnum import *
 
+
 def test_h():
     mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9))
     state = State(mesh)
@@ -12,8 +13,8 @@ def test_h():
     state.material.A = CellFunction(state).from_constant(1.2e-11)
     state.material.Ms = CellFunction(state).from_constant(8e5)
 
-    #exchange = ExchangeField()
-    #h = exchange.h(state).tensor
+    # exchange = ExchangeField()
+    # h = exchange.h(state).tensor
 
     exchange_torch = ExchangeTorchField()
     h_torch = exchange_torch.h(state).tensor
@@ -21,8 +22,9 @@ def test_h():
     exchange_torch2 = ExchangeTorchField2()
     h_torch2 = exchange_torch2.h(state).tensor
 
-    #torch.testing.assert_close(h, h_torch, rtol=1e-8, atol=1.0)
+    # torch.testing.assert_close(h, h_torch, rtol=1e-8, atol=1.0)
     torch.testing.assert_close(h_torch, h_torch2, rtol=1e-8, atol=1.0)
+
 
 def test_E():
     mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9))

@@ -1,4 +1,5 @@
 import numpy as np
+
 from nmagnum import *
 
 mesh = Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))
@@ -21,4 +22,4 @@ while state.t < 1e-9:
     llg.step(state, 1e-12)
 
 state.m.write("m.vti")
-#state.material.Ms.write("ms.vti")
+# state.material.Ms.write("ms.vti")
