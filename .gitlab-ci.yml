@@ -7,7 +7,9 @@ default:
 # Dot in front of the job will hide it from the CI
 .setup_python_containers_and_test:
   before_script: &before-script-after
-    - apt update -y -qq && apt install -y -qq libgl1  # for pyvista/vtk
+    # For pyvista/vtk and GCC
+    - apt update -y -qq && apt install -y -qq libgl1 build-essential
+    - gcc --version
     # Find and install cudatoolkit for numba
     - export CUDA_Version=$(nvidia-smi | grep CUDA | sed 's/.*CUDA Version..\(.*\)..*/\1/')
     - conda install -y -n test_env -c conda-forge cudatoolkit=$CUDA_Version
