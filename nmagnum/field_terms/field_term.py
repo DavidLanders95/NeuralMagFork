@@ -11,45 +11,19 @@ __all__ = ["FieldTerm"]
 
 class FieldTerm(object):
     def __init__(self, *args, **kwargs):
+        # initialize path to code file
         this_module = pathlib.Path(importlib.import_module(self.__module__).__file__)
-
         code_dir = this_module.parent / 'code'
         code_dir.mkdir(parents = True, exist_ok = True)
-
         code_module_name = f"{this_module.stem}_code"
-        code_file_path = code_dir / f"{code_module_name}.py"
+        self._code_file_path = code_dir / f"{code_module_name}.py"
 
-        if not code_file_path.is_file():
-
-            # generate the code
-            with open(code_file_path, 'w') as code_file:
-                # generate linear-form code
-                m = gen.Variable('m', 'cg', (3,))
-                field_expr = gen.gateaux_derivative(self.e_expr(m), m)
-                cmds, variables = gen.linear_form_cmds(field_expr, 'h')
-                variables.add('material__Ms')
-
-                # write header
-                code_file.write("import torch\n")
-                code_file.write("@torch.compile\n")
-                code_file.write(f"def compute_heff(h, dx, mass, {', '.join(variables)}):\n")
-
-                # RHS
-                code_file.write("    h[:] = 0\n")
-                for lhs, rhs in cmds.items():
-                    code_file.write(f"    {lhs} += {rhs}\n")
-
-                # inverse mass
-                v = gen.Variable('v', 'cg')
-                Ms = gen.Variable('material__Ms', 'dg')
-                cmds, _ = gen.linear_form_cmds(- constants.mu_0 * Ms * v, 'mass')
-                code_file.write("    mass[:] = 0\n")
-                for lhs, rhs in cmds.items():
-                    code_file.write(f"    {lhs} += {rhs}\n")
-                code_file.write("    h /= mass.unsqueeze(-1)\n")
+        # generate code
+        if not self._code_file_path.is_file():
+            self.generate_code()
 
         # import code
-        spec = importlib.util.spec_from_file_location(code_module_name, code_file_path)
+        spec = importlib.util.spec_from_file_location(code_module_name, self._code_file_path)
         module = importlib.util.module_from_spec(spec)
         sys.modules[code_module_name] = module
         spec.loader.exec_module(module)
@@ -73,3 +47,30 @@ class FieldTerm(object):
         self._code.compute_heff(*self._args)
 
         return self._h
+
+    def generate_code(self):
+        with open(self._code_file_path, 'w') as code_file:
+            # generate linear-form code
+            m = gen.Variable('m', 'cg', (3,))
+            field_expr = gen.gateaux_derivative(self.e_expr(m), m)
+            cmds, variables = gen.linear_form_cmds(field_expr, 'h')
+            variables.add('material__Ms')
+
+            # write header
+            code_file.write("import torch\n")
+            code_file.write("@torch.compile\n")
+            code_file.write(f"def compute_heff(h, dx, mass, {', '.join(variables)}):\n")
+
+            # RHS
+            code_file.write("    h[:] = 0\n")
+            for lhs, rhs in cmds.items():
+                code_file.write(f"    {lhs} += {rhs}\n")
+
+            # inverse mass
+            v = gen.Variable('v', 'cg')
+            Ms = gen.Variable('material__Ms', 'dg')
+            cmds, _ = gen.linear_form_cmds(- constants.mu_0 * Ms * v, 'mass')
+            code_file.write("    mass[:] = 0\n")
+            for lhs, rhs in cmds.items():
+                code_file.write(f"    {lhs} += {rhs}\n")
+            code_file.write("    h /= mass.unsqueeze(-1)\n")
