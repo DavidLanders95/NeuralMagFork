@@ -2,6 +2,7 @@ import sympy as sp
 import sympy.vector as sv
 import re
 from scipy.special.orthogonal import p_roots
+from scipy import constants
 from itertools import product
 from functools import reduce
 from tqdm import tqdm
@@ -83,7 +84,7 @@ def functional_code(expr):
     return code
 
 
-def linear_form_code(expr):
+def linear_form_cmds(expr, result_name = 'result'):
     cmds = {}
     v = {}
 
@@ -105,8 +106,13 @@ def linear_form_code(expr):
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))
-        lhs = f"result[{sidx}]"
+        lhs = f"{result_name}[{sidx}]"
         cmds[lhs] = rhs
+
+    return cmds, variables
+
+def linear_form_code(expr):
+    cmds, variables = linear_form_cmds(expr, 'result')
 
     # Assemble Function
     code = "@torch.compile\n"

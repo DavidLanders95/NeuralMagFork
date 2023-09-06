@@ -23,12 +23,30 @@ class FieldTerm(object):
 
             # generate the code
             with open(code_file_path, 'w') as code_file:
+                # generate linear-form code
                 m = gen.Variable('m', 'cg', (3,))
-                e_expr = self.e_expr(m)
-                field_expr = gen.gateaux_derivative(e_expr, m)
+                field_expr = gen.gateaux_derivative(self.e_expr(m), m)
+                cmds, variables = gen.linear_form_cmds(field_expr, 'h')
+                variables.add('material__Ms')
 
+                # write header
                 code_file.write("import torch\n")
-                code_file.write(gen.assemble_linear_form(field_expr))
+                code_file.write("@torch.compile\n")
+                code_file.write(f"def compute_heff(h, dx, mass, {', '.join(variables)}):\n")
+
+                # RHS
+                code_file.write("    h[:] = 0\n")
+                for lhs, rhs in cmds.items():
+                    code_file.write(f"    {lhs} += {rhs}\n")
+
+                # inverse mass
+                v = gen.Variable('v', 'cg')
+                Ms = gen.Variable('material__Ms', 'dg')
+                cmds, _ = gen.linear_form_cmds(- constants.mu_0 * Ms * v, 'mass')
+                code_file.write("    mass[:] = 0\n")
+                for lhs, rhs in cmds.items():
+                    code_file.write(f"    {lhs} += {rhs}\n")
+                code_file.write("    h /= mass.unsqueeze(-1)\n")
 
         # import code
         spec = importlib.util.spec_from_file_location(code_module_name, code_file_path)
@@ -39,12 +57,12 @@ class FieldTerm(object):
 
     def h(self, state):
         if not hasattr(state, '_args'):
-            # set up scratch space for h
+            # set up scratch space for h (TODO do they really need to be persistent?)
             self._h = VectorFunction(state)
-
-            self._args = [self._h.tensor, state.mesh.dx]
-            args = list(inspect.signature(self._code.assemble_linear_form).parameters.keys())
-            for arg in args[2:]:
+            self._mass = Function(state)
+            self._args = [self._h.tensor, state.mesh.dx, self._mass.tensor]
+            args = list(inspect.signature(self._code.compute_heff).parameters.keys())
+            for arg in args[3:]:
                 container = state
                 while '__' in arg:
                     parent, child = arg.split('__', 1)
@@ -52,23 +70,6 @@ class FieldTerm(object):
                     arg = child
                 self._args.append(getattr(container, arg).tensor)
 
-            print(self._args)
-
-        self._code.assemble_linear_form(*self._args)
-
-        # compute lumped mass
-        V = state.mesh.cell_volume
-        Ms = state.material.Ms.tensor
-        mass = Function(state).tensor
-        mass[:-1, :-1, :-1] += V / 8.0 * Ms
-        mass[:-1, :-1, 1:] += V / 8.0 * Ms
-        mass[:-1, 1:, :-1] += V / 8.0 * Ms
-        mass[:-1, 1:, 1:] += V / 8.0 * Ms
-        mass[1:, :-1, :-1] += V / 8.0 * Ms
-        mass[1:, :-1, 1:] += V / 8.0 * Ms
-        mass[1:, 1:, :-1] += V / 8.0 * Ms
-        mass[1:, 1:, 1:] += V / 8.0 * Ms
-
-        self._h.tensor.multiply_(-1.0 / (constants.mu_0 * mass.unsqueeze(-1)))
+        self._code.compute_heff(*self._args)
 
         return self._h
