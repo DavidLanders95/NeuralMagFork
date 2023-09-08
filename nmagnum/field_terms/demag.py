@@ -12,7 +12,6 @@ from .field_term import FieldTerm
 
 __all__ = ["DemagField"]
 
-
 def newell_f(points):
     x = abs(points[:, :, :, 0])
     y = abs(points[:, :, :, 1])
@@ -21,19 +20,13 @@ def newell_f(points):
     result = 1.0 / 6.0 * (2 * x**2 - y**2 - z**2) * sqrt(x**2 + y**2 + z**2)
 
     mask = (x**2 + z**2).gt(0)
-    result[mask] += (y / 2.0 * (z**2 - x**2) * asinh(y / sqrt(x**2 + z**2)))[
-        mask
-    ]
+    result[mask] += (y / 2.0 * (z**2 - x**2) * asinh(y / sqrt(x**2 + z**2)))[mask]
 
     mask = (x**2 + y**2).gt(0)
-    result[mask] += (z / 2.0 * (y**2 - x**2) * asinh(z / sqrt(x**2 + y**2)))[
-        mask
-    ]
+    result[mask] += (z / 2.0 * (y**2 - x**2) * asinh(z / sqrt(x**2 + y**2)))[mask]
 
     mask = (x * (x**2 + y**2 + z**2)).gt(0)
-    result[mask] -= (x * y * z * atan(y * z / (x * sqrt(x**2 + y**2 + z**2))))[
-        mask
-    ]
+    result[mask] -= (x * y * z * atan(y * z / (x * sqrt(x**2 + y**2 + z**2))))[mask]
 
     return result
 
@@ -49,29 +42,19 @@ def newell_g(points):
     result[mask] += (x * y * z * asinh(z / sqrt(x**2 + y**2)))[mask]
 
     mask = (y**2 + z**2).gt(0)
-    result[mask] += (
-        y / 6.0 * (3.0 * z**2 - y**2) * asinh(x / sqrt(y**2 + z**2))
-    )[mask]
+    result[mask] += (y / 6.0 * (3.0 * z**2 - y**2) * asinh(x / sqrt(y**2 + z**2)))[mask]
 
     mask = (x**2 + z**2).gt(0)
-    result[mask] += (
-        x / 6.0 * (3.0 * z**2 - x**2) * asinh(y / sqrt(x**2 + z**2))
-    )[mask]
+    result[mask] += (x / 6.0 * (3.0 * z**2 - x**2) * asinh(y / sqrt(x**2 + z**2)))[mask]
 
     mask = (z * (x**2 + y**2 + z**2)).ne(0)
-    result[mask] -= (z**3 / 6.0 * atan(x * y / (z * sqrt(x**2 + y**2 + z**2))))[
-        mask
-    ]
+    result[mask] -= (z**3 / 6.0 * atan(x * y / (z * sqrt(x**2 + y**2 + z**2))))[mask]
 
     mask = (y * (x**2 + y**2 + z**2)).ne(0)
-    result[mask] -= (
-        z * y**2 / 2.0 * atan(x * z / (y * sqrt(x**2 + y**2 + z**2)))
-    )[mask]
+    result[mask] -= (z * y**2 / 2.0 * atan(x * z / (y * sqrt(x**2 + y**2 + z**2))))[mask]
 
     mask = (x * (x**2 + y**2 + z**2)).ne(0)
-    result[mask] -= (
-        z * x**2 / 2.0 * atan(y * z / (x * sqrt(x**2 + y**2 + z**2)))
-    )[mask]
+    result[mask] -= (z * x**2 / 2.0 * atan(y * z / (x * sqrt(x**2 + y**2 + z**2))))[mask]
 
     return result
 
@@ -81,9 +64,7 @@ def dipole_f(points):
     y = points[:, :, :, 1]
     z = points[:, :, :, 2]
 
-    result = (2.0 * x**2 - y**2 - z**2) * pow(
-        x**2 + y**2 + z**2, -5.0 / 2.0
-    )
+    result = (2.0 * x**2 - y**2 - z**2) * pow(x**2 + y**2 + z**2, -5.0 / 2.0)
     result[0, 0, 0] = 0.0
     return result
 
@@ -97,10 +78,76 @@ def dipole_g(points):
     result[0, 0, 0] = 0.0
     return result
 
+def h(h, dx, N, m, material__Ms):
+    mcell = (
+        + m[1:,1:,1:,:] + m[:-1,1:,1:,:] + m[1:,:-1,1:,:] + m[:-1,:-1,1:,:]
+        + m[1:,1:,:-1,:] + m[:-1,1:,:-1,:] + m[1:,:-1,:-1,:] + m[:-1,:-1,:-1,:]
+    ) / 8.
+
+    hx = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
+    hy = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
+    hz = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
+
+    for ax in range(3):
+        m_pad_fft1D = torch.fft.rfftn(
+            material__Ms.unsqueeze(-1) * mcell[:, :, :, (ax,)],
+            dim = [i for i in range(3) if mcell.shape[i] > 1],
+            s = [mcell.shape[i] * 2 for i in range(3) if mcell.shape[i] > 1],
+        ).squeeze(-1) # TODO really need squeeze, (ax,) -> ax
+
+        hx += N[0][ax] * m_pad_fft1D
+        hy += N[1][ax] * m_pad_fft1D
+        hz += N[2][ax] * m_pad_fft1D
+
+    hx = torch.fft.irfftn(hx, dim=[i for i in range(3) if mcell.shape[i] > 1])
+    hy = torch.fft.irfftn(hy, dim=[i for i in range(3) if mcell.shape[i] > 1])
+    hz = torch.fft.irfftn(hz, dim=[i for i in range(3) if mcell.shape[i] > 1])
+
+    
+    hcell = torch.zeros(mcell.shape, dtype = mcell.dtype, device = mcell.device)
+    hcell[...,0] = hx[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
+    hcell[...,1] = hy[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
+    hcell[...,2] = hz[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
+
+    h[:] = 0
+    h[:-1, :-1, :-1] += 0.125 * hcell
+    h[:-1, :-1, 1:] += 0.125 * hcell
+    h[:-1, 1:, :-1] += 0.125 * hcell
+    h[:-1, 1:, 1:] += 0.125 * hcell
+    h[1:, :-1, :-1] += 0.125 * hcell
+    h[1:, :-1, 1:] += 0.125 * hcell
+    h[1:, 1:, :-1] += 0.125 * hcell
+    h[1:, 1:, 1:] += 0.125 * hcell
+
+    mass = torch.zeros(h.shape[:3], dtype = h.dtype, device = h.device)
+    mass[:-1, :-1, :-1] += 0.125
+    mass[:-1, :-1, 1:] += 0.125
+    mass[:-1, 1:, :-1] += 0.125
+    mass[:-1, 1:, 1:] += 0.125
+    mass[1:, :-1, :-1] += 0.125
+    mass[1:, :-1, 1:] += 0.125
+    mass[1:, 1:, :-1] += 0.125
+    mass[1:, 1:, 1:] += 0.125
+
+    h /= mass.unsqueeze(-1)
+
+class Code(): pass
 
 class DemagField(FieldTerm):
-    def __init__(self, p=20):
+    def __init__(self, state, p = 20):
         self._p = p
+        self._init_N(state)
+
+        self._h = VectorFunction(state)
+        self._args = [
+           self._h.tensor,
+           state.mesh.dx,
+           self._N,
+           state.m.tensor,
+           state.material.Ms.tensor
+        ]
+        self.code = Code()
+        self.code.h = h
 
     def _init_N_component(self, state, perm, func_near, func_far):
         # dipole far-field
@@ -141,34 +188,17 @@ class DemagField(FieldTerm):
                 / (4.0 * np.pi * np.prod(state.mesh.dx))
             )
 
-        Nc[: n_near[0], : n_near[1], : n_near[2]] = N_near[
-            : n_near[0], : n_near[1], : n_near[2]
-        ]
-        Nc[: n_near[0], : n_near[1], -n_near[2] + 1 :] = N_near[
-            : n_near[0], : n_near[1], -n_near[2] + 1 :
-        ]
-        Nc[: n_near[0], -n_near[1] + 1 :, : n_near[2]] = N_near[
-            : n_near[0], -n_near[1] + 1 :, : n_near[2]
-        ]
-        Nc[: n_near[0], -n_near[1] + 1 :, -n_near[2] + 1 :] = N_near[
-            : n_near[0], -n_near[1] + 1 :, -n_near[2] + 1 :
-        ]
-        Nc[-n_near[0] + 1 :, : n_near[1], : n_near[2]] = N_near[
-            -n_near[0] + 1 :, : n_near[1], : n_near[2]
-        ]
-        Nc[-n_near[0] + 1 :, : n_near[1], -n_near[2] + 1 :] = N_near[
-            -n_near[0] + 1 :, : n_near[1], -n_near[2] + 1 :
-        ]
-        Nc[-n_near[0] + 1 :, -n_near[1] + 1 :, : n_near[2]] = N_near[
-            -n_near[0] + 1 :, -n_near[1] + 1 :, : n_near[2]
-        ]
-        Nc[-n_near[0] + 1 :, -n_near[1] + 1 :, -n_near[2] + 1 :] = N_near[
-            -n_near[0] + 1 :, -n_near[1] + 1 :, -n_near[2] + 1 :
-        ]
+        Nc[:n_near[0]   ,:n_near[1]   ,:n_near[2]   ] = N_near[:n_near[0]   ,:n_near[1]   ,:n_near[2]   ]
+        Nc[:n_near[0]   ,:n_near[1]   ,-n_near[2]+1:] = N_near[:n_near[0]   ,:n_near[1]   ,-n_near[2]+1:]
+        Nc[:n_near[0]   ,-n_near[1]+1:,:n_near[2]   ] = N_near[:n_near[0]   ,-n_near[1]+1:,:n_near[2]   ]
+        Nc[:n_near[0]   ,-n_near[1]+1:,-n_near[2]+1:] = N_near[:n_near[0]   ,-n_near[1]+1:,-n_near[2]+1:]
+        Nc[-n_near[0]+1:,:n_near[1]   ,:n_near[2]   ] = N_near[-n_near[0]+1:,:n_near[1]   ,:n_near[2]   ]
+        Nc[-n_near[0]+1:,:n_near[1]   ,-n_near[2]+1:] = N_near[-n_near[0]+1:,:n_near[1]   ,-n_near[2]+1:]
+        Nc[-n_near[0]+1:,-n_near[1]+1:,:n_near[2]   ] = N_near[-n_near[0]+1:,-n_near[1]+1:,:n_near[2]   ]
+        Nc[-n_near[0]+1:,-n_near[1]+1:,-n_near[2]+1:] = N_near[-n_near[0]+1:,-n_near[1]+1:,-n_near[2]+1:]
 
-        return torch.fft.rfftn(
-            Nc, dim=[i for i in range(3) if state.mesh.n[i] > 1]
-        ).real.clone()
+        Nc = torch.fft.rfftn(Nc, dim = [i for i in range(3) if state.mesh.n[i] > 1])
+        return Nc.real.clone()
 
     def _init_N(self, state):
         time_kernel = time()
@@ -180,84 +210,7 @@ class DemagField(FieldTerm):
         Nzz = self._init_N_component(state, [2, 0, 1], newell_f, dipole_f)
 
         self._N = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]
-        logging.info_green(
-            f"[DEMAG]: Time calculation of demag kernel = {time() - time_kernel} s"
-        )
 
-    def _hcell(self, state, m):
-        if not hasattr(self, "_N"):
-            self._init_N(state)
-
-        hx = torch.zeros(
-            list(self._N[0][0].shape), device=state.device, dtype=torch.complex128
-        )
-        hy = torch.zeros(
-            list(self._N[0][0].shape), device=state.device, dtype=torch.complex128
-        )
-        hz = torch.zeros(
-            list(self._N[0][0].shape), device=state.device, dtype=torch.complex128
-        )
-        for ax in range(3):
-            m_pad_fft1D = torch.fft.rfftn(
-                state.material.Ms.tensor.unsqueeze(-1) * m[:, :, :, (ax,)],
-                dim=[i for i in range(3) if state.mesh.n[i] > 1],
-                s=[2 * state.mesh.n[i] for i in range(3) if state.mesh.n[i] > 1],
-            ).squeeze(-1)
-
-            hx += self._N[0][ax] * m_pad_fft1D
-            hy += self._N[1][ax] * m_pad_fft1D
-            hz += self._N[2][ax] * m_pad_fft1D
-
-        hx = torch.fft.irfftn(hx, dim=[i for i in range(3) if state.mesh.n[i] > 1])
-        hy = torch.fft.irfftn(hy, dim=[i for i in range(3) if state.mesh.n[i] > 1])
-        hz = torch.fft.irfftn(hz, dim=[i for i in range(3) if state.mesh.n[i] > 1])
-
-        return torch.stack(
-            [
-                hx[: state.mesh.n[0], : state.mesh.n[1], : state.mesh.n[2]],
-                hy[: state.mesh.n[0], : state.mesh.n[1], : state.mesh.n[2]],
-                hz[: state.mesh.n[0], : state.mesh.n[1], : state.mesh.n[2]],
-            ],
-            dim=3,
-        )
-
-    def h(self, state):
-        mcell = (
-            state.m.tensor[1:, 1:, 1:, :]
-            + state.m.tensor[:-1, 1:, 1:, :]
-            + state.m.tensor[1:, :-1, 1:, :]
-            + state.m.tensor[:-1, :-1, 1:, :]
-            + state.m.tensor[1:, 1:, :-1, :]
-            + state.m.tensor[:-1, 1:, :-1, :]
-            + state.m.tensor[1:, :-1, :-1, :]
-            + state.m.tensor[:-1, :-1, :-1, :]
-        )
-        mcell /= 8.0
-
-        hcell = self._hcell(state, mcell)
-
-        h = VectorFunction(state)
-        h.tensor[:-1, :-1, :-1] += 1.0 / 8.0 * hcell
-        h.tensor[:-1, :-1, 1:] += 1.0 / 8.0 * hcell
-        h.tensor[:-1, 1:, :-1] += 1.0 / 8.0 * hcell
-        h.tensor[:-1, 1:, 1:] += 1.0 / 8.0 * hcell
-        h.tensor[1:, :-1, :-1] += 1.0 / 8.0 * hcell
-        h.tensor[1:, :-1, 1:] += 1.0 / 8.0 * hcell
-        h.tensor[1:, 1:, :-1] += 1.0 / 8.0 * hcell
-        h.tensor[1:, 1:, 1:] += 1.0 / 8.0 * hcell
-
-        ones = CellFunction(state).from_constant(1.0).tensor
-        mass = Function(state).tensor
-
-        mass[:-1, :-1, :-1] += 1.0 / 8.0 * ones
-        mass[:-1, :-1, 1:] += 1.0 / 8.0 * ones
-        mass[:-1, 1:, :-1] += 1.0 / 8.0 * ones
-        mass[:-1, 1:, 1:] += 1.0 / 8.0 * ones
-
-        mass[1:, :-1, :-1] += 1.0 / 8.0 * ones
-        mass[1:, :-1, 1:] += 1.0 / 8.0 * ones
-        mass[1:, 1:, :-1] += 1.0 / 8.0 * ones
-        mass[1:, 1:, 1:] += 1.0 / 8.0 * ones
-
-        h.tensor.multiply_(1.0 / mass.unsqueeze(-1))
-        return h
+    def h(self):
+        self.code.h(*self._args)
+        return self._h
