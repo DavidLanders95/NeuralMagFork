@@ -4,10 +4,11 @@ from ..generators.pytorch_generator import Variable, N
 __all__ = ["ExchangeField"]
 
 class ExchangeField(FieldTerm):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, state, *args, **kwargs):
+        super().__init__(state, *args, **kwargs)
 
-    def e_expr(self, m):
+    @staticmethod
+    def e_expr(m):
         A = Variable('material.A', 'dg')
         return A * (
                 m.diff(N.x).dot(m.diff(N.x)) + 

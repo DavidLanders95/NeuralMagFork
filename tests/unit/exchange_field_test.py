@@ -15,8 +15,8 @@ def test_h():
     #exchange = ExchangeField()
     #h = exchange.h(state).tensor
 
-    exchange = ExchangeField()
-    h_torch = exchange.h(state).tensor
+    exchange = ExchangeField(state)
+    h_torch = exchange.h().tensor
 
     exchange_torch2 = ExchangeTorchField2()
     h_torch2 = exchange_torch2.h(state).tensor
