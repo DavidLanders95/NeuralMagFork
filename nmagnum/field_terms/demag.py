@@ -131,10 +131,11 @@ def h(h, dx, N, m, material__Ms):
 
     h /= mass.unsqueeze(-1)
 
-class Code(): pass
 
 class DemagField(FieldTerm):
-    def __init__(self, state, p = 20):
+    def __init__(self, state, p = 20, *args, **kwargs):
+        super().__init__(state, *args, **kwargs)
+
         self._p = p
         self._init_N(state)
 
@@ -146,7 +147,7 @@ class DemagField(FieldTerm):
            state.m.tensor,
            state.material.Ms.tensor
         ]
-        self.code = Code()
+
         self.code.h = h
 
     def _init_N_component(self, state, perm, func_near, func_far):

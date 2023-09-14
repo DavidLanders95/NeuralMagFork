@@ -6,9 +6,32 @@ from scipy import constants
 from itertools import product
 from functools import reduce
 from tqdm import tqdm
+import pathlib
+import importlib
 
 dx, dy, dz = sp.symbols('_dx[0]_ _dx[1]_ _dx[2]_', real=True, positive=True)
 N = sv.CoordSys3D('N')
+
+class CodeClass(object):
+    def __init__(self, *args, generate_code = True):
+        if not generate_code:
+            return
+
+        this_module = pathlib.Path(importlib.import_module(self.__module__).__file__)
+        code_file_path = this_module.parent / 'code' / f"{this_module.stem}_code.py"
+
+        # generate code
+        if not code_file_path.is_file():
+            code_file_path.parent.mkdir(parents = True, exist_ok = True)
+            # TODO check if generate_code method exists
+            code = self.generate_code()
+            with open(code_file_path, 'w') as f:
+                f.write(code)
+
+        # import code
+        module_spec = importlib.util.spec_from_file_location('code', code_file_path)
+        self.code = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(self.code)
 
 def Variable(name, space, shape = ()):
     result = []

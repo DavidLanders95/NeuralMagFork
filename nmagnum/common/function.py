@@ -44,6 +44,10 @@ class Function(object):
         return self._shape
 
     @property
+    def ftype(self):
+        return self._ftype
+
+    @property
     def tensor(self):
         return self._tensor
 

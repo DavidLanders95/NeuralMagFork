@@ -1,5 +1,4 @@
 import os
-
 import numpy as np
 import torch
 
@@ -10,7 +9,6 @@ __all__ = ["State"]
 
 class Material:
     pass
-
 
 class State(object):
     def __init__(self, mesh, t0=0.0, device=None):

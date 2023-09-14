@@ -1,7 +1,7 @@
 from .field_term import FieldTerm
 from ..generators.pytorch_generator import Variable, N
 
-__all__ = ["ExchangeField"]
+__all__ = ['ExchangeField']
 
 class ExchangeField(FieldTerm):
     def __init__(self, state, *args, **kwargs):
