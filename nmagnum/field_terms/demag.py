@@ -78,60 +78,6 @@ def dipole_g(points):
     result[0, 0, 0] = 0.0
     return result
 
-def h(h, dx, N, m, material__Ms):
-    mcell = (
-        + m[1:,1:,1:,:] + m[:-1,1:,1:,:] + m[1:,:-1,1:,:] + m[:-1,:-1,1:,:]
-        + m[1:,1:,:-1,:] + m[:-1,1:,:-1,:] + m[1:,:-1,:-1,:] + m[:-1,:-1,:-1,:]
-    ) / 8.
-
-    hx = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
-    hy = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
-    hz = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
-
-    for ax in range(3):
-        m_pad_fft1D = torch.fft.rfftn(
-            material__Ms.unsqueeze(-1) * mcell[:, :, :, (ax,)],
-            dim = [i for i in range(3) if mcell.shape[i] > 1],
-            s = [mcell.shape[i] * 2 for i in range(3) if mcell.shape[i] > 1],
-        ).squeeze(-1) # TODO really need squeeze, (ax,) -> ax
-
-        hx += N[0][ax] * m_pad_fft1D
-        hy += N[1][ax] * m_pad_fft1D
-        hz += N[2][ax] * m_pad_fft1D
-
-    hx = torch.fft.irfftn(hx, dim=[i for i in range(3) if mcell.shape[i] > 1])
-    hy = torch.fft.irfftn(hy, dim=[i for i in range(3) if mcell.shape[i] > 1])
-    hz = torch.fft.irfftn(hz, dim=[i for i in range(3) if mcell.shape[i] > 1])
-
-    
-    hcell = torch.zeros(mcell.shape, dtype = mcell.dtype, device = mcell.device)
-    hcell[...,0] = hx[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
-    hcell[...,1] = hy[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
-    hcell[...,2] = hz[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
-
-    h[:] = 0
-    h[:-1, :-1, :-1] += 0.125 * hcell
-    h[:-1, :-1, 1:] += 0.125 * hcell
-    h[:-1, 1:, :-1] += 0.125 * hcell
-    h[:-1, 1:, 1:] += 0.125 * hcell
-    h[1:, :-1, :-1] += 0.125 * hcell
-    h[1:, :-1, 1:] += 0.125 * hcell
-    h[1:, 1:, :-1] += 0.125 * hcell
-    h[1:, 1:, 1:] += 0.125 * hcell
-
-    mass = torch.zeros(h.shape[:3], dtype = h.dtype, device = h.device)
-    mass[:-1, :-1, :-1] += 0.125
-    mass[:-1, :-1, 1:] += 0.125
-    mass[:-1, 1:, :-1] += 0.125
-    mass[:-1, 1:, 1:] += 0.125
-    mass[1:, :-1, :-1] += 0.125
-    mass[1:, :-1, 1:] += 0.125
-    mass[1:, 1:, :-1] += 0.125
-    mass[1:, 1:, 1:] += 0.125
-
-    h /= mass.unsqueeze(-1)
-
-
 class DemagField(FieldTerm):
     def __init__(self, state, p = 20, *args, **kwargs):
         super().__init__(state, *args, **kwargs)
@@ -139,16 +85,62 @@ class DemagField(FieldTerm):
         self._p = p
         self._init_N(state)
 
-        self._h = VectorFunction(state)
-        self._args = [
-           self._h.tensor,
-           state.mesh.dx,
-           self._N,
-           state.m.tensor,
-           state.material.Ms.tensor
-        ]
+    def h_func(dx, Ndemag, m, material__Ms):
+        N = Ndemag
+        h = torch.zeros(m.shape, dtype = m.dtype, device = m.device)
+        mcell = (
+            + m[1:,1:,1:,:] + m[:-1,1:,1:,:] + m[1:,:-1,1:,:] + m[:-1,:-1,1:,:]
+            + m[1:,1:,:-1,:] + m[:-1,1:,:-1,:] + m[1:,:-1,:-1,:] + m[:-1,:-1,:-1,:]
+        ) / 8.
 
-        self.code.h = h
+        hx = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
+        hy = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
+        hz = torch.zeros(list(N[0][0].shape), device = m.device, dtype = torch.complex128)
+
+        for ax in range(3):
+            m_pad_fft1D = torch.fft.rfftn(
+                material__Ms.unsqueeze(-1) * mcell[:, :, :, (ax,)],
+                dim = [i for i in range(3) if mcell.shape[i] > 1],
+                s = [mcell.shape[i] * 2 for i in range(3) if mcell.shape[i] > 1],
+            ).squeeze(-1) # TODO really need squeeze, (ax,) -> ax
+
+            hx += N[0][ax] * m_pad_fft1D
+            hy += N[1][ax] * m_pad_fft1D
+            hz += N[2][ax] * m_pad_fft1D
+
+        hx = torch.fft.irfftn(hx, dim=[i for i in range(3) if mcell.shape[i] > 1])
+        hy = torch.fft.irfftn(hy, dim=[i for i in range(3) if mcell.shape[i] > 1])
+        hz = torch.fft.irfftn(hz, dim=[i for i in range(3) if mcell.shape[i] > 1])
+
+        
+        hcell = torch.zeros(mcell.shape, dtype = mcell.dtype, device = mcell.device)
+        hcell[...,0] = hx[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
+        hcell[...,1] = hy[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
+        hcell[...,2] = hz[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
+
+        h[:] = 0
+        h[:-1, :-1, :-1] += 0.125 * hcell
+        h[:-1, :-1, 1:] += 0.125 * hcell
+        h[:-1, 1:, :-1] += 0.125 * hcell
+        h[:-1, 1:, 1:] += 0.125 * hcell
+        h[1:, :-1, :-1] += 0.125 * hcell
+        h[1:, :-1, 1:] += 0.125 * hcell
+        h[1:, 1:, :-1] += 0.125 * hcell
+        h[1:, 1:, 1:] += 0.125 * hcell
+
+        mass = torch.zeros(h.shape[:3], dtype = h.dtype, device = h.device)
+        mass[:-1, :-1, :-1] += 0.125
+        mass[:-1, :-1, 1:] += 0.125
+        mass[:-1, 1:, :-1] += 0.125
+        mass[:-1, 1:, 1:] += 0.125
+        mass[1:, :-1, :-1] += 0.125
+        mass[1:, :-1, 1:] += 0.125
+        mass[1:, 1:, :-1] += 0.125
+        mass[1:, 1:, 1:] += 0.125
+
+        h /= mass.unsqueeze(-1)
+        return h
+
 
     def _init_N_component(self, state, perm, func_near, func_far):
         # dipole far-field
@@ -210,8 +202,4 @@ class DemagField(FieldTerm):
         Nyz = self._init_N_component(state, [1, 2, 0], newell_g, dipole_g)
         Nzz = self._init_N_component(state, [2, 0, 1], newell_f, dipole_f)
 
-        self._N = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]
-
-    def h(self):
-        self.code.h(*self._args)
-        return self._h
+        state.Ndemag = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]

@@ -30,8 +30,8 @@ class CodeClass(object):
 
         # import code
         module_spec = importlib.util.spec_from_file_location('code', code_file_path)
-        self.code = importlib.util.module_from_spec(module_spec)
-        module_spec.loader.exec_module(self.code)
+        self._code = importlib.util.module_from_spec(module_spec)
+        module_spec.loader.exec_module(self._code)
 
 def Variable(name, space, shape = ()):
     result = []

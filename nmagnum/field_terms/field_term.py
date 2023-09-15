@@ -7,33 +7,34 @@ import torch
 
 __all__ = ["FieldTerm"]
 
-class Code(): pass
-
 class FieldTerm(gen.CodeClass):
-    def __init__(self, state, *args, **kwargs):
-        self.code = Code()
-        if hasattr(self, 'e_expr'):
-            super().__init__(generate_code = True, **kwargs)
 
-            # set up scratch space for h
-            self._h = VectorFunction(state)
-            self._args = [self._h.tensor, state.mesh.dx]
-            args = list(inspect.signature(self.code.h).parameters.keys())
-            for arg in args[2:]:
-                container = state
-                while '__' in arg:
-                    parent, child = arg.split('__', 1)
-                    container = getattr(container, parent)
-                    arg = child
-                self._args.append(getattr(container, arg).tensor)
-        else:
-            super().__init__(generate_code = False, **kwargs)
-            self.code = Code()
-            self._args = []
+    def __init__(self, state, **kwargs):
+        super().__init__(generate_code = hasattr(self, 'e_expr'), **kwargs)
+        self._state = state
+
+        if not hasattr(self, 'h_func'):
+            self.h_func = self._code.h
 
     def h(self):
-        self.code.h(*self._args)
-        return self._h
+        if not hasattr(self, '_h_args'):
+            self._h_args = self.args_for_function(self.h_func)
+        return VectorFunction(self._state, tensor = self.h_func(*self._h_args))
+
+    def args_for_function(self, f):
+        result = []
+        for arg in list(inspect.signature(f).parameters.keys()):
+            container = self._state
+            while '__' in arg:
+                parent, child = arg.split('__', 1)
+                container = getattr(container, parent)
+                arg = child
+            attr = getattr(container, arg)
+            if hasattr(attr, 'tensor'):
+                result.append(attr.tensor)
+            else:
+                result.append(attr)
+        return result
 
     @classmethod
     def generate_code(cls):
@@ -43,15 +44,17 @@ class FieldTerm(gen.CodeClass):
         m = gen.Variable('m', 'cg', (3,))
         field_expr = gen.gateaux_derivative(cls.e_expr(m), m)
         cmds, variables = gen.linear_form_cmds(field_expr, 'h')
+        variables.add('m')
         variables.add('material__Ms')
 
         # write header
         code += "import torch\n"
         code += "@torch.compile\n"
-        code += f"def h(h, dx, {', '.join(sorted(variables))}):\n"
+        code += f"def h(mesh__dx, {', '.join(sorted(variables))}):\n"
+        code += "    dx = mesh__dx\n"
+        code += "    h = torch.zeros(m.shape, dtype = m.dtype, device = m.device)\n"
 
         # linear form
-        code += "    h[:] = 0\n"
         for lhs, rhs in cmds.items():
             code += f"    {lhs} += {rhs}\n"
 
@@ -59,9 +62,10 @@ class FieldTerm(gen.CodeClass):
         v = gen.Variable('v', 'cg')
         Ms = gen.Variable('material__Ms', 'dg')
         cmds, _ = gen.linear_form_cmds(- constants.mu_0 * Ms * v, 'mass')
-        code += "    mass = torch.zeros(h.shape[:3], dtype = h.dtype, device = h.device)\n"
+        code += "    mass = torch.zeros(m.shape[:3], dtype = m.dtype, device = m.device)\n"
         for lhs, rhs in cmds.items():
             code += f"    {lhs} += {rhs}\n"
         code += "    h /= mass.unsqueeze(-1)\n"
+        code += "    return h\n"
 
         return code
