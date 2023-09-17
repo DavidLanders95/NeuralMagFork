@@ -21,6 +21,7 @@ class FieldTerm(gen.CodeClass):
             self._h_args = self.args_for_function(self.h_func)
         return VectorFunction(self._state, tensor = self.h_func(*self._h_args))
 
+    # TODO create args_for_h?
     def args_for_function(self, f):
         result = []
         for arg in list(inspect.signature(f).parameters.keys()):
