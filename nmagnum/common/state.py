@@ -1,11 +1,90 @@
 import os
 import numpy as np
 import torch
+import inspect
+import types
 
 from . import logging
 
-__all__ = ["State"]
+__all__ = ["State", "Container"]
 
+class Container(object):
+    def __init__(self):
+        self._attr_values = {}
+        self._attr_funcs = {}
+        self._attr_args = {}
+
+    def __getattr__(self, name):
+        if callable(self._attr_values[name]):
+            func, args = self.get_func(name)
+            return func(*args)
+        else:
+            return self._attr_values[name]
+
+    def __setattr__(self, name, value): 
+        # TODO check for __ and throw exception
+        # don't mess with protected attributes
+        if name[0] == '_':     
+            super().__setattr__(name, value) 
+            return  
+        self._attr_values[name] = value
+        self._attr_funcs.clear()
+        self._attr_args.clear()
+
+    def _collect_func_deps(self, attr):
+        func_names = []
+        args = {}
+        for arg in list(inspect.signature(attr).parameters.keys()):
+            attr = self._attr_values[arg]
+
+            if callable(attr):
+                func_names.append(arg)
+                subfunc_names, subargs = self._collect_func_deps(attr)
+                func_names = [f for f in func_names if f not in subfunc_names] + subfunc_names
+                args.update(subargs)
+            else:
+                args[arg] = attr
+
+        return func_names, args
+
+    def get_func(self, name):
+        if not hasattr(self._attr_funcs, name):
+            attr = self._attr_values[name]
+            func_names, args = self._collect_func_deps(attr)
+
+            # setup function with all dependencies
+            if func_names:
+                code = f"def {name}({', '.join(sorted(args))}):\n"
+                func_pointers= {}
+                for func_name in reversed(func_names):
+                    func = self._attr_values[func_name]
+                    func_pointers[f"__{func_name}"] = func
+                    code += f"    {func_name} = __{func_name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
+                func_pointers[f"__{name}"] = attr
+                code += f"    return __{name}({', '.join(list(inspect.signature(attr).parameters.keys()))})\n"
+
+                compiled_code = compile(code, "<string>", "exec")
+                func = types.FunctionType(compiled_code.co_consts[0], func_pointers, name)
+            else:
+                func = attr
+
+            # collect args
+            args = []
+            for arg in list(inspect.signature(func).parameters.keys()):
+                container = self
+                while '__' in arg:
+                    parent, child = arg.split('__', 1)
+                    container = getattr(container, parent)
+                    arg = child
+                attr = getattr(container, arg)
+                if hasattr(attr, 'tensor'):
+                    args.append(attr.tensor)
+                else:
+                    args.append(attr)
+
+            self._attr_funcs[name] = (func, args)
+
+        return self._attr_funcs[name]
 
 class Material:
     pass
@@ -41,7 +120,10 @@ class State(object):
 
     @t.setter
     def t(self, value):
+        # TODO update if self._t exist
         if isinstance(value, torch.Tensor):
             self._t = value
         else:
             self._t = torch.tensor(value, dtype=self.dtype, device=self.device)
+
+
