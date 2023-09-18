@@ -19,7 +19,7 @@ class LLGSolver(nn.Module):
         self.a_prime = state.material.alpha * self.g_prime
 
     def  forward(self, t, m):
-        # TODO update state.t
+        self._state.t = t
         self._state.m.tensor[:] = m[:]
         h = self._state.h_total.tensor
         return - self.g_prime * torch.cross(m, h) - self.a_prime * torch.cross(m, torch.cross(m, h))
@@ -29,6 +29,5 @@ class LLGSolver(nn.Module):
         logging.info_blue("[LLG] step: dt= %g  t=%g" % (dt, self._state.t))
         t = torch.linspace(self._state.t, self._state.t + dt, 2, dtype = self._state.dtype, device = self._state.device)
         m_next = odeint(self, self._state.m.tensor.detach().clone(), t, method = 'dopri5', rtol = 1e-5, atol = 1e-5) # TODO really need detach clone?
-        self._state.t += dt
-        self._state.m.tensor[:] = m_next[1]
-
+        self._state.t = t[-1]
+        self._state.m.tensor[:] = m_next[-1]

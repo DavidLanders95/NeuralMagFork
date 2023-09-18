@@ -131,6 +131,7 @@ class State(object):
                     code += f"    {func_name} = __{func_name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
                 func_pointers[f"__{name}"] = attr
                 code += f"    return __{name}({', '.join(list(inspect.signature(attr).parameters.keys()))})\n"
+                print(code)
    
                 compiled_code = compile(code, "<string>", "exec")
                 func = types.FunctionType(compiled_code.co_consts[0], func_pointers, name)
