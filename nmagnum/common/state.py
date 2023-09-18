@@ -6,13 +6,58 @@ import types
 
 from . import logging
 
-__all__ = ["State", "Container"]
+__all__ = ['State']
 
-class Container(object):
-    def __init__(self):
+class Material:
+    def __init__(self, state):
+        self._state = state
+
+    def __getattr__(self, name):
+        return getattr(self._state, "material__" + name)
+
+    def __setattr__(self, name, value):
+        # don't mess with protected attributes
+        if name[0] == '_':
+            super().__setattr__(name, value) 
+            return
+        return setattr(self._state, "material__" + name, value)
+
+class State(object):
+    def __init__(self, mesh, t0=0.0, device=None):
         self._attr_values = {}
         self._attr_funcs = {}
         self._attr_args = {}
+
+        if device == None:
+            CUDA_DEVICE = os.environ.get("CUDA_DEVICE", "0")
+            self._device = torch.device(
+                f"cuda:{CUDA_DEVICE}" if torch.cuda.is_available() else "cpu"
+            )
+        else:
+            self._device = device
+
+        self._material = Material(self)
+        self._mesh = mesh
+        self.t = t0
+
+        logging.info_green("[State] running on device:%s" % self._device)
+        logging.info_green("[Mesh] %dx%dx%d (size= %g x %g x %g)" % (mesh.n + mesh.dx))
+
+    @property
+    def device(self):
+        return self._device
+
+    @property
+    def dtype(self):
+        return torch.float64
+
+    @property
+    def t(self):
+        return self._t
+
+    @property
+    def material(self):
+        return self._material
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
@@ -22,11 +67,18 @@ class Container(object):
             return self._attr_values[name]
 
     def __setattr__(self, name, value): 
-        # TODO check for __ and throw exception
         # don't mess with protected attributes
-        if name[0] == '_':     
+        if name[0] == '_':
             super().__setattr__(name, value) 
             return  
+
+        if name == 't':
+            if hasattr(self._attr_values, 't'):
+                self._attr_values['t'].fill_(t)
+            else:
+                value = torch.tensor(value, dtype = self.dtype, device = self.device)
+
+        # TODO check for __ in name (material)
         self._attr_values[name] = value
         self._attr_funcs.clear()
         self._attr_args.clear()
@@ -85,45 +137,3 @@ class Container(object):
             self._attr_funcs[name] = (func, args)
 
         return self._attr_funcs[name]
-
-class Material:
-    pass
-
-class State(object):
-    def __init__(self, mesh, t0=0.0, device=None):
-        self.mesh = mesh
-        if device == None:
-            CUDA_DEVICE = os.environ.get("CUDA_DEVICE", "0")
-            self._device = torch.device(
-                f"cuda:{CUDA_DEVICE}" if torch.cuda.is_available() else "cpu"
-            )
-        else:
-            self._device = device
-
-        self.material = Material()
-
-        self.t = t0
-        logging.info_green("[State] running on device:%s" % self._device)
-        logging.info_green("[Mesh] %dx%dx%d (size= %g x %g x %g)" % (mesh.n + mesh.dx))
-
-    @property
-    def device(self):
-        return self._device
-
-    @property
-    def dtype(self):
-        return torch.float64
-
-    @property
-    def t(self):
-        return self._t
-
-    @t.setter
-    def t(self, value):
-        # TODO update if self._t exist
-        if isinstance(value, torch.Tensor):
-            self._t = value
-        else:
-            self._t = torch.tensor(value, dtype=self.dtype, device=self.device)
-
-
