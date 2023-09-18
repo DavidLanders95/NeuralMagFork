@@ -12,10 +12,8 @@ def test_h():
     state.material.A = CellFunction(state).from_constant(1.2e-11)
     state.material.Ms = CellFunction(state).from_constant(8e5)
 
-    exchange = ExchangeField(state)
-    h = exchange.h().tensor
-
-    assert h.sum() == pytest.approx(3.0994415283203125e-06)
+    ExchangeField().register(state)
+    assert state.h_exchange.tensor.sum() == pytest.approx(3.0994415283203125e-06)
 
 #def test_E():
 #    mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9))

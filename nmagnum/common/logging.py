@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 # create magnum.fe logger
-logger = logging.getLogger("magnum.nf")
+logger = logging.getLogger("nodemag")
 
 handler = logging.StreamHandler()
 handler.setFormatter(

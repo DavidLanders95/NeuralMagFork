@@ -5,6 +5,7 @@ import inspect
 import types
 
 from . import logging
+from . import Function
 
 __all__ = ['State']
 
@@ -25,6 +26,7 @@ class Material:
 class State(object):
     def __init__(self, mesh, t0=0.0, device=None):
         self._attr_values = {}
+        self._attr_types = {}
         self._attr_funcs = {}
         self._attr_args = {}
 
@@ -38,6 +40,7 @@ class State(object):
 
         self._material = Material(self)
         self._mesh = mesh
+        self._attr_values['mesh__dx'] = self.tensor(mesh.dx)
         self.t = t0
 
         logging.info_green("[State] running on device:%s" % self._device)
@@ -52,17 +55,26 @@ class State(object):
         return torch.float64
 
     @property
-    def t(self):
-        return self._t
+    def mesh(self):
+        return self._mesh
 
     @property
     def material(self):
         return self._material
 
+    def tensor(self, value):
+        if isinstance(value, torch.Tensor):
+            return value
+        return torch.tensor(value, device = self.device, dtype = self.dtype) 
+
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
             func, args = self.get_func(name)
-            return func(*args)
+            if name in self._attr_types:
+                ftype, shape = self._attr_types[name]
+                return Function(self, ftype = ftype, shape = shape, tensor = func(*args))
+            else:
+                return func(*args)
         else:
             return self._attr_values[name]
 
@@ -73,12 +85,17 @@ class State(object):
             return  
 
         if name == 't':
-            if hasattr(self._attr_values, 't'):
-                self._attr_values['t'].fill_(t)
-            else:
-                value = torch.tensor(value, dtype = self.dtype, device = self.device)
+            if 't' in self._attr_values:
+                self._attr_values['t'].fill_(value)
+                return
+            value = self.tensor(value)
 
-        # TODO check for __ in name (material)
+        if isinstance(value, tuple) and len(value) == 3:
+            self._attr_types[name] = value[1:]
+            value = value[0]
+        else:
+            self._attr_types.pop(name, None)
+
         self._attr_values[name] = value
         self._attr_funcs.clear()
         self._attr_args.clear()
@@ -100,7 +117,7 @@ class State(object):
         return func_names, args
 
     def get_func(self, name):
-        if not hasattr(self._attr_funcs, name):
+        if not name in self._attr_funcs:
             attr = self._attr_values[name]
             func_names, args = self._collect_func_deps(attr)
 
@@ -114,7 +131,7 @@ class State(object):
                     code += f"    {func_name} = __{func_name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
                 func_pointers[f"__{name}"] = attr
                 code += f"    return __{name}({', '.join(list(inspect.signature(attr).parameters.keys()))})\n"
-
+   
                 compiled_code = compile(code, "<string>", "exec")
                 func = types.FunctionType(compiled_code.co_consts[0], func_pointers, name)
             else:

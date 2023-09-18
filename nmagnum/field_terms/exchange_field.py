@@ -4,8 +4,9 @@ from ..generators.pytorch_generator import Variable, N
 __all__ = ['ExchangeField']
 
 class ExchangeField(FieldTerm):
-    def __init__(self, state, *args, **kwargs):
-        super().__init__(state, *args, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.h_name = 'h_exchange'
 
     @staticmethod
     def e_expr(m):

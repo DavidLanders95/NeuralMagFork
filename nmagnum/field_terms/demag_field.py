@@ -79,14 +79,18 @@ def dipole_g(points):
     return result
 
 class DemagField(FieldTerm):
-    def __init__(self, state, p = 20, *args, **kwargs):
-        super().__init__(state, *args, **kwargs)
-
+    def __init__(self, p = 20, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._p = p
+        self.h_name = 'h_demag'
+
+    def register(self, state):
+        super().register(state)
         self._init_N(state)
 
-    def h_func(dx, Ndemag, m, material__Ms):
-        N = Ndemag
+    @staticmethod
+    def h_func(N_demag, m, material__Ms):
+        N = N_demag
         h = torch.zeros(m.shape, dtype = m.dtype, device = m.device)
         mcell = (
             + m[1:,1:,1:,:] + m[:-1,1:,1:,:] + m[1:,:-1,1:,:] + m[:-1,:-1,1:,:]
@@ -202,4 +206,4 @@ class DemagField(FieldTerm):
         Nyz = self._init_N_component(state, [1, 2, 0], newell_g, dipole_g)
         Nzz = self._init_N_component(state, [2, 0, 1], newell_f, dipole_f)
 
-        state.Ndemag = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]
+        state.N_demag = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]

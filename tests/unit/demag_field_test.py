@@ -12,8 +12,7 @@ def test_h():
     state.m = VectorFunction(state).from_constant([1.0, 0.0, 0.0])
     state.material.Ms = CellFunction(state).from_constant(1.0)
 
-    demag = DemagField(state)
-    h = demag.h()
-    assert ((h.tensor * state.m.tensor).sum() / 6**3).cpu().numpy() == pytest.approx(
+    DemagField().register(state)
+    assert ((state.h_demag.tensor * state.m.tensor).sum() / 6**3).cpu().numpy() == pytest.approx(
         -1 / 3
     )

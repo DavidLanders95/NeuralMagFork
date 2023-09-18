@@ -9,33 +9,14 @@ __all__ = ["FieldTerm"]
 
 class FieldTerm(gen.CodeClass):
 
-    def __init__(self, state, **kwargs):
-        super().__init__(generate_code = hasattr(self, 'e_expr'), **kwargs)
-        self._state = state
+    def __init__(self, **kwargs):
+        pass
 
+    def register(self, state):
+        super().__init__(generate_code = hasattr(self, 'e_expr'))
         if not hasattr(self, 'h_func'):
             self.h_func = self._code.h
-
-    def h(self):
-        if not hasattr(self, '_h_args'):
-            self._h_args = self.args_for_function(self.h_func)
-        return VectorFunction(self._state, tensor = self.h_func(*self._h_args))
-
-    # TODO create args_for_h?
-    def args_for_function(self, f):
-        result = []
-        for arg in list(inspect.signature(f).parameters.keys()):
-            container = self._state
-            while '__' in arg:
-                parent, child = arg.split('__', 1)
-                container = getattr(container, parent)
-                arg = child
-            attr = getattr(container, arg)
-            if hasattr(attr, 'tensor'):
-                result.append(attr.tensor)
-            else:
-                result.append(attr)
-        return result
+        setattr(state, self.h_name, (self.h_func, 'node', (3,)))
 
     @classmethod
     def generate_code(cls):

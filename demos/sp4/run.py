@@ -11,21 +11,23 @@ state.material.A = CellFunction(state).from_constant(1.3e-11)
 state.material.alpha = 1.0
 
 state.m = VectorFunction(state).from_constant((1./np.sqrt(2.), 1./np.sqrt(2.), 0))
-state.hext = VectorFunction(state).from_constant((-19576., 3421., 0.))
+state.h_ext = VectorFunction(state).from_constant((-19576., 3421., 0.))
 
-exchange = ExchangeField(state)
-demag = DemagField(state)
-external = ExternalField(state)
+# TOP
+ExchangeField().register(state)
+DemagField().register(state)
+TotalField('h_exchange', 'h_demag').register(state)
 
-llg = LLGSolver(state, [demag, exchange])
+llg = LLGSolver(state)
 
 llg.step(1e-9)
 
 print(state.m.avg())
 state.m.write("m0.vti")
 
+TotalField('h_exchange', 'h_demag', 'h_ext').register(state)
 state.material.alpha = 0.02
-llg = LLGSolver(state, [demag, exchange, external])
+llg = LLGSolver(state)
 
 with open('log.dat', 'w') as f:
     for i in range(100):
