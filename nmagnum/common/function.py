@@ -76,14 +76,14 @@ class Function(object):
             return self._tensor.mean(dim = (0, 1, 2))
         else:
             return ((
-                + self._tensor[1:,1:,1:,:]
-                + self._tensor[:-1,1:,1:,:]
-                + self._tensor[1:,:-1,1:,:]
-                + self._tensor[:-1,:-1,1:,:]
-                + self._tensor[1:,1:,:-1,:]
-                + self._tensor[:-1,1:,:-1,:]
-                + self._tensor[1:,:-1,:-1,:]
-                + self._tensor[:-1,:-1,:-1,:]
+                + self._tensor[1:,1:,1:,...]
+                + self._tensor[:-1,1:,1:,...]
+                + self._tensor[1:,:-1,1:,...]
+                + self._tensor[:-1,:-1,1:,...]
+                + self._tensor[1:,1:,:-1,...]
+                + self._tensor[:-1,1:,:-1,...]
+                + self._tensor[1:,:-1,:-1,...]
+                + self._tensor[:-1,:-1,:-1,...]
             ) / 8.).mean(dim = (0, 1, 2))
 
     # def normalize(self):

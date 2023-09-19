@@ -1,9 +1,6 @@
-import numpy as np
 import pytest
 import torch
-
 from nmagnum import *
-
 
 def test_h():
     mesh = Mesh((5, 5, 5), (1e-9, 1e-9, 1e-9))

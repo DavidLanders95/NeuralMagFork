@@ -79,13 +79,14 @@ def dipole_g(points):
     return result
 
 class DemagField(FieldTerm):
+    _h_name = 'h_demag'
+
     def __init__(self, p = 20, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._p = p
-        self.h_name = 'h_demag'
 
-    def register(self, state):
-        super().register(state)
+    def register(self, state, *args):
+        super().register(state, *args)
         self._init_N(state)
 
     @staticmethod

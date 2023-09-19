@@ -12,11 +12,11 @@ class FieldTerm(gen.CodeClass):
     def __init__(self, **kwargs):
         pass
 
-    def register(self, state):
+    def register(self, state, h_name = None):
         super().__init__(generate_code = hasattr(self, 'e_expr'))
         if not hasattr(self, 'h_func'):
             self.h_func = self._code.h
-        setattr(state, self.h_name, (self.h_func, 'node', (3,)))
+        setattr(state, h_name or self._h_name, (self.h_func, 'node', (3,)))
 
     @classmethod
     def generate_code(cls):
