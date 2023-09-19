@@ -1,4 +1,5 @@
 from .field_term import FieldTerm
+from ..common import logging
 import types
 
 __all__ = ['TotalField']
@@ -14,4 +15,5 @@ class TotalField(FieldTerm):
         code += f"    return {' + '.join(self._field_names)}"
         compiled_code = compile(code, "<string>", "exec")
         func = types.FunctionType(compiled_code.co_consts[0], {}, 'h_total')
+        logging.info_green(f"[{self.__class__.__name__}] Register state methods (field: '{h_name or self._h_name}')")
         setattr(state, h_name or self._h_name, (func, 'node', (3,)))

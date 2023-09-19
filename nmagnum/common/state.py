@@ -43,8 +43,8 @@ class State(object):
         self._attr_values['mesh__dx'] = self.tensor(mesh.dx)
         self.t = 0.
 
-        logging.info_green("[State] running on device:%s" % self._device)
-        logging.info_green("[Mesh] %dx%dx%d (size= %g x %g x %g)" % (mesh.n + mesh.dx))
+        logging.info_green(f"[State] Running on device: {self._device}")
+        logging.info_green("[Mesh] %dx%dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx))
 
     @property
     def device(self):
@@ -135,8 +135,6 @@ class State(object):
                 code += f"    {func_name} = __{func_name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
             func_pointers[f"__{name}"] = f
             code += f"    return __{name}({', '.join(list(inspect.signature(f).parameters.keys()))})\n"
-            print(code)
-
             compiled_code = compile(code, "<string>", "exec")
             func = types.FunctionType(compiled_code.co_consts[0], func_pointers, name)
         else:

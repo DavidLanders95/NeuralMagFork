@@ -21,14 +21,16 @@ class LLGSolver(nn.Module):
         self.reset()
 
     def reset(self):
+        logging.info_green("[LLGSolver] Initialize RHS function")
         self._func, self._args = self._state.get_func(llg_rhs, ['t', 'm'])
 
     def forward(self, t, m):
         return self._func(t * 1e-9, m, *self._args[2:])
 
     def step(self, dt):
-        logging.info_blue("[LLG] step: dt = %g, t = %g" % (dt, self._state.t))
-        t = torch.linspace(self._state.t * 1e9, (self._state.t + dt) * 1e9, 2, dtype = self._state.dtype, device = self._state.device)
-        m_next = odeint(self, self._state.m.tensor.detach().clone(), t, method = 'dopri5', rtol = 1e-5, atol = 1e-5) # TODO really need detach clone?
+        logging.info_blue("[LLGSolver] Step: dt = %g, t = %g" % (dt, self._state.t))
+        t = self._state.tensor([self._state.t * 1e9, (self._state.t + dt) * 1e9])
+        m_next = odeint(self, self._state.m.tensor, t, # TODO need to clone m?
+                method = 'dopri5', rtol = 1e-5, atol = 1e-5)
         self._state.t = t[-1] * 1e-9
         self._state.m.tensor[:] = m_next[-1]

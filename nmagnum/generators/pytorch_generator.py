@@ -8,6 +8,7 @@ from functools import reduce
 from tqdm import tqdm
 import pathlib
 import importlib
+from ..common import logging
 
 dx, dy, dz = sp.symbols('_dx[0]_ _dx[1]_ _dx[2]_', real=True, positive=True)
 N = sv.CoordSys3D('N')
@@ -24,6 +25,7 @@ class CodeClass(object):
         if not code_file_path.is_file():
             code_file_path.parent.mkdir(parents = True, exist_ok = True)
             # TODO check if generate_code method exists
+            logging.info_green(f"[{self.__class__.__name__}] Generate torch core methods")
             code = self.generate_code()
             with open(code_file_path, 'w') as f:
                 f.write(code)
