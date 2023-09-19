@@ -27,8 +27,7 @@ class LLGSolver(nn.Module):
         return self._func(t * 1e-9, m, *self._args[2:])
 
     def step(self, dt):
-        # TODO scale t be 1e-9??
-        logging.info_blue("[LLG] step: dt= %g  t=%g" % (dt, self._state.t))
+        logging.info_blue("[LLG] step: dt = %g, t = %g" % (dt, self._state.t))
         t = torch.linspace(self._state.t * 1e9, (self._state.t + dt) * 1e9, 2, dtype = self._state.dtype, device = self._state.device)
         m_next = odeint(self, self._state.m.tensor.detach().clone(), t, method = 'dopri5', rtol = 1e-5, atol = 1e-5) # TODO really need detach clone?
         self._state.t = t[-1] * 1e-9

@@ -12,7 +12,7 @@ state.material.Ms = CellFunction(state).from_constant(8e5)
 state.material.A = CellFunction(state).from_constant(1.3e-11)
 state.material.alpha = 1.
 state.h_ext = VectorFunction(state).from_constant((0, 0, 0))
-state.m = VectorFunction(state).from_constant((1./np.sqrt(2.), 1./np.sqrt(2.), 0))
+state.m = VectorFunction(state).from_constant((np.sqrt(0.5), np.sqrt(0.5), 0))
 
 # register effective field
 ExchangeField().register(state, 'h_exchange')
