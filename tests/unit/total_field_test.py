@@ -11,5 +11,5 @@ def test_h():
     state.a = VectorFunction(state).from_constant((1., 2., 3.))
     state.b = VectorFunction(state).from_constant((4., 5., 6.))
     TotalField('a', 'b').register(state)
-    assert state.h_total.tensor.sum() == pytest.approx(567.)
+    torch.testing.assert_close(state.h_total.tensor.sum(), state.tensor(567.))
 

@@ -124,6 +124,7 @@ class State(object):
         func_names, args = self._collect_func_deps(f)
         args = list(set(args) - set(add_args))
         name = f.__name__
+        name = "lmda" if f.__name__ == '<lambda>' else name
 
         # setup function with all dependencies
         if func_names:

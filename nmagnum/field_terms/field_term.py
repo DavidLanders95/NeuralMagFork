@@ -15,7 +15,11 @@ class FieldTerm(gen.CodeClass):
     def register(self, state, h_name = None):
         super().__init__(generate_code = hasattr(self, 'e_expr'))
         if not hasattr(self, 'h_func'):
-            self.h_func = self._code.h
+            try:
+                logging.info_green(f"[{self.__class__.__name__}] Compile field method")
+                self.h_func = torch.compile(self._code.h)
+            except:
+                self.h_func = self._code.h
         logging.info_green(f"[{self.__class__.__name__}] Register state methods (field: '{h_name or self._h_name}')")
         setattr(state, h_name or self._h_name, (self.h_func, 'node', (3,)))
 
@@ -32,7 +36,7 @@ class FieldTerm(gen.CodeClass):
 
         # write header
         code += "import torch\n"
-        code += "@torch.compile\n"
+        #code += "@torch.compile\n"
         code += f"def h(mesh__dx, {', '.join(sorted(variables))}):\n"
         code += "    dx = mesh__dx\n"
         code += "    h = torch.zeros(m.shape, dtype = m.dtype, device = m.device)\n"
