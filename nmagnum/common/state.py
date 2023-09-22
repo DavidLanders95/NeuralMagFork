@@ -65,6 +65,8 @@ class State(object):
     def tensor(self, value):
         if isinstance(value, torch.Tensor):
             return value
+        if isinstance(value, np.ndarray):
+            return torch.from_numpy(value).to(device = self.device, dtype = self.dtype)
         return torch.tensor(value, device = self.device, dtype = self.dtype) 
 
     def __getattr__(self, name):

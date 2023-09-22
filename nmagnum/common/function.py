@@ -44,6 +44,10 @@ class Function(object):
         return self._shape
 
     @property
+    def state(self):
+        return self._state
+
+    @property
     def ftype(self):
         return self._ftype
 

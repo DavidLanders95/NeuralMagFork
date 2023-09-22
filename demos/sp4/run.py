@@ -27,8 +27,7 @@ llg.step(1e-9)
 state.h_ext.tensor[...,:] = state.tensor([-19576., 3421., 0.])
 state.material.alpha = 0.02
 
-with open('log.dat', 'w') as f:
-    for i in range(100):
-        llg.step(1e-11)
-        avg = state.m.avg()
-        f.write(f"{state.t} {avg[0]} {avg[1]} {avg[2]}\n")
+logger = Logger('data', ['t', 'm'], ['m'])
+for i in range(100):
+    logger.log(state)
+    llg.step(1e-11)

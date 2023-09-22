@@ -16,6 +16,7 @@ class FieldTerm(gen.CodeClass):
         super().__init__(generate_code = hasattr(self, 'e_expr'))
         if not hasattr(self, 'h_func'):
             try:
+                # TODO move to CodeClass?
                 logging.info_green(f"[{self.__class__.__name__}] Compile field method")
                 self.h_func = torch.compile(self._code.h)
             except:
