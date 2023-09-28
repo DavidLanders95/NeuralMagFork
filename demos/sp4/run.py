@@ -1,7 +1,5 @@
 from nmagnum import *
-import torch
 import numpy as np
-from torchdiffeq import odeint_adjoint as odeint
 
 # setup state
 mesh = Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))

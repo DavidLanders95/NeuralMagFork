@@ -15,12 +15,7 @@ class FieldTerm(gen.CodeClass):
     def register(self, state, h_name = None):
         super().__init__(generate_code = hasattr(self, 'e_expr'))
         if not hasattr(self, 'h_func'):
-            try:
-                # TODO move to CodeClass?
-                logging.info_green(f"[{self.__class__.__name__}] Compile field method")
-                self.h_func = torch.compile(self._code.h)
-            except:
-                self.h_func = self._code.h
+            self.h_func = torch.compile(self._code.h)
         logging.info_green(f"[{self.__class__.__name__}] Register state methods (field: '{h_name or self._h_name}')")
         setattr(state, h_name or self._h_name, (self.h_func, 'node', (3,)))
 

@@ -65,7 +65,7 @@ class ScalarLogger(object):
         for column in self._columns:
             if isinstance(column, str):
                 name = column
-                raw_value = getattr(state, column)
+                raw_value = state.getattr(column)
             elif hasattr(column, '__call__'):
                 name = column.__name__
                 raw_value = column(state)

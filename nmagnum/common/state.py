@@ -62,6 +62,14 @@ class State(object):
     def material(self):
         return self._material
 
+    def getattr(self, name):
+        container = self
+        while '.' in name:
+            parent, child = name.split('.', 1)
+            container = getattr(container, parent)
+            name = child
+        return getattr(container, name)
+
     def tensor(self, value):
         if isinstance(value, torch.Tensor):
             return value
@@ -146,12 +154,7 @@ class State(object):
         # collect args
         args = []
         for arg in list(inspect.signature(func).parameters.keys()):
-            container = self
-            while '__' in arg:
-                parent, child = arg.split('__', 1)
-                container = getattr(container, parent)
-                arg = child
-            attr = getattr(container, arg)
+            attr = self.getattr(arg.replace('__', '.'))
             if hasattr(attr, 'tensor'):
                 args.append(attr.tensor)
             else:

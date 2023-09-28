@@ -4,7 +4,7 @@ import numpy as np
 import pyvista as pv
 from . import Function, Mesh, State
 
-__all__ = ['write_vti', 'read_vti']
+__all__ = ['write_vti', 'read_vti', 'domains_from_file']
 
 def write_vti(fields, filename, state = None):
     if isinstance(fields, Function):
@@ -22,7 +22,7 @@ def write_vti(fields, filename, state = None):
     for field in fields:
         if isinstance(field, str):
             name = field
-            field = getattr(state, name)
+            field = state.getattr(name)
         else:
             name = field.name
 
@@ -77,3 +77,21 @@ def read_vti(filename, name = None, state = None):
         shape = (3,)
 
     return Function(state, ftype = ftype, shape = shape, tensor = state.tensor(vals.reshape(dim, order="F")))
+
+def domains_from_file(state, filename, scale = 1.):
+    mesh = state.mesh
+
+    # read image data and volume domains
+    unstructured_mesh = pv.read(filename)
+
+    # interpolate on mesh
+    x = np.arange(mesh.n[0]) * mesh.dx[0] + mesh.dx[0]/2. + mesh.origin[0]
+    y = np.arange(mesh.n[1]) * mesh.dx[1] + mesh.dx[1]/2. + mesh.origin[1]
+    z = np.arange(mesh.n[2]) * mesh.dx[2] + mesh.dx[2]/2. + mesh.origin[2]
+    points = np.stack(np.meshgrid(x, y, z, indexing = "ij"), axis=-1).reshape(-1,3) / scale
+
+    containing_cells = unstructured_mesh.find_containing_cell(points)
+    data = unstructured_mesh.get_array(0)[containing_cells]
+    data[containing_cells == -1] = -1 # containing_cell == -1, if point is not included in any cell
+
+    return Function(state, ftype = "cell", tensor = state.tensor(data.reshape(mesh.n)))
