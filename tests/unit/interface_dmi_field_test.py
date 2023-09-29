@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import torch
 from nmagnum import *
 
 def test_h():
@@ -8,8 +7,9 @@ def test_h():
     state = State(mesh)
 
     state.m = VectorFunction(state).from_numpy(np.arange(81).reshape(3, 3, 3, 3))
-    state.material.A = CellFunction(state).from_constant(1.2e-11)
+    state.material.Di = CellFunction(state).from_constant(1e-3)
+    state.material.Di_axis = VectorCellFunction(state).from_constant([0,0,1])
     state.material.Ms = CellFunction(state).from_constant(8e5)
 
-    ExchangeField().register(state)
-    assert state.h_exchange.tensor.sum().cpu() == pytest.approx(-8.344650268554688e-07)
+    InterfaceDMIField().register(state)
+    assert state.h_idmi.tensor.sum().cpu() == pytest.approx(-2.086162567138672e-07)

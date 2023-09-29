@@ -84,7 +84,7 @@ class CodeClass(object):
 
 def Variable(name, space, shape = ()):
     result = []
-    if space == 'cg':
+    if space == 'node':
         for i,j,k in product([0,1],[0,1],[0,1]):
             phi = (1 - N.x/dx + 2*i*N.x/dx - i) * \
                   (1 - N.y/dy + 2*j*N.y/dy - j) * \
@@ -95,7 +95,7 @@ def Variable(name, space, shape = ()):
             elif shape == (3,):
                 for l in range(3):
                     result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l])
-    elif space == 'dg':
+    elif space == 'cell':
         if shape == ():
             result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0]}_", real=True))
         elif shape == (3,):
@@ -128,16 +128,14 @@ def compile_functional(expr):
     # try to reduce multiplications of fields for better performance
     rhs = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
 
-    variables = set()
+    variables = {'dx'}
     for symb in symbs:
         match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
-        name = match[1].split(':')[0].replace('.', '__')
-        space = match[1].split(':')[1]
-        #name, space = match[1].split(':')[:2]
+        name, space = match[1].split(':')[:2]
         shape, idx = [eval(x) for x in match[1].split(':')[2:]]
 
         variables.add(name)
-        if space == 'cg':
+        if space == 'node':
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(idx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(idx)]))
@@ -164,7 +162,7 @@ def linear_form_cmds(expr):
         rhs, vvars = compile_functional(vexpr)
         variables = variables.union(vvars)
         vspace, vshape, vidx = v[vsymb]
-        if vspace == 'cg':
+        if vspace == 'node':
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))

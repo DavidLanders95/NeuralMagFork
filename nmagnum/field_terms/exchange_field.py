@@ -11,7 +11,7 @@ class ExchangeField(FieldTerm):
 
     @staticmethod
     def e_expr(m):
-        A = Variable('material.A', 'dg')
+        A = Variable('material__A', 'cell')
         return A * (
                 m.diff(N.x).dot(m.diff(N.x)) + 
                 m.diff(N.y).dot(m.diff(N.y)) +

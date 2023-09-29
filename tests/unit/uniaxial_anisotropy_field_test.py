@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import torch
 from nmagnum import *
 
 def test_h():
@@ -8,8 +7,9 @@ def test_h():
     state = State(mesh)
 
     state.m = VectorFunction(state).from_numpy(np.arange(81).reshape(3, 3, 3, 3))
-    state.material.A = CellFunction(state).from_constant(1.2e-11)
+    state.material.Ku = CellFunction(state).from_constant(1e6)
+    state.material.Ku_axis = VectorCellFunction(state).from_constant([0,0,1])
     state.material.Ms = CellFunction(state).from_constant(8e5)
 
-    ExchangeField().register(state)
-    assert state.h_exchange.tensor.sum().cpu() == pytest.approx(-8.344650268554688e-07)
+    UniaxialAnisotropyField().register(state)
+    assert state.h_uaniso.tensor.sum().cpu() == pytest.approx(2202306523.8352184)

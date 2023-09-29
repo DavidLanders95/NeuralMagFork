@@ -25,19 +25,17 @@ class FieldTerm(gen.CodeClass):
         code = ''
 
         # generate linear-form code
-        m = gen.Variable('m', 'cg', (3,))
+        m = gen.Variable('m', 'node', (3,))
         field_expr = gen.gateaux_derivative(cls.e_expr(m), m)
         cmds1, vars1 = gen.linear_form_cmds(field_expr)
 
         # generate lumped mass code
-        v = gen.Variable('v', 'cg')
-        Ms = gen.Variable('material__Ms', 'dg')
+        v = gen.Variable('v', 'node')
+        Ms = gen.Variable('material__Ms', 'cell')
         cmds2, vars2 = gen.linear_form_cmds(- constants.mu_0 * Ms * v)
 
         code = gen.CodeBlock()
-        with code.add_function('h', sorted(list(vars1 | vars2 | {'m', 'mesh__dx'}))) as f:
-            f.assign('dx', 'mesh__dx')
-
+        with code.add_function('h', sorted(list(vars1 | vars2 | {'m'}))) as f:
             f.zeros_like('h', 'm')
             for cmd in cmds1:
                 f.add_to('h', cmd[0], cmd[1])

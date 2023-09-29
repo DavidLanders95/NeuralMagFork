@@ -40,7 +40,7 @@ class State(object):
 
         self._material = Material(self)
         self._mesh = mesh
-        self._attr_values['mesh__dx'] = self.tensor(mesh.dx)
+        self.dx = self.tensor(mesh.dx)
         self.t = 0.
 
         logging.info_green(f"[State] Running on device: {self._device}")
@@ -165,10 +165,6 @@ class State(object):
     def write_vti(self, fields, filename):
         if isinstance(fields, Function):
             fields = [fields]
-
-        #n = self.mesh.n
-        #dx = self.mesh.dx
-        #origin = self.mesh.origin
 
         grid = pv.UniformGrid(dimensions=np.array(self.mesh.n) + 1, spacing = self.mesh.dx, origin=self.mesh.origin)
 
