@@ -13,6 +13,53 @@ from ..common import logging
 dx, dy, dz = sp.symbols('_dx[0]_ _dx[1]_ _dx[2]_', real=True, positive=True)
 N = sv.CoordSys3D('N')
 
+class CodeFunction(object):
+    def __init__(self, block, name, variables):
+        self._block = block
+        self._name = name
+        self._variables = variables
+
+    def __enter__(self):
+        self._code = f"def {self._name}({', '.join(self._variables)}):\n"
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self._block.add(self._code)
+        if type is not None:
+            return False
+        return True
+
+    def add_line(self, code):
+        self._code += f"    {code}\n"
+
+    def assign(self, lhs, rhs):
+        self.add_line(f"{lhs} = {rhs}")
+
+    def zeros_like(self, var, src, shape = None):
+        if shape is None:
+            self.add_line(f"{var} = torch.zeros_like({src})")
+        else:
+            self.add_line(f"{var} = torch.zeros({shape}, dtype = {src}.dtype, device = {src}.device)")
+
+    def add_to(self, var, idx, rhs):
+        self.add_line(f"{var}[{idx}] += {rhs}")
+
+    def retrn(self, code):
+        self.add_line(f"return {code}")
+
+class CodeBlock(object):
+    def __init__(self):
+        self._code = "import torch\n\n"
+
+    def add_function(self, name, variables):
+        return CodeFunction(self, name, variables)
+
+    def add(self, code):
+        self._code += code
+
+    def __str__(self):
+        return self._code
+
 class CodeClass(object):
     def __init__(self, *args, generate_code = True):
         if not generate_code:
@@ -26,7 +73,7 @@ class CodeClass(object):
             code_file_path.parent.mkdir(parents = True, exist_ok = True)
             # TODO check if generate_code method exists
             logging.info_green(f"[{self.__class__.__name__}] Generate torch core methods")
-            code = self.generate_code()
+            code = str(self.generate_code())
             with open(code_file_path, 'w') as f:
                 f.write(code)
 
@@ -99,18 +146,8 @@ def compile_functional(expr):
     rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
     return rhs, variables
 
-def functional_code(expr):
-    rhs, variables = compile_functional(expr)
-
-    # Assemble Function
-    code = "@torch.compile\n"
-    code += f"def assemble_functional(dx, {', '.join(variables)}):\n"
-    code += f"    return ({rhs}).sum()\n"
-    return code
-
-
-def linear_form_cmds(expr, result_name = 'result'):
-    cmds = {}
+def linear_form_cmds(expr):
+    cmds = []
     v = {}
 
     # collect all test functions in expr
@@ -131,22 +168,9 @@ def linear_form_cmds(expr, result_name = 'result'):
             sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))
-        lhs = f"{result_name}[{sidx}]"
-        cmds[lhs] = rhs
+        cmds.append((sidx, rhs))
 
     return cmds, variables
-
-def linear_form_code(expr):
-    cmds, variables = linear_form_cmds(expr, 'result')
-
-    # Assemble Function
-    code = "@torch.compile\n"
-    code += f"def assemble_linear_form(result, dx, {', '.join(variables)}):\n"
-    code += "    result[:] = 0\n"
-    for lhs, rhs in cmds.items():
-        code += f"    {lhs} += {rhs}\n"
-
-    return code
 
 def gateaux_derivative(expr, var):
     result = []
