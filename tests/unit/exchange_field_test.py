@@ -12,4 +12,4 @@ def test_h():
     state.material.Ms = CellFunction(state).from_constant(8e5)
 
     ExchangeField().register(state)
-    assert state.h_exchange.tensor.sum() == pytest.approx(3.0994415283203125e-06)
+    state.h_exchange.tensor.sum().cpu() == pytest.approx(3.0994415283203125e-06)

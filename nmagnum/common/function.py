@@ -95,34 +95,6 @@ class Function(object):
     #    self[...] = torch.nan_to_num(self, posinf=0, neginf=0)
     #    return self
 
-    def write(self, filename):
-        n = self._state.mesh.n
-        dx = self._state.mesh.dx
-        origin = self._state.mesh.origin
-
-        grid = pv.UniformGrid(dimensions=np.array(n) + 1, spacing=dx, origin=origin)
-
-        if self.shape == ():
-            data = self.tensor.detach().cpu().numpy().flatten("F")
-        elif self.shape == (3,):
-            data = self.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
-        else:
-            raise NotImplemented("Unsupported shape.")
-
-        if self._ftype == "node":
-            grid.point_data.set_array(data, self._name)
-        elif self._ftype == "cell":
-            grid.cell_data.set_array(data, self._name)
-        else:
-            raise NotImplemented("Unsupported ftype.")
-
-        dirname = os.path.dirname(filename)
-        if dirname and not os.path.isdir(dirname):
-            os.makedirs(dirname)
-
-        grid.save(filename)
-
-
 class CellFunction(Function):
     def __init__(self, *args, **kwargs):
         assert "ftype" not in kwargs

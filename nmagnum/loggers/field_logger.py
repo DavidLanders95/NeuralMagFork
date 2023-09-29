@@ -2,7 +2,6 @@ import os
 import xml.etree.cElementTree as ET
 from xml.etree import cElementTree
 from xml.dom import minidom
-from ..common.io import read_vti, write_vti
 
 __all__ = ["FieldLogger"]
 
@@ -59,7 +58,7 @@ class FieldLogger(object):
             return
 
         filename = "%s_%04d.vti" % (self._filename, self._i // self._every)
-        write_vti(self._fields, filename, state = state)
+        state.write_vti(self._fields, filename)
         cElementTree.SubElement(self._xmlroot[0], "DataSet", timestep=str(state.t.tolist()), file=os.path.basename(filename))
         with open(self._filename + ".pvd", 'w') as fd:
             fd.write(minidom.parseString(" ".join(cElementTree.tostring(self._xmlroot).decode().replace("\n","").split()).replace("> <", "><")).toprettyxml(indent="  "))
@@ -92,7 +91,7 @@ class FieldLogger(object):
         else:
             return result
 
-    def step_data(self, i, field = None, state = None):
+    def step_data(self, i, field, state):
         """
         Returns field and time to a given step number.
 
@@ -113,7 +112,7 @@ class FieldLogger(object):
 
         xml = cElementTree.parse(self._filename + ".pvd").getroot()
         item = list(xml.find('Collection'))[i // self._every]
-        field = read_vti(os.path.join(os.path.dirname(self._filename), item.attrib['file']), field, state)
+        field = state.read_vti(os.path.join(os.path.dirname(self._filename), item.attrib['file']), field)
         return field, float(item.attrib['timestep'])
 
     def resume(self, i):

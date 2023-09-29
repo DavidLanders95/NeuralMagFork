@@ -72,7 +72,7 @@ class Logger(object):
         resumable_step = min(map(lambda logger: logger.resumable_step(), self.loggers.values()))
         assert resumable_step >= last_recorded_step + 1
 
-        state.m, state.t = self.loggers["fields"].step_data(last_recorded_step, "m")
+        state.m, state.t = self.loggers["fields"].step_data(last_recorded_step, "m", state)
         logging.info_green("Resuming from step %d (t = %g)." % (last_recorded_step, state.t))
 
         for logger in self.loggers.values():
