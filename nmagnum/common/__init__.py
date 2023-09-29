@@ -1,4 +1,3 @@
-from .constants import *
 from .function import *
 from .logging import *
 from .mesh import *

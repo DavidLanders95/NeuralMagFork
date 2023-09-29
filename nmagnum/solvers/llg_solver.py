@@ -1,8 +1,7 @@
 import torch
-from scipy import constants
-from ..common import logging
-import torch
 import torch.nn as nn
+#from scipy import constants
+from ..common import logging
 from torchdiffeq import odeint_adjoint as odeint
 
 __all__ = ["LLGSolver"]
