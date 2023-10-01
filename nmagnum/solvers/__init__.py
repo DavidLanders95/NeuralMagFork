@@ -1,3 +1,3 @@
-from .llg import *
+from .llg_solver import *
 
-__all__ = llg.__all__
+__all__ = llg_solver.__all__

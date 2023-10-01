@@ -1,9 +1,6 @@
-import numpy as np
 import pytest
 import torch
-
 from nmagnum import *
-
 
 def test_h():
     mesh = Mesh((5, 5, 5), (1e-9, 1e-9, 1e-9))
@@ -12,8 +9,5 @@ def test_h():
     state.m = VectorFunction(state).from_constant([1.0, 0.0, 0.0])
     state.material.Ms = CellFunction(state).from_constant(1.0)
 
-    demag = DemagField()
-    h = demag.h(state)
-    assert ((h.tensor * state.m.tensor).sum() / 6**3).cpu().numpy() == pytest.approx(
-        -1 / 3
-    )
+    DemagField().register(state)
+    assert ((state.h_demag.tensor * state.m.tensor).sum() / 6**3).cpu() == pytest.approx(-1 / 3)

@@ -1,8 +1,6 @@
 import numpy as np
 import pytest
-
 from nmagnum import *
-
 
 @pytest.fixture
 def simple_state():

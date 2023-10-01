@@ -11,12 +11,12 @@ __all__ = [
 ]
 
 # create magnum.fe logger
-logger = logging.getLogger("magnum.nf")
+logger = logging.getLogger("nodal.mag")
 
 handler = logging.StreamHandler()
 handler.setFormatter(
     logging.Formatter(
-        fmt="%(asctime)s  %(name)s:%(levelname)s %(message)s",
+        fmt="%(asctime)s %(name)s:%(levelname)s %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 )
