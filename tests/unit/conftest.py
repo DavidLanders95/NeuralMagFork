@@ -1,0 +1,18 @@
+import pytest
+import numpy as np
+from nmagnum import *
+
+config.torch['compile'] = False
+
+@pytest.fixture
+def state():
+    mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9))
+    state = State(mesh)
+
+    state.m = VectorFunction(state)
+    state.m.tensor[0,:,:,0] = -1
+    state.m.tensor[1,:,:,1] = 1
+    state.m.tensor[2,:,:,0] = 1
+
+    return state
+

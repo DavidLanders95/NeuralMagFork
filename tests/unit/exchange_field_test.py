@@ -3,13 +3,9 @@ import pytest
 import torch
 from nmagnum import *
 
-def test_h():
-    mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9))
-    state = State(mesh)
-
-    state.m = VectorFunction(state).from_numpy(np.arange(81).reshape(3, 3, 3, 3))
+def test_h(state):
     state.material.A = CellFunction(state).from_constant(1.2e-11)
     state.material.Ms = CellFunction(state).from_constant(8e5)
 
     ExchangeField().register(state)
-    assert state.h_exchange.tensor.sum().cpu() == pytest.approx(-8.344650268554688e-07)
+    assert state.h_exchange.tensor.sum().cpu() == pytest.approx(429718346.1141888)

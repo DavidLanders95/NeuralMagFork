@@ -1,5 +1,5 @@
 from ..generators import pytorch_generator as gen
-from ..common import Function, VectorFunction, logging
+from ..common import Function, VectorFunction, logging, config
 from scipy import constants
 import sys
 import inspect
@@ -15,8 +15,10 @@ class FieldTerm(gen.CodeClass):
     def register(self, state, h_name = None):
         super().__init__(generate_code = hasattr(self, 'e_expr'))
         if not hasattr(self, 'h_func'):
-            #self.h_func = torch.compile(self._code.h) TODO REACTIVATE!!!!
-            self.h_func = self._code.h
+            if config.torch['compile']:
+                self.h_func = torch.compile(self._code.h)
+            else:
+                self.h_func = self._code.h
         logging.info_green(f"[{self.__class__.__name__}] Register state methods (field: '{h_name or self._h_name}')")
         setattr(state, h_name or self._h_name, (self.h_func, 'node', (3,)))
 
