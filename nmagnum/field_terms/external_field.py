@@ -12,6 +12,13 @@ class ExternalField(FieldTerm):
         super().__init__(**kwargs)
         self.h = h
 
+    def register(self, state, name = None):
+        super().register(state, name)
+        # fix reference to h_external in E_external if suffix is changed
+        if name is not None:
+            wrapped = state.wrap_func(self.E, {'h_external': self.attr_name('h', name)})
+            setattr(state, self.attr_name('E', name), wrapped)
+
     @staticmethod
     def e_expr(m):
         Ms = Variable('material__Ms', 'cell')

@@ -8,6 +8,7 @@ from torch import abs, asinh, atan, log, sqrt
 from ..common import CellFunction, Function, VectorFunction, logging
 from .field_term import FieldTerm
 from ..generators.pytorch_generator import Variable
+from ..generators import pytorch_generator as gen
 
 __all__ = ["DemagField"]
 
@@ -84,8 +85,12 @@ class DemagField(FieldTerm):
         super().__init__(*args, **kwargs)
         self._p = p
 
-    def register(self, state, *args):
-        super().register(state, *args)
+    def register(self, state, name = None):
+        super().register(state, name)
+        # fix reference to h_demag in E_demag if suffix is changed
+        if name is not None:
+            wrapped = state.wrap_func(self.E, {'h_demag': self.attr_name('h', name)})
+            setattr(state, self.attr_name('E', name), wrapped)
         self._init_N(state)
 
     @staticmethod
