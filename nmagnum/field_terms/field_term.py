@@ -24,9 +24,10 @@ class FieldTerm(gen.CodeClass):
 
     @classmethod
     def attr_name(cls, attr, name = None):
-        if not name:
+        name = name or cls._name
+        if name == '':
             return attr
-        return f"{attr}_{name or self._name}"
+        return f"{attr}_{name}"
 
     @classmethod
     def generate_code(cls):

@@ -4,7 +4,7 @@ from ..generators.pytorch_generator import Variable, N
 __all__ = ['UniaxialAnisotropyField']
 
 class UniaxialAnisotropyField(FieldTerm):
-    _h_name = 'h_uaniso'
+    _name = 'uaniso'
 
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
