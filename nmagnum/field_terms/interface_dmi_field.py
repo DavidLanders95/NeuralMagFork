@@ -5,7 +5,7 @@ from sympy.vector import gradient, divergence
 __all__ = ['InterfaceDMIField']
 
 class InterfaceDMIField(FieldTerm):
-    _h_name = 'h_idmi'
+    _name = 'idmi'
 
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)

@@ -8,10 +8,17 @@ from functools import reduce
 from tqdm import tqdm
 import pathlib
 import importlib
-from ..common import logging
+import torch
+from ..common import logging, config
 
 dx, dy, dz = sp.symbols('_dx[0]_ _dx[1]_ _dx[2]_', real=True, positive=True)
 N = sv.CoordSys3D('N')
+
+def compile(func):
+    if config.torch['compile']:
+        return torch.compile(func)
+    else:
+        return func
 
 class CodeFunction(object):
     def __init__(self, block, name, variables):
@@ -24,9 +31,10 @@ class CodeFunction(object):
         return self
 
     def __exit__(self, type, value, traceback):
-        self._block.add(self._code)
         if type is not None:
             return False
+        self._block.add(self._code)
+        self._block.add("\n")
         return True
 
     def add_line(self, code):
@@ -46,6 +54,9 @@ class CodeFunction(object):
 
     def retrn(self, code):
         self.add_line(f"return {code}")
+
+    def retrn_sum(self, code):
+        self.add_line(f"return ({code}).sum()")
 
 class CodeBlock(object):
     def __init__(self):

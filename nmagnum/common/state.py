@@ -162,6 +162,17 @@ class State(object):
 
         return func, args
 
+    def wrap_func(self, f, mapping):
+        name = "lmda" if f.__name__ == '<lambda>' else f.__name__
+        old_args = list(inspect.signature(f).parameters.keys())
+        new_args = [mapping.get(a, a) for a in old_args]
+
+        code = f"def {name}({', '.join(new_args)}):\n"
+        code+= f"    return __{name}({', '.join(new_args)})\n"
+
+        compiled_code = compile(code, "<string>", "exec")
+        return types.FunctionType(compiled_code.co_consts[0], {f"__{name}": f}, name)
+
     def write_vti(self, fields, filename):
         if isinstance(fields, Function):
             fields = [fields]

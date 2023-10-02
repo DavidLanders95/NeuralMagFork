@@ -4,7 +4,7 @@ from ..generators.pytorch_generator import Variable, N
 __all__ = ['ExchangeField']
 
 class ExchangeField(FieldTerm):
-    _h_name = 'h_exchange'
+    _name = 'exchange'
 
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
