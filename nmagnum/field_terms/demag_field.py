@@ -95,7 +95,7 @@ class DemagField(FieldTerm):
         return - 0.5 * constants.mu_0 * Ms * m.dot(h_demag)
 
     @staticmethod
-    def h_func(N_demag, m, material__Ms):
+    def h(N_demag, m, material__Ms):
         N = N_demag
         h = torch.zeros(m.shape, dtype = m.dtype, device = m.device)
         mcell = (

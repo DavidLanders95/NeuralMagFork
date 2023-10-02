@@ -14,13 +14,13 @@ class FieldTerm(gen.CodeClass):
 
     def register(self, state, name = None):
         super().__init__(generate_code = hasattr(self, 'e_expr'))
-        if not hasattr(self, 'h_func'):
-            self.h_func = gen.compile(self._code.h)
-        if not hasattr(self, 'E_func'):
-            self.E_func = gen.compile(self._code.E)
+        if not hasattr(self, 'h'):
+            self.h = gen.compile(self._code.h)
+        if not hasattr(self, 'E'):
+            self.E = gen.compile(self._code.E)
         logging.info_green(f"[{self.__class__.__name__}] Register state methods (field: '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}')")
-        setattr(state, self.attr_name('h', name), (self.h_func, 'node', (3,)))
-        setattr(state, self.attr_name('E', name), self.E_func)
+        setattr(state, self.attr_name('h', name), (self.h, 'node', (3,)))
+        setattr(state, self.attr_name('E', name), self.E)
 
     @classmethod
     def attr_name(cls, attr, name = None):
@@ -33,7 +33,7 @@ class FieldTerm(gen.CodeClass):
         code = gen.CodeBlock()
         m = gen.Variable('m', 'node', (3,))
 
-        if not hasattr(cls, 'h_func'):
+        if not hasattr(cls, 'h'):
             # generate linear-form cmds
             field_expr = gen.gateaux_derivative(cls.e_expr(m), m)
             cmds1, vars1 = gen.linear_form_cmds(field_expr)
@@ -54,7 +54,7 @@ class FieldTerm(gen.CodeClass):
 
                 f.retrn('h / mass.unsqueeze(-1)') # TODO more abstraction?
 
-        if not hasattr(cls, 'E_func'):
+        if not hasattr(cls, 'E'):
             rhs, variables = gen.compile_functional(cls.e_expr(m))
             with code.add_function('E', variables) as f:
                 f.retrn_sum(rhs)
