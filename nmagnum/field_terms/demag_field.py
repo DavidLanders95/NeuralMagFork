@@ -8,7 +8,6 @@ from torch import abs, asinh, atan, log, sqrt
 from ..common import CellFunction, Function, VectorFunction, logging
 from .field_term import FieldTerm
 from ..generators.pytorch_generator import Variable
-from ..generators import pytorch_generator as gen
 
 __all__ = ["DemagField"]
 
