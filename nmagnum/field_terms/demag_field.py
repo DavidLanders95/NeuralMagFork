@@ -1,14 +1,13 @@
 import os
 from time import time
-
 import numpy as np
 import torch
 import torch.fft
 from scipy import constants
 from torch import abs, asinh, atan, log, sqrt
-
 from ..common import CellFunction, Function, VectorFunction, logging
 from .field_term import FieldTerm
+from ..generators.pytorch_generator import Variable
 
 __all__ = ["DemagField"]
 
@@ -79,7 +78,7 @@ def dipole_g(points):
     return result
 
 class DemagField(FieldTerm):
-    _h_name = 'h_demag'
+    _name = 'demag'
 
     def __init__(self, p = 20, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -88,6 +87,12 @@ class DemagField(FieldTerm):
     def register(self, state, *args):
         super().register(state, *args)
         self._init_N(state)
+
+    @staticmethod
+    def e_expr(m):
+        Ms = Variable('material__Ms', 'cell')
+        h_demag = Variable('h_demag', 'node', (3,))
+        return - 0.5 * constants.mu_0 * Ms * m.dot(h_demag)
 
     @staticmethod
     def h_func(N_demag, m, material__Ms):
