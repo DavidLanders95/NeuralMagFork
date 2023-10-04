@@ -72,19 +72,16 @@ class CodeBlock(object):
         return self._code
 
 class CodeClass(object):
-    def __init__(self, *args, generate_code = True):
-        if not generate_code:
-            return
-
+    def save_and_load_code(self, *args):
         this_module = pathlib.Path(importlib.import_module(self.__module__).__file__)
-        code_file_path = this_module.parent / 'code' / f"{this_module.stem}_code.py"
+        code_file_path = this_module.parent / 'code' / f"{this_module.stem}_{hash(frozenset(args))}.py"
 
         # generate code
         if not code_file_path.is_file():
             code_file_path.parent.mkdir(parents = True, exist_ok = True)
             # TODO check if generate_code method exists
             logging.info_green(f"[{self.__class__.__name__}] Generate torch core methods")
-            code = str(self.generate_code())
+            code = str(self.generate_code(*args))
             with open(code_file_path, 'w') as f:
                 f.write(code)
 
@@ -93,25 +90,39 @@ class CodeClass(object):
         self._code = importlib.util.module_from_spec(module_spec)
         module_spec.loader.exec_module(self._code)
 
-def Variable(name, space, shape = ()):
+def Variable(name, space, shape = (), dim = 3):
     result = []
     if space == 'node':
-        for i,j,k in product([0,1],[0,1],[0,1]):
-            phi = (1 - N.x/dx + 2*i*N.x/dx - i) * \
-                  (1 - N.y/dy + 2*j*N.y/dy - j) * \
-                  (1 - N.z/dz + 2*k*N.z/dz - k)
+        if dim == 2:
+            for i,j in product([0,1],[0,1]):
+                phi = (1 - N.x/dx + 2*i*N.x/dx - i) * \
+                      (1 - N.y/dy + 2*j*N.y/dy - j)
 
-            if shape == ():
-                result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True) * phi)
-            elif shape == (3,):
-                for l in range(3):
-                    result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l])
+                if shape == ():
+                    result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j]}_", real=True) * phi)
+                elif shape == (3,):
+                    for l in range(3):
+                        result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,l]}_", real=True) * phi * [N.i, N.j][l])
+        elif dim == 3:
+            for i,j,k in product([0,1],[0,1],[0,1]):
+                phi = (1 - N.x/dx + 2*i*N.x/dx - i) * \
+                      (1 - N.y/dy + 2*j*N.y/dy - j) * \
+                      (1 - N.z/dz + 2*k*N.z/dz - k)
+
+                if shape == ():
+                    result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True) * phi)
+                elif shape == (3,):
+                    for l in range(3):
+                        result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l])
+        else:
+            raise
+
     elif space == 'cell':
         if shape == ():
-            result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0]}_", real=True))
+            result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0]*dim}_", real=True))
         elif shape == (3,):
             for l in range(3):
-                result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0,l]}_", real=True) * [N.i, N.j, N.k][l])
+                result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0]*dim + [l]}_", real=True) * [N.i, N.j, N.k][l])
     else:
         raise NotImplemented
     return reduce(lambda x,y: x+y, result)
@@ -130,14 +141,19 @@ def integrate(expr, n = 3):
         intz += w[i] * dz / 2 * inty.subs(N.z, (1 + x[i]) * dz / 2)
     return intz
 
-def compile_functional(expr):
-    iexpr = integrate(expr)
+def compile_functional(expr, n_gauss = 3):
+    iexpr = integrate(expr, n_gauss)
 
     # find all named symbols (fields)
     symbs = [symb for symb in iexpr.free_symbols if re.match(r"^_(.*:.*:.*:.*)_$", symb.name)]
 
     # try to reduce multiplications of fields for better performance
     rhs = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
+
+    # retrieve topological dimension from first symbol
+    match = re.match(r"^_(.*:.*:.*:.*)_$", symbs[0].name)
+    shape, idx = [eval(x) for x in match[1].split(':')[2:]]
+    dim = len(idx) - len(shape)
 
     variables = {'dx'}
     for symb in symbs:
@@ -147,15 +163,15 @@ def compile_functional(expr):
 
         variables.add(name)
         if space == 'node':
-            sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(idx)]))
+            sidx = ','.join(([[':-1','1:'][j] if i < dim else str(j) for i, j in enumerate(idx)]))
         else:
-            sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(idx)]))
+            sidx = ','.join(([':' if i < dim else str(j) for i, j in enumerate(idx)]))
         rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
 
     rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
     return rhs, variables
 
-def linear_form_cmds(expr):
+def linear_form_cmds(expr, n_gauss = 3):
     cmds = []
     v = {}
 
@@ -170,7 +186,7 @@ def linear_form_cmds(expr):
     variables = set()
     for vsymb in tqdm(v, desc = "Generating..."):
         vexpr = expr.xreplace(dict([(s, 1.) if s == vsymb else (s, 0.) for s in v]))
-        rhs, vvars = compile_functional(vexpr)
+        rhs, vvars = compile_functional(vexpr, n_gauss)
         variables = variables.union(vvars)
         vspace, vshape, vidx = v[vsymb]
         if vspace == 'node':

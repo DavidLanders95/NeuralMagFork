@@ -9,11 +9,12 @@ __all__ = ["FieldTerm"]
 
 class FieldTerm(gen.CodeClass):
 
-    def __init__(self, **kwargs):
-        pass
+    def __init__(self, n_gauss = None):
+        self._n_gauss = n_gauss or config.fem['n_gauss']
 
     def register(self, state, name = None):
-        super().__init__(generate_code = hasattr(self, 'e_expr'))
+        if hasattr(self, 'e_expr'):
+            self.save_and_load_code(self._n_gauss)
         if not hasattr(self, 'h'):
             self.h = gen.compile(self._code.h)
         if not hasattr(self, 'E'):
@@ -30,14 +31,14 @@ class FieldTerm(gen.CodeClass):
         return f"{attr}_{name}"
 
     @classmethod
-    def generate_code(cls):
+    def generate_code(cls, n_gauss):
         code = gen.CodeBlock()
         m = gen.Variable('m', 'node', (3,))
 
         if not hasattr(cls, 'h'):
             # generate linear-form cmds
             field_expr = gen.gateaux_derivative(cls.e_expr(m), m)
-            cmds1, vars1 = gen.linear_form_cmds(field_expr)
+            cmds1, vars1 = gen.linear_form_cmds(field_expr, n_gauss)
 
             # generate lumped mass cmds
             v = gen.Variable('v', 'node')
@@ -56,7 +57,7 @@ class FieldTerm(gen.CodeClass):
                 f.retrn('h / mass.unsqueeze(-1)') # TODO more abstraction?
 
         if not hasattr(cls, 'E'):
-            rhs, variables = gen.compile_functional(cls.e_expr(m))
+            rhs, variables = gen.compile_functional(cls.e_expr(m), n_gauss)
             with code.add_function('E', variables) as f:
                 f.retrn_sum(rhs)
 
