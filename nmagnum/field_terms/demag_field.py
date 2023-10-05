@@ -160,19 +160,20 @@ def h3d(N_demag, m, material__Ms):
 
 class DemagField(FieldTerm):
     _name = 'demag'
+    h = None
 
     def __init__(self, p = 20, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._p = p
 
     def register(self, state, name = None):
+        super().register(state, name)
         if state.mesh.dim == 2:
-            self.h = h2d
+            setattr(state, self.attr_name('h', name), h2d)
         elif state.mesh.dim == 3:
-            self.h = h3d
+            setattr(state, self.attr_name('h', name), h3d)
         else:
             raise
-        super().register(state, name)
         # fix reference to h_demag in E_demag if suffix is changed
         if name is not None:
             wrapped = state.wrap_func(self.E, {'h_demag': self.attr_name('h', name)})
