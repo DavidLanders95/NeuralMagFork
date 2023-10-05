@@ -1,3 +1,7 @@
+import re
+from functools import reduce
+from itertools import product
+
 import sympy as sp
 import sympy.vector as sv
 import re
@@ -11,14 +15,13 @@ import importlib
 import torch
 from ..common import logging, config
 
-dx, dy, dz = sp.symbols('_dx[0]_ _dx[1]_ _dx[2]_', real=True, positive=True)
-N = sv.CoordSys3D('N')
 
 def compile(func):
     if config.torch['compile']:
         return torch.compile(func)
     else:
         return func
+
 
 class CodeFunction(object):
     def __init__(self, block, name, variables):
@@ -43,11 +46,12 @@ class CodeFunction(object):
     def assign(self, lhs, rhs):
         self.add_line(f"{lhs} = {rhs}")
 
-    def zeros_like(self, var, src, shape = None):
+    def zeros_like(self, var, src, shape=None):
         if shape is None:
             self.add_line(f"{var} = torch.zeros_like({src})")
         else:
-            self.add_line(f"{var} = torch.zeros({shape}, dtype = {src}.dtype, device = {src}.device)")
+            self.add_line(
+                f"{var} = torch.zeros({shape}, dtype = {src}.dtype, device = {src}.device)")
 
     def add_to(self, var, idx, rhs):
         self.add_line(f"{var}[{idx}] += {rhs}")
@@ -57,6 +61,7 @@ class CodeFunction(object):
 
     def retrn_sum(self, code):
         self.add_line(f"return ({code}).sum()")
+
 
 class CodeBlock(object):
     def __init__(self):
@@ -71,8 +76,9 @@ class CodeBlock(object):
     def __str__(self):
         return self._code
 
+
 class CodeClass(object):
-    def __init__(self, *args, generate_code = True):
+    def __init__(self, *args, generate_code=True):
         if not generate_code:
             return
 
@@ -81,9 +87,10 @@ class CodeClass(object):
 
         # generate code
         if not code_file_path.is_file():
-            code_file_path.parent.mkdir(parents = True, exist_ok = True)
+            code_file_path.parent.mkdir(parents=True, exist_ok=True)
             # TODO check if generate_code method exists
-            logging.info_green(f"[{self.__class__.__name__}] Generate torch core methods")
+            logging.info_green(
+                f"[{self.__class__.__name__}] Generate torch core methods")
             code = str(self.generate_code())
             with open(code_file_path, 'w') as f:
                 f.write(code)
@@ -93,31 +100,38 @@ class CodeClass(object):
         self._code = importlib.util.module_from_spec(module_spec)
         module_spec.loader.exec_module(self._code)
 
-def Variable(name, space, shape = ()):
+
+def Variable(name, space, shape=()):
     result = []
     if space == 'node':
-        for i,j,k in product([0,1],[0,1],[0,1]):
+        for i, j, k in product([0, 1], [0, 1], [0, 1]):
             phi = (1 - N.x/dx + 2*i*N.x/dx - i) * \
                   (1 - N.y/dy + 2*j*N.y/dy - j) * \
                   (1 - N.z/dz + 2*k*N.z/dz - k)
 
             if shape == ():
-                result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True) * phi)
+                result.append(
+                    sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True) * phi
+                )
             elif shape == (3,):
                 for l in range(3):
-                    result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l])
+                    result.append(sp.Symbol(
+                        f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True) * phi * [N.i, N.j, N.k][l])
     elif space == 'cell':
         if shape == ():
             result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0]}_", real=True))
         elif shape == (3,):
             for l in range(3):
-                result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0,l]}_", real=True) * [N.i, N.j, N.k][l])
+                result.append(
+                    sp.Symbol(f"_{name}:{space}:{shape}:{[0,0,0,l]}_", real=True)
+                    * [N.i, N.j, N.k][l]
+                )
     else:
         raise NotImplemented
-    return reduce(lambda x,y: x+y, result)
+    return reduce(lambda x, y: x + y, result)
 
 
-def integrate(expr, n = 3):
+def integrate(expr, n=3):
     x, w = p_roots(n)
     intx = 0
     for i in range(n):
@@ -130,11 +144,14 @@ def integrate(expr, n = 3):
         intz += w[i] * dz / 2 * inty.subs(N.z, (1 + x[i]) * dz / 2)
     return intz
 
+
 def compile_functional(expr):
     iexpr = integrate(expr)
 
     # find all named symbols (fields)
-    symbs = [symb for symb in iexpr.free_symbols if re.match(r"^_(.*:.*:.*:.*)_$", symb.name)]
+    symbs = [
+        symb for symb in iexpr.free_symbols if re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
+    ]
 
     # try to reduce multiplications of fields for better performance
     rhs = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
@@ -142,44 +159,48 @@ def compile_functional(expr):
     variables = {'dx'}
     for symb in symbs:
         match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
-        name, space = match[1].split(':')[:2]
-        shape, idx = [eval(x) for x in match[1].split(':')[2:]]
+        name, space = match[1].split(":")[:2]
+        shape, idx = [eval(x) for x in match[1].split(":")[2:]]
 
         variables.add(name)
         if space == 'node':
-            sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(idx)]))
+            sidx = ','.join(([[':-1', '1:'][j] if i < 3 else str(j)
+                            for i, j in enumerate(idx)]))
         else:
-            sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(idx)]))
+            sidx = ",".join(([":" if i < 3 else str(j) for i, j in enumerate(idx)]))
         rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
 
     rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
     return rhs, variables
+
 
 def linear_form_cmds(expr):
     cmds = []
     v = {}
 
     # collect all test functions in expr
-    for symb in sorted(list(expr.free_symbols), key = lambda s: s.name):
+    for symb in sorted(list(expr.free_symbols), key=lambda s: s.name):
         match = re.match(r"^_v:(.*:.*:.*)_$", symb.name)
         if match:
-            v[symb] = match[1].split(':')
+            v[symb] = match[1].split(":")
             v[symb][1:] = [eval(x) for x in v[symb][1:]]
 
     # process test functions
     variables = set()
-    for vsymb in tqdm(v, desc = "Generating..."):
+    for vsymb in tqdm(v, desc="Generating..."):
         vexpr = expr.xreplace(dict([(s, 1.) if s == vsymb else (s, 0.) for s in v]))
         rhs, vvars = compile_functional(vexpr)
         variables = variables.union(vvars)
         vspace, vshape, vidx = v[vsymb]
         if vspace == 'node':
-            sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
+            sidx = ','.join(([[':-1', '1:'][j] if i < 3 else str(j)
+                            for i, j in enumerate(vidx)]))
         else:
             sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))
         cmds.append((sidx, rhs))
 
     return cmds, variables
+
 
 def gateaux_derivative(expr, var):
     result = []
@@ -188,4 +209,4 @@ def gateaux_derivative(expr, var):
             continue
         v = sp.Symbol(re.sub(r"^_.*:(.*:.*:.*_)$", r"_v:\1", symb.name))
         result.append(v * expr.diff(symb))
-    return reduce(lambda x,y: x+y, result)
+    return reduce(lambda x, y: x+y, result)
