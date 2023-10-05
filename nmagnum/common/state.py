@@ -182,7 +182,8 @@ class State(object):
         if isinstance(fields, Function):
             fields = [fields]
 
-        grid = pv.UniformGrid(dimensions=np.array(self.mesh.n) + 1, spacing = self.mesh.dx, origin=self.mesh.origin)
+        n = np.array(self.mesh.n + tuple([1] * (3 - self.mesh.dim))) + 1
+        grid = pv.UniformGrid(dimensions = n, spacing = self.mesh.dx, origin=self.mesh.origin)
 
         for field in fields:
             if isinstance(field, str):
@@ -192,9 +193,19 @@ class State(object):
                 name = field.name
 
             if field.shape == ():
-                data = field.tensor.detach().cpu().numpy().flatten("F")
+                if self.mesh.dim == 2:
+                    data = field.tensor.detach().unsqueeze(-2).expand(-1,-1,2).cpu().numpy().flatten("F")
+                elif self.mesh.dim == 3:
+                    data = field.tensor.detach().cpu().numpy().flatten("F")
+                else:
+                    raise
             elif field.shape == (3,):
-                data = field.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
+                if self.mesh.dim == 2:
+                    data = field.tensor.detach().unsqueeze(-2).expand(-1,-1,2,-1).cpu().numpy().reshape(-1, 3, order="F")
+                elif self.mesh.dim == 3:
+                    data = field.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
+                else:
+                    raise
             else:
                 raise NotImplemented('Unsupported shape.')
 
@@ -212,6 +223,7 @@ class State(object):
         grid.save(filename)
 
     def read_vti(self, filename, name = None):
+        # TODO enable reading of 2D data
         fields = {}
         data = pv.read(filename)
 

@@ -6,7 +6,6 @@ import torch
 
 __all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
 
-
 class Function(object):
     def __init__(self, state, ftype="node", shape=(), tensor=None, name=None):
         self._state = state
@@ -76,19 +75,30 @@ class Function(object):
         return self
 
     def avg(self):
+        # TODO get rid of conditionals?
         if self._ftype == 'cell':
-            return self._tensor.mean(dim = (0, 1, 2))
+            return self._tensor.mean(dim = tuple(range(self._state.mesh.dim)))
         else:
-            return ((
-                + self._tensor[1:,1:,1:,...]
-                + self._tensor[:-1,1:,1:,...]
-                + self._tensor[1:,:-1,1:,...]
-                + self._tensor[:-1,:-1,1:,...]
-                + self._tensor[1:,1:,:-1,...]
-                + self._tensor[:-1,1:,:-1,...]
-                + self._tensor[1:,:-1,:-1,...]
-                + self._tensor[:-1,:-1,:-1,...]
-            ) / 8.).mean(dim = (0, 1, 2))
+            if self._state.mesh.dim == 2:
+                return ((
+                    + self._tensor[1:,1:,...]
+                    + self._tensor[:-1,1:,...]
+                    + self._tensor[1:,:-1,...]
+                    + self._tensor[:-1,:-1,...]
+                ) / 4.).mean(dim = (0,1))
+            elif self._state.mesh.dim == 3:
+                return ((
+                    + self._tensor[1:,1:,1:,...]
+                    + self._tensor[:-1,1:,1:,...]
+                    + self._tensor[1:,:-1,1:,...]
+                    + self._tensor[:-1,:-1,1:,...]
+                    + self._tensor[1:,1:,:-1,...]
+                    + self._tensor[:-1,1:,:-1,...]
+                    + self._tensor[1:,:-1,:-1,...]
+                    + self._tensor[:-1,:-1,:-1,...]
+                ) / 8.).mean(dim = (0,1,2))
+            else:
+                raise
 
     # def normalize(self):
     #    self /= torch.linalg.norm(self, dim = -1, keepdim = True)

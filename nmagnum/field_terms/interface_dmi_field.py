@@ -12,6 +12,6 @@ class InterfaceDMIField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        D = Variable('material__Di', 'cell', dim)
+        D = Variable('material__Di', 'cell', (), dim)
         axis = Variable('material__Di_axis', 'cell', (3,), dim)
         return D * (m.dot(gradient(m.dot(axis))) - divergence(m) * m.dot(axis))

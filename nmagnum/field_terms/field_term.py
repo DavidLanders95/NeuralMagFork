@@ -42,8 +42,8 @@ class FieldTerm(gen.CodeClass):
             cmds1, vars1 = gen.linear_form_cmds(field_expr, n_gauss)
 
             # generate lumped mass cmds
-            v = gen.Variable('v', 'node')
-            Ms = gen.Variable('material__Ms', 'cell')
+            v = gen.Variable('v', 'node', (), dim)
+            Ms = gen.Variable('material__Ms', 'cell', (), dim)
             cmds2, vars2 = gen.linear_form_cmds(- constants.mu_0 * Ms * v)
 
             with code.add_function('h', sorted(list(vars1 | vars2 | {'m'}))) as f:
@@ -51,7 +51,7 @@ class FieldTerm(gen.CodeClass):
                 for cmd in cmds1:
                     f.add_to('h', cmd[0], cmd[1])
 
-                f.zeros_like('mass', 'm', shape = 'm.shape[:3]')
+                f.zeros_like('mass', 'm', shape = 'm.shape[:-1]')
                 for cmd in cmds2:
                     f.add_to('mass', cmd[0], cmd[1])
 

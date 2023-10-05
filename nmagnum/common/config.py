@@ -5,5 +5,5 @@ torch = {
 }
 
 fem = {
-        'n_gauss': 3
+        'n_gauss': 1
 }

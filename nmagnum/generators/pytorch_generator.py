@@ -102,7 +102,7 @@ def Variable(name, space, shape = (), dim = 3):
                     result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j]}_", real=True) * phi)
                 elif shape == (3,):
                     for l in range(3):
-                        result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,l]}_", real=True) * phi * [N.i, N.j][l])
+                        result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,l]}_", real=True) * phi * [N.i, N.j, N.k][l])
         elif dim == 3:
             for i,j,k in product([0,1],[0,1],[0,1]):
                 phi = (1 - N.x/dx + 2*i*N.x/dx - i) * \
@@ -182,6 +182,10 @@ def linear_form_cmds(expr, n_gauss = 3):
             v[symb] = match[1].split(':')
             v[symb][1:] = [eval(x) for x in v[symb][1:]]
 
+    # retrieve topological dimension from first symbol
+    _, shape, idx = next(iter(v.values()))
+    dim = len(idx) - len(shape)
+
     # process test functions
     variables = set()
     for vsymb in tqdm(v, desc = "Generating..."):
@@ -190,9 +194,9 @@ def linear_form_cmds(expr, n_gauss = 3):
         variables = variables.union(vvars)
         vspace, vshape, vidx = v[vsymb]
         if vspace == 'node':
-            sidx = ','.join(([[':-1','1:'][j] if i < 3 else str(j) for i, j in enumerate(vidx)]))
+            sidx = ','.join(([[':-1','1:'][j] if i < dim else str(j) for i, j in enumerate(vidx)]))
         else:
-            sidx = ','.join(([':' if i < 3 else str(j) for i, j in enumerate(vidx)]))
+            sidx = ','.join(([':' if i < dim else str(j) for i, j in enumerate(vidx)]))
         cmds.append((sidx, rhs))
 
     return cmds, variables
