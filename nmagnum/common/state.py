@@ -44,7 +44,12 @@ class State(object):
         self.t = 0.
 
         logging.info_green(f"[State] Running on device: {self._device}")
-        logging.info_green("[Mesh] %dx%dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx))
+        if mesh.dim == 2:
+            logging.info_green("[Mesh] 2D, %dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx))
+        elif mesh.dim == 3:
+            logging.info_green("[Mesh] 3D, %dx%dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx))
+        else:
+            raise
 
     @property
     def device(self):

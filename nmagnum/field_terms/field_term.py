@@ -34,7 +34,7 @@ class FieldTerm(gen.CodeClass):
     @classmethod
     def generate_code(cls, n_gauss, dim):
         code = gen.CodeBlock()
-        m = gen.Variable('m', 'node', (3,))
+        m = gen.Variable('m', 'node', (3,), dim)
 
         if not hasattr(cls, 'h'):
             # generate linear-form cmds
