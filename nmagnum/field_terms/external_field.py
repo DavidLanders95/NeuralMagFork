@@ -20,7 +20,7 @@ class ExternalField(FieldTerm):
             setattr(state, self.attr_name('E', name), wrapped)
 
     @staticmethod
-    def e_expr(m):
-        Ms = Variable('material__Ms', 'cell')
+    def e_expr(m, dim):
+        Ms = Variable('material__Ms', 'cell', dim)
         h_external = Variable('h_external', 'node', (3,))
         return - constants.mu_0 * Ms * m.dot(h_external)
