@@ -24,7 +24,7 @@ llg = LLGSolver(state)
 llg.step(1e-9)
 
 # set external field and perform switch
-h_ext.tensor[...,:] = state.tensor([-19576., 3421., 0.])
+h_ext.tensor[..., :] = state.tensor([-19576., 3421., 0.])
 state.material.alpha = 0.02
 
 logger = Logger('data', ['t', 'm'], ['m'])

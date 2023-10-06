@@ -20,7 +20,9 @@ include = ["nmagnum*"]
 
 [tool.black]
 experimental-string-processing = true
+exclude = "/field_terms/cache"
 
 [tool.isort]
 profile = "black"
 skip_gitignore = true  # ignores files listed in .gitignore
+skip_glob = ["/nmagnum/field_terms/cache/*"]

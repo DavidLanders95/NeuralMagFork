@@ -3,6 +3,7 @@ import pytest
 import torch
 from nmagnum import *
 
+
 def test_h(state):
     state.material.A = CellFunction(state).from_constant(1.2e-11)
     state.material.Ms = CellFunction(state).from_constant(8e5)
