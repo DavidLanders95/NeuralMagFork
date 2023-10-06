@@ -77,6 +77,7 @@ class State(object):
 
     def tensor(self, value):
         if isinstance(value, torch.Tensor):
+            # TODO check dtype and device?
             return value
         if isinstance(value, np.ndarray):
             return torch.from_numpy(value).to(device = self.device, dtype = self.dtype)
@@ -167,7 +168,8 @@ class State(object):
 
         return func, args
 
-    def wrap_func(self, f, mapping):
+    @staticmethod
+    def wrap_func(f, mapping):
         name = "lmda" if f.__name__ == '<lambda>' else f.__name__
         old_args = list(inspect.signature(f).parameters.keys())
         new_args = [mapping.get(a, a) for a in old_args]
