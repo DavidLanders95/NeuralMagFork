@@ -9,11 +9,13 @@ __all__ = ["FieldTerm"]
 
 class FieldTerm(gen.CodeClass):
 
-    def __init__(self, **kwargs):
-        pass
+    def __init__(self, n_gauss = None):
+        self._n_gauss = n_gauss or config.fem['n_gauss']
 
     def register(self, state, name = None):
-        super().__init__(generate_code = hasattr(self, 'e_expr'))
+        dim = state.mesh.dim
+        if hasattr(self, 'e_expr'):
+            self.save_and_load_code(self._n_gauss, dim)
         if not hasattr(self, 'h'):
             self.h = gen.compile(self._code.h)
         if not hasattr(self, 'E'):
@@ -30,18 +32,18 @@ class FieldTerm(gen.CodeClass):
         return f"{attr}_{name}"
 
     @classmethod
-    def generate_code(cls):
+    def generate_code(cls, n_gauss, dim):
         code = gen.CodeBlock()
-        m = gen.Variable('m', 'node', (3,))
+        m = gen.Variable('m', 'node', dim, (3,))
 
         if not hasattr(cls, 'h'):
             # generate linear-form cmds
-            field_expr = gen.gateaux_derivative(cls.e_expr(m), m)
-            cmds1, vars1 = gen.linear_form_cmds(field_expr)
+            field_expr = gen.gateaux_derivative(cls.e_expr(m, dim), m)
+            cmds1, vars1 = gen.linear_form_cmds(field_expr, n_gauss)
 
             # generate lumped mass cmds
-            v = gen.Variable('v', 'node')
-            Ms = gen.Variable('material__Ms', 'cell')
+            v = gen.Variable('v', 'node', dim)
+            Ms = gen.Variable('material__Ms', 'cell', dim)
             cmds2, vars2 = gen.linear_form_cmds(- constants.mu_0 * Ms * v)
 
             with code.add_function('h', sorted(list(vars1 | vars2 | {'m'}))) as f:
@@ -49,14 +51,14 @@ class FieldTerm(gen.CodeClass):
                 for cmd in cmds1:
                     f.add_to('h', cmd[0], cmd[1])
 
-                f.zeros_like('mass', 'm', shape = 'm.shape[:3]')
+                f.zeros_like('mass', 'm', shape = 'm.shape[:-1]')
                 for cmd in cmds2:
                     f.add_to('mass', cmd[0], cmd[1])
 
                 f.retrn('h / mass.unsqueeze(-1)') # TODO more abstraction?
 
         if not hasattr(cls, 'E'):
-            rhs, variables = gen.compile_functional(cls.e_expr(m))
+            rhs, variables = gen.compile_functional(cls.e_expr(m, dim), n_gauss)
             with code.add_function('E', variables) as f:
                 f.retrn_sum(rhs)
 

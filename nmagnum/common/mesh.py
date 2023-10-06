@@ -6,6 +6,7 @@ __all__ = ["Mesh"]
 class Mesh(object):
     def __init__(self, n, dx, origin=(0, 0, 0)):
         self.n = tuple(n)
+        self.dim = len(n)
         self.dx = tuple(dx)
         self.origin = tuple(origin)
 

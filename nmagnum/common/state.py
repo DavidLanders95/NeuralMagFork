@@ -44,7 +44,12 @@ class State(object):
         self.t = 0.
 
         logging.info_green(f"[State] Running on device: {self._device}")
-        logging.info_green("[Mesh] %dx%dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx))
+        if mesh.dim == 2:
+            logging.info_green("[Mesh] 2D, %dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx))
+        elif mesh.dim == 3:
+            logging.info_green("[Mesh] 3D, %dx%dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx))
+        else:
+            raise
 
     @property
     def device(self):
@@ -72,6 +77,7 @@ class State(object):
 
     def tensor(self, value):
         if isinstance(value, torch.Tensor):
+            # TODO check dtype and device?
             return value
         if isinstance(value, np.ndarray):
             return torch.from_numpy(value).to(device = self.device, dtype = self.dtype)
@@ -162,7 +168,8 @@ class State(object):
 
         return func, args
 
-    def wrap_func(self, f, mapping):
+    @staticmethod
+    def wrap_func(f, mapping):
         name = "lmda" if f.__name__ == '<lambda>' else f.__name__
         old_args = list(inspect.signature(f).parameters.keys())
         new_args = [mapping.get(a, a) for a in old_args]
@@ -177,7 +184,8 @@ class State(object):
         if isinstance(fields, Function):
             fields = [fields]
 
-        grid = pv.UniformGrid(dimensions=np.array(self.mesh.n) + 1, spacing = self.mesh.dx, origin=self.mesh.origin)
+        n = np.array(self.mesh.n + tuple([1] * (3 - self.mesh.dim))) + 1
+        grid = pv.UniformGrid(dimensions = n, spacing = self.mesh.dx, origin=self.mesh.origin)
 
         for field in fields:
             if isinstance(field, str):
@@ -187,9 +195,19 @@ class State(object):
                 name = field.name
 
             if field.shape == ():
-                data = field.tensor.detach().cpu().numpy().flatten("F")
+                if self.mesh.dim == 2:
+                    data = field.tensor.detach().unsqueeze(-2).expand(-1,-1,2).cpu().numpy().flatten("F")
+                elif self.mesh.dim == 3:
+                    data = field.tensor.detach().cpu().numpy().flatten("F")
+                else:
+                    raise
             elif field.shape == (3,):
-                data = field.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
+                if self.mesh.dim == 2:
+                    data = field.tensor.detach().unsqueeze(-2).expand(-1,-1,2,-1).cpu().numpy().reshape(-1, 3, order="F")
+                elif self.mesh.dim == 3:
+                    data = field.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
+                else:
+                    raise
             else:
                 raise NotImplemented('Unsupported shape.')
 
@@ -207,6 +225,7 @@ class State(object):
         grid.save(filename)
 
     def read_vti(self, filename, name = None):
+        # TODO enable reading of 2D data
         fields = {}
         data = pv.read(filename)
 
