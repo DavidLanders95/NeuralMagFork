@@ -15,6 +15,8 @@ import importlib
 import torch
 from ..common import logging, config
 
+dx, dy, dz = sp.symbols('_dx[0]_ _dx[1]_ _dx[2]_', real=True, positive=True)
+N = sv.CoordSys3D('N')
 
 def compile(func):
     if config.torch['compile']:
