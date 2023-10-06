@@ -34,7 +34,7 @@ class FieldTerm(gen.CodeClass):
     @classmethod
     def generate_code(cls, n_gauss, dim):
         code = gen.CodeBlock()
-        m = gen.Variable('m', 'node', (3,), dim)
+        m = gen.Variable('m', 'node', dim, (3,))
 
         if not hasattr(cls, 'h'):
             # generate linear-form cmds
@@ -42,8 +42,8 @@ class FieldTerm(gen.CodeClass):
             cmds1, vars1 = gen.linear_form_cmds(field_expr, n_gauss)
 
             # generate lumped mass cmds
-            v = gen.Variable('v', 'node', (), dim)
-            Ms = gen.Variable('material__Ms', 'cell', (), dim)
+            v = gen.Variable('v', 'node', dim)
+            Ms = gen.Variable('material__Ms', 'cell', dim)
             cmds2, vars2 = gen.linear_form_cmds(- constants.mu_0 * Ms * v)
 
             with code.add_function('h', sorted(list(vars1 | vars2 | {'m'}))) as f:

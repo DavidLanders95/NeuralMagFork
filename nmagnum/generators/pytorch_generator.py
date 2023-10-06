@@ -90,7 +90,7 @@ class CodeClass(object):
         self._code = importlib.util.module_from_spec(module_spec)
         module_spec.loader.exec_module(self._code)
 
-def Variable(name, space, shape = (), dim = 3):
+def Variable(name, space, dim = 3, shape = ()):
     result = []
     if space == 'node':
         if dim == 2:
