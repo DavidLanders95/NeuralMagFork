@@ -3,7 +3,6 @@ from ..common import Function, VectorFunction, logging, config
 from scipy import constants
 import sys
 import inspect
-import torch
 
 __all__ = ["FieldTerm"]
 

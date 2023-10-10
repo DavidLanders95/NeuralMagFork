@@ -1,9 +1,9 @@
 import os
 from time import time
 import numpy as np
+from scipy import constants
 import torch
 import torch.fft
-from scipy import constants
 from torch import abs, asinh, atan, log, sqrt
 from ..common import CellFunction, Function, VectorFunction, logging
 from .field_term import FieldTerm
@@ -11,100 +11,98 @@ from ..generators.pytorch_generator import Variable
 
 __all__ = ["DemagField"]
 
-def newell_f(points):
-    x = abs(points[:, :, :, 0])
-    y = abs(points[:, :, :, 1])
-    z = abs(points[:, :, :, 2])
+complex_dtype = {
+        torch.float: torch.complex,
+        torch.float32: torch.complex64,
+        torch.float64: torch.complex128
+        }
 
-    result = 1.0 / 6.0 * (2 * x**2 - y**2 - z**2) * sqrt(x**2 + y**2 + z**2)
-
-    mask = (x**2 + z**2).gt(0)
-    result[mask] += (y / 2.0 * (z**2 - x**2) * asinh(y / sqrt(x**2 + z**2)))[mask]
-
-    mask = (x**2 + y**2).gt(0)
-    result[mask] += (z / 2.0 * (y**2 - x**2) * asinh(z / sqrt(x**2 + y**2)))[mask]
-
-    mask = (x * (x**2 + y**2 + z**2)).gt(0)
-    result[mask] -= (x * y * z * atan(y * z / (x * sqrt(x**2 + y**2 + z**2))))[mask]
-
+def f(x, y, z):
+    x, y, z = abs(x), abs(y), abs(z)
+    x2, y2, z2 = x**2, y**2, z**2
+    r = sqrt(x2 + y2 + z2)
+    result = 1.0 / 6.0 * (2*x2 - y2 - z2) * r
+    result += (y / 2.0 * (z2 - x2) * asinh(y / sqrt(x2 + z2))).nan_to_num(posinf=0, neginf=0)
+    result += (z / 2.0 * (y2 - x2) * asinh(z / sqrt(x2 + y2))).nan_to_num(posinf=0, neginf=0)
+    result -= (x * y * z * atan(y*z / (x * r))).nan_to_num(posinf=0, neginf=0)
     return result
 
-
-def newell_g(points):
-    x = points[:, :, :, 0]
-    y = points[:, :, :, 1]
-    z = abs(points[:, :, :, 2])
-
-    result = -x * y * sqrt(x**2 + y**2 + z**2) / 3.0
-
-    mask = (x**2 + y**2).gt(0)  # x**2 + y**2 > 0
-    result[mask] += (x * y * z * asinh(z / sqrt(x**2 + y**2)))[mask]
-
-    mask = (y**2 + z**2).gt(0)
-    result[mask] += (y / 6.0 * (3.0 * z**2 - y**2) * asinh(x / sqrt(y**2 + z**2)))[mask]
-
-    mask = (x**2 + z**2).gt(0)
-    result[mask] += (x / 6.0 * (3.0 * z**2 - x**2) * asinh(y / sqrt(x**2 + z**2)))[mask]
-
-    mask = (z * (x**2 + y**2 + z**2)).ne(0)
-    result[mask] -= (z**3 / 6.0 * atan(x * y / (z * sqrt(x**2 + y**2 + z**2))))[mask]
-
-    mask = (y * (x**2 + y**2 + z**2)).ne(0)
-    result[mask] -= (z * y**2 / 2.0 * atan(x * z / (y * sqrt(x**2 + y**2 + z**2))))[mask]
-
-    mask = (x * (x**2 + y**2 + z**2)).ne(0)
-    result[mask] -= (z * x**2 / 2.0 * atan(y * z / (x * sqrt(x**2 + y**2 + z**2))))[mask]
-
+def g(x, y, z):
+    z = abs(z)
+    x2, y2, z2 = x**2, y**2, z**2
+    r = sqrt(x2 + y2 + z2)
+    result = -x * y * r / 3.0
+    result += (x * y * z * asinh(z / sqrt(x2 + y2))).nan_to_num(posinf=0, neginf=0)
+    result += (y / 6.0 * (3.0 * z2 - y2) * asinh(x / sqrt(y2 + z2))).nan_to_num(posinf=0, neginf=0)
+    result += (x / 6.0 * (3.0 * z2 - x2) * asinh(y / sqrt(x2 + z2))).nan_to_num(posinf=0, neginf=0)
+    result -= (z**3 / 6.0 * atan(x * y / (z * r))).nan_to_num(posinf=0, neginf=0)
+    result -= (z * y2 / 2.0 * atan(x * z / (y * r))).nan_to_num(posinf=0, neginf=0)
+    result -= (z * x2 / 2.0 * atan(y * z / (x * r))).nan_to_num(posinf=0, neginf=0)
     return result
 
+def F1(func, x, y, z, dz, dZ):
+    return func(x, y, z      + dZ) \
+         - func(x, y, z          ) \
+         - func(x, y, z - dz + dZ) \
+         + func(x, y, z - dz     )
 
-def dipole_f(points):
-    x = points[:, :, :, 0]
-    y = points[:, :, :, 1]
-    z = points[:, :, :, 2]
+def F0(func, x, y, z, dy, dY, dz, dZ):
+    return F1(func, x, y      + dY, z, dz, dZ) \
+         - F1(func, x, y,           z, dz, dZ) \
+         - F1(func, x, y - dy + dY, z, dz, dZ) \
+         + F1(func, x, y - dy,      z, dz, dZ)
 
-    result = (2.0 * x**2 - y**2 - z**2) * pow(x**2 + y**2 + z**2, -5.0 / 2.0)
-    result[0, 0, 0] = 0.0
-    return result
+def newell(func, x, y, z, dx, dy, dz, dX, dY, dZ):
+    ret = F0(func, x,           y, z, dy, dY, dz, dZ) \
+        - F0(func, x - dx,      y, z, dy, dY, dz, dZ) \
+        - F0(func, x + dX,      y, z, dy, dY, dz, dZ) \
+        + F0(func, x - dx + dX, y, z, dy, dY, dz, dZ)
+    return -ret / (4.*np.pi*dx*dy*dz)
 
+def dipole_f(x, y, z, dx, dy, dz, dX, dY, dZ):
+    z = z + dZ/2. - dz/2. # diff of cell centers for non-equidistant demag
+    result = (2.*x**2 - y**2 - z**2) * pow(x**2 + y**2 + z**2, -5./2.)
+    result[0,0,0] = 0.
+    return result * dx*dy*dz / (4.*np.pi)
 
-def dipole_g(points):
-    x = points[:, :, :, 0]
-    y = points[:, :, :, 1]
-    z = points[:, :, :, 2]
+def dipole_g(x, y, z, dx, dy, dz, dX, dY, dZ):
+    z = z + dZ/2. - dz/2. # diff of cell centers for non-equidistant demag
+    result = 3.*x*y * pow(x**2 + y**2 + z**2, -5./2.)
+    result[0,0,0] = 0.
+    return result * dx*dy*dz / (4.*np.pi)
 
-    result = 3.0 * x * y * pow(x**2 + y**2 + z**2, -5.0 / 2.0)
-    result[0, 0, 0] = 0.0
-    return result
+def demag_f(x, y, z, dx, dy, dz, dX, dY, dZ, p):
+    res = dipole_f(x, y, z, dx, dy, dz, dX, dY, dZ)
+    near = (x**2 + y**2 + z**2) / max(dx**2 + dy**2 + dz**2, dX**2 + dY**2 + dZ**2) < p**2
+    res[near] = newell(f, x[near], y[near], z[near], dx, dy, dz, dX, dY, dZ)
+    return res
+
+def demag_g(x, y, z, dx, dy, dz, dX, dY, dZ, p):
+    res = dipole_g(x, y, z, dx, dy, dz, dX, dY, dZ)
+    near = (x**2 + y**2 + z**2) / max(dx**2 + dy**2 + dz**2, dX**2 + dY**2 + dZ**2) < p**2
+    res[near] = newell(g, x[near], y[near], z[near], dx, dy, dz, dX, dY, dZ)
+    return res
 
 def h_cell(N_demag, mcell, material__Ms):
-    N = N_demag
+    dim = [i for i in range(3) if mcell.shape[i] > 1]
+    s = [mcell.shape[i]*2 for i in dim]
 
-    hx = torch.zeros(list(N[0][0].shape), device = mcell.device, dtype = torch.complex128)
-    hy = torch.zeros(list(N[0][0].shape), device = mcell.device, dtype = torch.complex128)
-    hz = torch.zeros(list(N[0][0].shape), device = mcell.device, dtype = torch.complex128)
-
+    hx = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[mcell.dtype])
+    hy = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[mcell.dtype])
+    hz = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[mcell.dtype])
     for ax in range(3):
-        m_pad_fft1D = torch.fft.rfftn(
-            material__Ms.unsqueeze(-1) * mcell[:, :, :, (ax,)],
-            dim = [i for i in range(3) if mcell.shape[i] > 1],
-            s = [mcell.shape[i] * 2 for i in range(3) if mcell.shape[i] > 1],
-        ).squeeze(-1) # TODO really need squeeze, (ax,) -> ax
+        m_pad_fft1D = torch.fft.rfftn(material__Ms * mcell[:,:,:,ax], dim = dim, s = s)
+        hx += N_demag[0][ax] * m_pad_fft1D
+        hy += N_demag[1][ax] * m_pad_fft1D
+        hz += N_demag[2][ax] * m_pad_fft1D
 
-        hx += N[0][ax] * m_pad_fft1D
-        hy += N[1][ax] * m_pad_fft1D
-        hz += N[2][ax] * m_pad_fft1D
+    hx = torch.fft.irfftn(hx, dim = dim)
+    hy = torch.fft.irfftn(hy, dim = dim)
+    hz = torch.fft.irfftn(hz, dim = dim)
 
-    hx = torch.fft.irfftn(hx, dim=[i for i in range(3) if mcell.shape[i] > 1])
-    hy = torch.fft.irfftn(hy, dim=[i for i in range(3) if mcell.shape[i] > 1])
-    hz = torch.fft.irfftn(hz, dim=[i for i in range(3) if mcell.shape[i] > 1])
-
-    
-    hcell = torch.zeros(mcell.shape, dtype = mcell.dtype, device = mcell.device)
-    hcell[...,0] = hx[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
-    hcell[...,1] = hy[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
-    hcell[...,2] = hz[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]]
-    return hcell
+    return torch.stack([hx[:mcell.shape[0],:mcell.shape[1],:mcell.shape[2]],
+                        hy[:mcell.shape[0],:mcell.shape[1],:mcell.shape[2]],
+                        hz[:mcell.shape[0],:mcell.shape[1],:mcell.shape[2]]], dim = 3)
 
 def h2d(N_demag, m, material__Ms):
     mcell = (
@@ -186,66 +184,40 @@ class DemagField(FieldTerm):
         h_demag = Variable('h_demag', 'node', dim, (3,))
         return - 0.5 * constants.mu_0 * Ms * m.dot(h_demag)
 
-    def _init_N_component(self, state, perm, func_near, func_far):
-        n = state.mesh.n + tuple([1] * (3 - state.mesh.dim))
+    def _init_N_component(self, state, perm, func):
+        dx = np.array(state.mesh.dx)
+        dx /= dx.min() # rescale dx to avoid NaNs when using single precision
 
-        # dipole far-field
-        shape = [1 if nx == 1 else 2 * nx for nx in n]
-        ij = [
-            torch.fft.fftshift(torch.arange(n, device=state.device, dtype=state.dtype))
-            - n // 2
-            for n in shape
-        ]
-        ij = torch.meshgrid(*ij, indexing="ij")
+        shape = [i*2 if i>1 else i for i in state.mesh.n]
+        ij = [torch.fft.fftfreq(n, 1/n).to(dtype = torch.float64, device = state.device) for n in shape] # local indices
+        ij = torch.meshgrid(*ij,indexing='ij')
+        x, y, z = [ij[ind] * dx[ind] for ind in perm]
+        Lx = [state.mesh.n[ind] * dx[ind] for ind in perm]
+        dx = [dx[ind] for ind in perm]
 
-        r = torch.stack([ij[ind] * state.mesh.dx[ind] for ind in perm], dim=-1)
-        Nc = func_far(r) * np.prod(state.mesh.dx) / (4.0 * np.pi)
+        # TODO enable pseudo PBCs
+        #offsets = [state.arange(-state.mesh.pbc[ind], state.mesh.pbc[ind]+1) for ind in perm] # offset of pseudo PBC images
+        #offsets = torch.stack(torch.meshgrid(*offsets, indexing="ij"), dim=-1).flatten(end_dim=-2)
+        #Nc = state.zeros(shape)
+        #for offset in offsets:
+        #    Nc += func(x + offset[0]*Lx[0], y + offset[1]*Lx[1], z + offset[2]*Lx[2], *dx, *dx, self._p)
+        Nc = func(x, y, z, *dx, *dx, self._p)
 
-        # newell near-field
-        n_near = np.minimum(n, self._p)
-        N_near = torch.zeros(
-            [1 if n == 1 else 2 * n for n in n_near],
-            device=state.device,
-            dtype=state.dtype,
-        )
-        ij = [
-            torch.fft.fftshift(torch.arange(n, device=state.device, dtype=state.dtype))
-            - n // 2
-            for n in N_near.shape[:3]
-        ]
-        ij = torch.meshgrid(*ij, indexing="ij")
-
-        for kl in np.rollaxis(np.indices((2,) * 6), 0, 7).reshape(64, 6):
-            k, l = kl[:3], kl[3:]
-            r = torch.stack(
-                [(ij[ind] + k[ind] - l[ind]) * state.mesh.dx[ind] for ind in perm],
-                dim=-1,
-            )
-            N_near[:, :, :] -= (
-                (-1) ** np.sum(kl)
-                * func_near(r)
-                / (4.0 * np.pi * np.prod(state.mesh.dx))
-            )
-
-        Nc[:n_near[0]   ,:n_near[1]   ,:n_near[2]   ] = N_near[:n_near[0]   ,:n_near[1]   ,:n_near[2]   ]
-        Nc[:n_near[0]   ,:n_near[1]   ,-n_near[2]+1:] = N_near[:n_near[0]   ,:n_near[1]   ,-n_near[2]+1:]
-        Nc[:n_near[0]   ,-n_near[1]+1:,:n_near[2]   ] = N_near[:n_near[0]   ,-n_near[1]+1:,:n_near[2]   ]
-        Nc[:n_near[0]   ,-n_near[1]+1:,-n_near[2]+1:] = N_near[:n_near[0]   ,-n_near[1]+1:,-n_near[2]+1:]
-        Nc[-n_near[0]+1:,:n_near[1]   ,:n_near[2]   ] = N_near[-n_near[0]+1:,:n_near[1]   ,:n_near[2]   ]
-        Nc[-n_near[0]+1:,:n_near[1]   ,-n_near[2]+1:] = N_near[-n_near[0]+1:,:n_near[1]   ,-n_near[2]+1:]
-        Nc[-n_near[0]+1:,-n_near[1]+1:,:n_near[2]   ] = N_near[-n_near[0]+1:,-n_near[1]+1:,:n_near[2]   ]
-        Nc[-n_near[0]+1:,-n_near[1]+1:,-n_near[2]+1:] = N_near[-n_near[0]+1:,-n_near[1]+1:,-n_near[2]+1:]
-
-        Nc = torch.fft.rfftn(Nc, dim = [i for i in range(3) if n[i] > 1])
+        dim = [i for i in range(3) if state.mesh.n[i] > 1]
+        if len(dim) > 0:
+            Nc = torch.fft.rfftn(Nc, dim = dim)
         return Nc.real.clone()
 
     def _init_N(self, state):
-        time_kernel = time()
-        Nxx = self._init_N_component(state, [0, 1, 2], newell_f, dipole_f)
-        Nxy = self._init_N_component(state, [0, 1, 2], newell_g, dipole_g)
-        Nxz = self._init_N_component(state, [0, 2, 1], newell_g, dipole_g)
-        Nyy = self._init_N_component(state, [1, 2, 0], newell_f, dipole_f)
-        Nyz = self._init_N_component(state, [1, 2, 0], newell_g, dipole_g)
-        Nzz = self._init_N_component(state, [2, 0, 1], newell_f, dipole_f)
+        logging.info_green(f"[DemagField]: Set up demag tensor")
 
-        state.N_demag = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]
+        Nxx = self._init_N_component(state, [0,1,2], demag_f).to(dtype = state.dtype)
+        Nxy = self._init_N_component(state, [0,1,2], demag_g).to(dtype = state.dtype)
+        Nxz = self._init_N_component(state, [0,2,1], demag_g).to(dtype = state.dtype)
+        Nyy = self._init_N_component(state, [1,2,0], demag_f).to(dtype = state.dtype)
+        Nyz = self._init_N_component(state, [1,2,0], demag_g).to(dtype = state.dtype)
+        Nzz = self._init_N_component(state, [2,0,1], demag_f).to(dtype = state.dtype)
+
+        state.N_demag = [[Nxx, Nxy, Nxz],
+                         [Nxy, Nyy, Nyz],
+                         [Nxz, Nyz, Nzz]]

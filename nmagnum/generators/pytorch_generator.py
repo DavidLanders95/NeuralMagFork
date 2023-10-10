@@ -24,7 +24,6 @@ def compile(func):
     else:
         return func
 
-
 class CodeFunction(object):
     def __init__(self, block, name, variables):
         self._block = block
