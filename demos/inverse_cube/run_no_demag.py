@@ -2,7 +2,6 @@ from nmagnum import *
 import numpy as np
 import torch
 from torchdiffeq import odeint_adjoint as odeint
-from scipy import constants
 
 config.fem['n_gauss'] = 1
 
@@ -22,32 +21,37 @@ state.m = VectorFunction(state).from_constant((0, 0, 1))
 state.phi = np.pi/2
 state.theta = np.pi/2
 h_ext = lambda phi, theta: torch.stack([
-    300e-3/constants.mu_0 * torch.sin(theta) * torch.cos(phi),
-    300e-3/constants.mu_0 * torch.sin(theta) * torch.sin(phi),
-    300e-3/constants.mu_0 * torch.cos(theta)
+    2.4e5 * torch.sin(theta) * torch.cos(phi),
+    2.4e5 * torch.sin(theta) * torch.sin(phi),
+    2.4e5 * torch.cos(theta)
 ]).reshape((1,1,1,3)).expand((11,11,11,3))
 
 # register effective field
 ExchangeField().register(state, 'exchange')
-DemagField().register(state, 'demag')
 UniaxialAnisotropyField().register(state, 'aniso')
 ExternalField(h_ext).register(state, 'external')
-TotalField('exchange', 'demag', 'aniso', 'external').register(state)
-
-llg = LLGSolver(state, parameters = ['phi', 'theta'])
+TotalField('exchange', 'aniso', 'external').register(state)
 
 # relax
-with torch.no_grad():
-    state.material.alpha = 1.
-    llg.step(1e-9)
-    state.material.alpha = 0.1
-    state.write_vti(state.m, 'm0.vtu')
+llg = LLGSolver(state, parameters = ['phi', 'theta'])
+
+#with torch.no_grad():
+#    llg.step(1e-9)
+
+## CHECK RESULT
+#state.phi = 1.475641455028714466e+00
+#state.theta = 1.497402584324188712e+00
+#
+#llg.step(0.5e-9)
+#print(state.m.avg())
+#state.write_vti(state.m, 'm0.vtu')
+#exit()
+## END CHECK RESULT
 
 # define optimization problem
 m_target = VectorFunction(state).from_constant((np.sqrt(0.5), 0, np.sqrt(0.5))).tensor
 
 optimizer = torch.optim.Adam(llg.parameters(), lr = 0.05)
-my_loss = torch.nn.L1Loss()
 
 with open('log.dat', 'w') as f:
     for epoch in range(100):
@@ -55,11 +59,17 @@ with open('log.dat', 'w') as f:
         optimizer.zero_grad()
 
         m_pred = odeint(llg, state.m.tensor, state.tensor([0., 0.5]))
-        loss = my_loss(m_pred[-1], m_target)
+        loss = torch.mean(torch.abs(m_pred[-1] - m_target))
+        #print(m_target.mean(dim = (0,1,2)))
+        #print(m_pred[-1].mean(dim = (0,1,2)).clone().detach().cpu())
+        #print(state.phi.clone().detach().cpu())
+        #print(state.theta.clone().detach().cpu())
+
         loss.backward()
         optimizer.step()
 
-        # log
         values = tuple([epoch] + [x.clone().detach().cpu().item() for x in (state.phi, state.theta, loss)])
+
         f.write("%d %g %g %g\n" % values)
         f.flush()
+

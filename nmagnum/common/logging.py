@@ -11,7 +11,7 @@ __all__ = [
 ]
 
 # create magnum.fe logger
-logger = logging.getLogger("nodal.mag")
+logger = logging.getLogger("NeuralMag")
 
 handler = logging.StreamHandler()
 handler.setFormatter(
