@@ -7,8 +7,8 @@ __all__ = ["LLGSolver"]
 
 def llg_rhs(h, m, material__alpha):
     gamma_prime = 1e-9 * 221276.14725379366 / (1 + material__alpha**2)
-    return - gamma_prime * torch.cross(m, h) \
-           - material__alpha * gamma_prime * torch.cross(m, torch.cross(m, h))
+    return - gamma_prime * torch.linalg.cross(m, h) \
+           - material__alpha * gamma_prime * torch.linalg.cross(m, torch.cross(m, h))
 
 class LLGSolver(nn.Module):
     def __init__(self, state, rtol = 1e-5, atol=1e-5, parameters = []):
