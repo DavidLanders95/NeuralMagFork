@@ -8,7 +8,7 @@ __all__ = ["LLGSolver"]
 def llg_rhs(h, m, material__alpha):
     gamma_prime = 1e-9 * 221276.14725379366 / (1 + material__alpha**2)
     return - gamma_prime * torch.linalg.cross(m, h) \
-           - material__alpha * gamma_prime * torch.linalg.cross(m, torch.cross(m, h))
+           - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
 
 class LLGSolver(nn.Module):
     def __init__(self, state, rtol = 1e-5, atol=1e-5, parameters = []):
@@ -44,5 +44,5 @@ class LLGSolver(nn.Module):
         t = self._state.tensor([self._state.t * 1e9, (self._state.t + dt) * 1e9])
         m_next = odeint(self, self._state.m.tensor, t, # TODO need to clone m?
                 method = 'dopri5', rtol = 1e-5, atol = 1e-5)
-        self._state.t = t[-1] * 1e-9
+        self._state.t.fill_(t[-1] * 1e-9)
         self._state.m.tensor[:] = m_next[-1]
