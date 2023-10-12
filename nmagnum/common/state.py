@@ -79,9 +79,9 @@ class State(object):
         if isinstance(value, torch.Tensor):
             # TODO check dtype and device?
             return value
-        if isinstance(value, np.ndarray):
-            return torch.from_numpy(value).to(device = self.device, dtype = self.dtype)
-        return torch.tensor(value, device = self.device, dtype = self.dtype) 
+        #if isinstance(value, np.ndarray):
+        #    return torch.from_numpy(value).to(device = self.device, dtype = self.dtype)
+        return torch.tensor(value, device = self.device, dtype = self.dtype, requires_grad = False)
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
