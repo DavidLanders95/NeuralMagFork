@@ -10,8 +10,8 @@ class ExchangeField(FieldTerm):
         super().__init__(**kwargs)
 
     @staticmethod
-    def e_expr(m):
-        A = Variable('material__A', 'cell')
+    def e_expr(m, dim):
+        A = Variable('material__A', 'cell', dim)
         return A * (
                 m.diff(N.x).dot(m.diff(N.x)) + 
                 m.diff(N.y).dot(m.diff(N.y)) +

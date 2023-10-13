@@ -2,7 +2,7 @@ from nmagnum import *
 import numpy as np
 
 # setup state
-mesh = Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))
+mesh = Mesh((100, 25), (5e-9, 5e-9, 3e-9))
 state = State(mesh)
 
 # setup material and m0
@@ -24,10 +24,10 @@ llg = LLGSolver(state)
 llg.step(1e-9)
 
 # set external field and perform switch
-h_ext.tensor[..., :] = state.tensor([-19576., 3421., 0.])
+h_ext.tensor[...,:] = state.tensor([-19576., 3421., 0.])
 state.material.alpha = 0.02
 
-logger = Logger('data', ['t', 'm'], ['m'])
+logger = Logger('data2d', ['t', 'm', 'E'], ['m'])
 for i in range(100):
     logger.log(state)
     llg.step(1e-11)
