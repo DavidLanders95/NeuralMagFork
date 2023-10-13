@@ -44,19 +44,16 @@ m_target = VectorFunction(state).from_constant((np.sqrt(0.5), 0, np.sqrt(0.5))).
 with open('log.dat', 'w') as f:
     for epoch in range(100):
         print(f"epoch: {epoch}")
-        optimizer.zero_grad()
 
-        ts = torch.arange(0., 0.5, 1e-3, dtype = state.dtype, device = state.device)
-        #m_pred = odeint(llg, state.m.tensor, state.tensor([0., 0.05]))
-        m_pred = odeint(llg, state.m.tensor, ts)
-        #loss = torch.mean(torch.abs(m_pred[-1] - m_target))
+        #ts = torch.arange(0., 0.5, 1e-3, dtype = state.dtype, device = state.device)
+        #m_pred = odeint(llg, state.m.tensor, ts)
+
+        optimizer.zero_grad()
+        m_pred = odeint(llg, state.m.tensor, state.tensor([0., 0.05]))
         loss = my_loss(m_pred[-1], m_target)
         loss.backward()
-        #print(f"Grad: phi = {state.phi.grad}, theta = {state.theta.grad}")
-        print(f"Grad: phi = {llg._parameters['phi'].grad}, theta = {llg._parameters['theta'].grad}")
         optimizer.step()
 
         values = tuple([epoch] + [x.clone().detach().cpu().item() for x in (state.phi, state.theta, loss)])
-
         f.write("%d %g %g %g\n" % values)
         f.flush()
