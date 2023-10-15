@@ -12,6 +12,16 @@ def test_h():
     DemagField().register(state)
     assert ((state.h_demag.tensor * state.m.tensor).sum() / 6**3).cpu() == pytest.approx(-1 / 3)
 
+def test_h_2d():
+    mesh = Mesh((5, 5), (1e-9, 1e-9, 5e-9))
+    state = State(mesh)
+
+    state.m = VectorFunction(state).from_constant([1.0, 0.0, 0.0])
+    state.material.Ms = CellFunction(state).from_constant(1.0)
+
+    DemagField().register(state)
+    assert ((state.h_demag.tensor * state.m.tensor).sum() / 6**2).cpu() == pytest.approx(-1/3, 1e-1)
+
 def test_E():
     mesh = Mesh((5, 5, 5), (1e-9, 1e-9, 1e-9))
     state = State(mesh)

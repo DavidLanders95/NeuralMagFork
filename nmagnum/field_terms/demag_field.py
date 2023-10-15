@@ -185,14 +185,15 @@ class DemagField(FieldTerm):
         return - 0.5 * constants.mu_0 * Ms * m.dot(h_demag)
 
     def _init_N_component(self, state, perm, func):
+        n = state.mesh.n + tuple([1] * (3 - state.mesh.dim))
         dx = np.array(state.mesh.dx)
         dx /= dx.min() # rescale dx to avoid NaNs when using single precision
 
-        shape = [i*2 if i>1 else i for i in state.mesh.n]
+        shape = [i*2 if i>1 else i for i in n]
         ij = [torch.fft.fftfreq(n, 1/n).to(dtype = torch.float64, device = state.device) for n in shape] # local indices
         ij = torch.meshgrid(*ij,indexing='ij')
         x, y, z = [ij[ind] * dx[ind] for ind in perm]
-        Lx = [state.mesh.n[ind] * dx[ind] for ind in perm]
+        Lx = [n[ind] * dx[ind] for ind in perm]
         dx = [dx[ind] for ind in perm]
 
         # TODO enable pseudo PBCs
@@ -203,7 +204,7 @@ class DemagField(FieldTerm):
         #    Nc += func(x + offset[0]*Lx[0], y + offset[1]*Lx[1], z + offset[2]*Lx[2], *dx, *dx, self._p)
         Nc = func(x, y, z, *dx, *dx, self._p)
 
-        dim = [i for i in range(3) if state.mesh.n[i] > 1]
+        dim = [i for i in range(3) if n[i] > 1]
         if len(dim) > 0:
             Nc = torch.fft.rfftn(Nc, dim = dim)
         return Nc.real.clone()
