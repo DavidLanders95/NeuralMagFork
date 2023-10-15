@@ -35,7 +35,7 @@ ExternalField(h_ext).register(state, 'external')
 TotalField('exchange', 'aniso', 'external').register(state)
 
 # set up solver, loss function, etc
-llg = LLGSolver(state, parameters = ['phi', 'theta'])
+llg = LLGSolver(state, scale = 1e-9, parameters = ['phi', 'theta'])
 optimizer = torch.optim.Adam(llg.parameters(), lr = 0.05)
 my_loss = torch.nn.L1Loss()
 

@@ -20,8 +20,8 @@ ExternalField(h_ext).register(state, 'external')
 TotalField('exchange', 'demag', 'external').register(state)
 
 # relax to s-state
-llg = LLGSolver(state)
-llg.step(1e-9)
+llg = LLGSolver(state, scale = 1e-9)
+llg.step(1.)
 
 # set external field and perform switch
 h_ext.tensor[...,:] = state.tensor([-19576., 3421., 0.])
@@ -30,4 +30,4 @@ state.material.alpha = 0.02
 logger = Logger('data2d', ['t', 'm', 'E'], ['m'])
 for i in range(100):
     logger.log(state)
-    llg.step(1e-11)
+    llg.step(1e-2)
