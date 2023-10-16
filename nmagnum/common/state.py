@@ -42,6 +42,7 @@ class State(object):
         self._mesh = mesh
         self.dx = self.tensor(mesh.dx)
         self.t = 0.
+        self.rho = 1.
 
         logging.info_green(f"[State] Running on device: {self._device}")
         if mesh.dim == 2:
@@ -184,6 +185,16 @@ class State(object):
         compiled_code = compile(code, "<string>", "exec")
         return types.FunctionType(compiled_code.co_consts[0], {f"__{name}": f}, name)
 
+    def coordinates(self, ftype = 'cell'):
+        assert ftype == 'cell'
+        x = torch.arange(self.dx[0]/2. + self.mesh.origin[0], self.dx[0] * self.mesh.n[0] + self.mesh.origin[0], self.dx[0])
+        y = torch.arange(self.dx[1]/2. + self.mesh.origin[1], self.dx[1] * self.mesh.n[1] + self.mesh.origin[1], self.dx[1])
+        if self.mesh.dim == 2:
+            return(torch.meshgrid(x, y, indexing = "ij"))
+        if self.mesh.dim == 3:
+            z = torch.arange(self.dx[2]/2. + self.mesh.origin[2], self.dx[2] * self.mesh.n[2] + self.mesh.origin[2], self.dx[2])
+            return(torch.meshgrid(x, y, z, indexing = "ij"))
+
     def write_vti(self, fields, filename):
         if isinstance(fields, Function):
             fields = [fields]
@@ -199,19 +210,15 @@ class State(object):
                 name = field.name
 
             if field.shape == ():
-                if self.mesh.dim == 2:
-                    data = field.tensor.detach().unsqueeze(-2).expand(-1,-1,2).cpu().numpy().flatten("F")
-                elif self.mesh.dim == 3:
+                if self.mesh.dim == 2 and field.ftype == 'node':
+                    data = field.tensor.detach().unsqueeze(-1).expand(-1,-1,2).cpu().numpy().flatten("F")
+                else:
                     data = field.tensor.detach().cpu().numpy().flatten("F")
-                else:
-                    raise
             elif field.shape == (3,):
-                if self.mesh.dim == 2:
+                if self.mesh.dim == 2 and field.ftype == 'node':
                     data = field.tensor.detach().unsqueeze(-2).expand(-1,-1,2,-1).cpu().numpy().reshape(-1, 3, order="F")
-                elif self.mesh.dim == 3:
-                    data = field.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
                 else:
-                    raise
+                    data = field.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
             else:
                 raise NotImplemented('Unsupported shape.')
 

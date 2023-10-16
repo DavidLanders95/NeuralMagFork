@@ -178,7 +178,7 @@ def compile_functional(expr, n_gauss = 3):
             if shape == ():
                 rhs = rhs.replace(symb.name, f"{name}")
             elif shape == (3,):
-                rhs = rhs.replace(symb.name, f"{name}[...,{idx[3]}]")
+                rhs = rhs.replace(symb.name, f"{name}[...,{idx[-1]}]")
 
     rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
     return rhs, variables
