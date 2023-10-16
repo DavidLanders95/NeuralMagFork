@@ -11,14 +11,17 @@ def llg_rhs(h, m, material__alpha):
            - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
 
 class LLGSolver(nn.Module):
-    def __init__(self, state, scale_t = 1e-9, rtol = 1e-5, atol=1e-5, parameters = []):
+    def __init__(self, state, scale_t = 1e-9, parameters = [], solver_options = {}):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
-        self._rtol = rtol
-        self._atop = atol
-
         self._parameters = {}
+        self._solver_options = {
+            'method': 'dopri5',
+            'atol': 1e-5,
+            'rtol': 1e-5 
+        }
+        self._solver_options.update(solver_options)
         for param in parameters:
             # TODO make sure that state.getattr returns a tensor
             self._parameters[param] = torch.nn.Parameter(state.getattr(param))
@@ -43,10 +46,9 @@ class LLGSolver(nn.Module):
     def step(self, dt):
         logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
         t = self._state.tensor([self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t])
-        m_next = odeint(self, self._state.m.tensor, t, # TODO need to clone m?
-                method = 'dopri5', rtol = 1e-5, atol = 1e-5)
+        m_next = odeint(self, self._state.m.tensor, t, **self._solver_options)
         self._state.t.fill_(t[-1] * self._scale_t)
         self._state.m.tensor[:] = m_next[-1]
 
     def solve(self, t):
-        return odeint(self, self._state.m.tensor, t / self._scale_t)
+        return odeint(self, self._state.m.tensor, t / self._scale_t, **self._solver_options)
