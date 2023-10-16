@@ -75,13 +75,11 @@ class State(object):
             name = child
         return getattr(container, name)
 
-    def tensor(self, value):
+    def tensor(self, value, requires_grad = False):
         if isinstance(value, torch.Tensor):
             # TODO check dtype and device?
             return value
-        #if isinstance(value, np.ndarray):
-        #    return torch.from_numpy(value).to(device = self.device, dtype = self.dtype)
-        return torch.tensor(value, device = self.device, dtype = self.dtype, requires_grad = False)
+        return torch.tensor(value, device = self.device, dtype = self.dtype, requires_grad = requires_grad)
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
@@ -115,6 +113,12 @@ class State(object):
             value = value[0]
         else:
             self._attr_types.pop(name, None)
+
+        if isinstance(value, list):
+            try:
+                value = self.tensor(value)
+            except ValueError:
+                pass
 
         self._attr_values[name] = value
         self._attr_funcs.clear()
@@ -152,6 +156,7 @@ class State(object):
                 code += f"    {func_name} = __{func_name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
             func_pointers[f"__{name}"] = f
             code += f"    return __{name}({', '.join(list(inspect.signature(f).parameters.keys()))})\n"
+            print(code)
             compiled_code = compile(code, "<string>", "exec")
             func = types.FunctionType(compiled_code.co_consts[0], func_pointers, name)
         else:

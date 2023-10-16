@@ -68,6 +68,7 @@ class Function(object):
         return self
 
     def from_numpy(self, array):
+        # TODO delete?
         assert array.shape == self._size
         self._tensor = torch.tensor(
             data=array, dtype=self._state.dtype, device=self._state.device
