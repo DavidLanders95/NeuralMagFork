@@ -16,7 +16,7 @@ state.material.Ku_axis = [0,0,1]
 state.material.alpha = 0.1
 
 # set circular geometry
-state.rho = CellFunction(state).from_constant(1e-8)
+state.rho = CellFunction(state).from_constant(1e-18)
 x, y = state.coordinates()
 R = 50e-9
 disk = x**2. + y**2. < R**2.
