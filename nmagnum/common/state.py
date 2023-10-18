@@ -194,6 +194,7 @@ class State(object):
         if self.mesh.dim == 3:
             z = torch.arange(self.dx[2]/2. + self.mesh.origin[2], self.dx[2] * self.mesh.n[2] + self.mesh.origin[2], self.dx[2])
             return(torch.meshgrid(x, y, z, indexing = "ij"))
+        raise NotImplemented
 
     def write_vti(self, fields, filename):
         if isinstance(fields, Function):

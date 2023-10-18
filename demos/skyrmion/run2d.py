@@ -16,11 +16,9 @@ state.material.Ku_axis = [0,0,1]
 state.material.alpha = 0.1
 
 # set circular geometry
-state.rho = CellFunction(state).from_constant(1e-18)
+state.rho = CellFunction(state).from_constant(torch.finfo(state.dtype).eps)
 x, y = state.coordinates()
-R = 50e-9
-disk = x**2. + y**2. < R**2.
-state.rho.tensor[disk] = 1.
+state.rho.tensor[x**2. + y**2. < 50e-9**2.] = 1.
 
 # initial magnetization
 state.m = VectorFunction(state).from_constant((0, 0, 1))
