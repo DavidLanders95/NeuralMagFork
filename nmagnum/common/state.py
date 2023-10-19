@@ -241,17 +241,22 @@ class State(object):
         fields = {}
         data = pv.read(filename)
 
-        assert np.array_equal(self.mesh.n, np.array(data.dimensions) - 1)
+        if self.mesh.dim == 2:
+            assert np.array_equal(self.mesh.n + (1,), np.array(data.dimensions) - 1)
+        else:
+            assert np.array_equal(self.mesh.n, np.array(data.dimensions) - 1)
 
         if name is None:
             name = data.array_names[0]
 
+        n = self.mesh.n
+        if self.mesh.dim == 2:
+            n += (1,)
         if name in data.point_data.keys():
             ftype = 'node'
-            n = tuple([x + 1 for x in self.mesh.n])
+            n = tuple([x + 1 for x in n])
         elif name in data.cell_data.keys():
             ftype = 'cell'
-            n = self.mesh.n
         else:
             raise
 
@@ -263,7 +268,11 @@ class State(object):
             dim = n + (vals.shape[-1],)
             shape = (3,)
 
-        return Function(self, ftype = ftype, shape = shape, tensor = self.tensor(vals.reshape(dim, order="F")))
+        values = self.tensor(vals.reshape(dim, order="F"))
+        if self.mesh.dim == 2:
+            values = values[:,:,0,...]
+
+        return Function(self, ftype = ftype, shape = shape, tensor = values)
 
     def domains_from_file(self, filename, scale = 1.):
         mesh = self.mesh
