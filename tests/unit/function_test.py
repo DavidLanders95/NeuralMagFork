@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from nmagnum import *
+from neuralmag import *
 
 def test_scalar_function(state):
     f = Function(state)

@@ -1,6 +1,6 @@
 import pytest
 import numpy as np
-from nmagnum import *
+from neuralmag import *
 
 config.torch['compile'] = False
 

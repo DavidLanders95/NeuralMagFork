@@ -1,4 +1,4 @@
-from nmagnum import *
+from neuralmag import *
 import numpy as np
 
 # setup state

@@ -1,6 +1,6 @@
 import pytest
 import torch
-from nmagnum import *
+from neuralmag import *
 
 def test_h():
     mesh = Mesh((5, 5, 5), (1e-9, 1e-9, 1e-9))

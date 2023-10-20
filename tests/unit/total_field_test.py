@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import torch
 
-from nmagnum import *
+from neuralmag import *
 
 def test_h(state):
     state.material.A = CellFunction(state).from_constant(1.2e-11)

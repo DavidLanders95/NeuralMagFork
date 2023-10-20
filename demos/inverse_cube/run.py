@@ -1,8 +1,7 @@
-from nmagnum import *
+from neuralmag import *
 import numpy as np
 from scipy import constants
 import torch
-from torchdiffeq import odeint_adjoint as odeint
 
 config.fem['n_gauss'] = 1
 
