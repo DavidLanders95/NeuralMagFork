@@ -173,9 +173,12 @@ def compile_functional(expr, n_gauss = 3):
         variables.add(name)
         if space == 'node':
             sidx = ','.join(([[':-1','1:'][j] if i < dim else str(j) for i, j in enumerate(idx)]))
+            rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
         else:
-            sidx = ','.join(([':' if i < dim else str(j) for i, j in enumerate(idx)]))
-        rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
+            if shape == ():
+                rhs = rhs.replace(symb.name, f"{name}")
+            elif shape == (3,):
+                rhs = rhs.replace(symb.name, f"{name}[...,{idx[-1]}]")
 
     rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
     return rhs, variables

@@ -83,7 +83,7 @@ def demag_g(x, y, z, dx, dy, dz, dX, dY, dZ, p):
     res[near] = newell(g, x[near], y[near], z[near], dx, dy, dz, dX, dY, dZ)
     return res
 
-def h_cell(N_demag, mcell, material__Ms):
+def h_cell(N_demag, mcell, material__Ms, rho):
     dim = [i for i in range(3) if mcell.shape[i] > 1]
     s = [mcell.shape[i]*2 for i in dim]
 
@@ -91,7 +91,7 @@ def h_cell(N_demag, mcell, material__Ms):
     hy = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[mcell.dtype])
     hz = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[mcell.dtype])
     for ax in range(3):
-        m_pad_fft1D = torch.fft.rfftn(material__Ms * mcell[:,:,:,ax], dim = dim, s = s)
+        m_pad_fft1D = torch.fft.rfftn(rho * material__Ms * mcell[:,:,:,ax], dim = dim, s = s)
         hx += N_demag[0][ax] * m_pad_fft1D
         hy += N_demag[1][ax] * m_pad_fft1D
         hz += N_demag[2][ax] * m_pad_fft1D
@@ -104,12 +104,13 @@ def h_cell(N_demag, mcell, material__Ms):
                         hy[:mcell.shape[0],:mcell.shape[1],:mcell.shape[2]],
                         hz[:mcell.shape[0],:mcell.shape[1],:mcell.shape[2]]], dim = 3)
 
-def h2d(N_demag, m, material__Ms):
+def h2d(N_demag, m, material__Ms, rho):
     mcell = (
         m[1:,1:,:]  + m[:-1,1:,:]  + m[1:,:-1,:]  + m[:-1,:-1,:]
     ).unsqueeze(-2) / 4.
 
-    hcell = h_cell(N_demag, mcell, material__Ms.unsqueeze(-1)).squeeze(-2)
+    # TODO behavior for unsqueezed scalars seems OK, but not so elegant?
+    hcell = h_cell(N_demag, mcell, material__Ms.unsqueeze(-1), rho.unsqueeze(-1)).squeeze(-2)
 
     h = torch.zeros(m.shape, dtype = m.dtype, device = m.device)
     h[:-1,:-1] += hcell
@@ -125,13 +126,13 @@ def h2d(N_demag, m, material__Ms):
 
     return h / mass.unsqueeze(-1)
 
-def h3d(N_demag, m, material__Ms):
+def h3d(N_demag, m, material__Ms, rho):
     mcell = (
         + m[1:,1:,1:,:]  + m[:-1,1:,1:,:]  + m[1:,:-1,1:,:]  + m[:-1,:-1,1:,:]
         + m[1:,1:,:-1,:] + m[:-1,1:,:-1,:] + m[1:,:-1,:-1,:] + m[:-1,:-1,:-1,:]
     ) / 8.
 
-    hcell = h_cell(N_demag, mcell, material__Ms)
+    hcell = h_cell(N_demag, mcell, material__Ms, rho)
 
     h = torch.zeros(m.shape, dtype = m.dtype, device = m.device)
     h[:-1, :-1, :-1] += hcell
@@ -180,19 +181,21 @@ class DemagField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
+        rho = Variable('rho', 'cell', dim)
         Ms = Variable('material__Ms', 'cell', dim)
         h_demag = Variable('h_demag', 'node', dim, (3,))
         return - 0.5 * constants.mu_0 * Ms * m.dot(h_demag)
 
     def _init_N_component(self, state, perm, func):
+        n = state.mesh.n + tuple([1] * (3 - state.mesh.dim))
         dx = np.array(state.mesh.dx)
         dx /= dx.min() # rescale dx to avoid NaNs when using single precision
 
-        shape = [i*2 if i>1 else i for i in state.mesh.n]
+        shape = [i*2 if i>1 else i for i in n]
         ij = [torch.fft.fftfreq(n, 1/n).to(dtype = torch.float64, device = state.device) for n in shape] # local indices
         ij = torch.meshgrid(*ij,indexing='ij')
         x, y, z = [ij[ind] * dx[ind] for ind in perm]
-        Lx = [state.mesh.n[ind] * dx[ind] for ind in perm]
+        Lx = [n[ind] * dx[ind] for ind in perm]
         dx = [dx[ind] for ind in perm]
 
         # TODO enable pseudo PBCs
@@ -203,7 +206,7 @@ class DemagField(FieldTerm):
         #    Nc += func(x + offset[0]*Lx[0], y + offset[1]*Lx[1], z + offset[2]*Lx[2], *dx, *dx, self._p)
         Nc = func(x, y, z, *dx, *dx, self._p)
 
-        dim = [i for i in range(3) if state.mesh.n[i] > 1]
+        dim = [i for i in range(3) if n[i] > 1]
         if len(dim) > 0:
             Nc = torch.fft.rfftn(Nc, dim = dim)
         return Nc.real.clone()

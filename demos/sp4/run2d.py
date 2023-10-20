@@ -6,8 +6,8 @@ mesh = Mesh((100, 25), (5e-9, 5e-9, 3e-9))
 state = State(mesh)
 
 # setup material and m0
-state.material.Ms = CellFunction(state).from_constant(8e5)
-state.material.A = CellFunction(state).from_constant(1.3e-11)
+state.material.Ms = 8e5
+state.material.A = 1.3e-11
 state.material.alpha = 1.
 
 state.m = VectorFunction(state).from_constant((np.sqrt(0.5), np.sqrt(0.5), 0))
