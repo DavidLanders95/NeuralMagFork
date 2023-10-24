@@ -3,9 +3,9 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "nmagnum"
-version = "0.0.1"
-description = "nmagnum is a micromagnetic GPU code implementing the nodal FD discretization"
+name = "neuralmag"
+version = "0.9.0"
+description = "neuralmag is a micromagnetic GPU code implementing the nodal FD discretization"
 requires-python = ">=3.8, <3.11"
 
 authors = [{ name = "Claas Abert", email = "claas.abert@univie.ac.at" }]
@@ -16,13 +16,13 @@ dependencies = ["numpy", "sympy", "pyvista", "scipy", "torch", "torchdiffeq", "t
 dev = ["pytest", "pre-commit"]
 
 [tool.setuptools.packages.find]
-include = ["nmagnum*"]
+include = ["neuralmag*"]
 
 [tool.black]
 experimental-string-processing = true
-exclude = "/field_terms/cache"
+exclude = "/field_terms/neuralmag"
 
 [tool.isort]
 profile = "black"
 skip_gitignore = true  # ignores files listed in .gitignore
-skip_glob = ["/nmagnum/field_terms/cache/*"]
+skip_glob = ["/neuralmag/field_terms/code/*"]

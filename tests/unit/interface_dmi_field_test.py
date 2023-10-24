@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from nmagnum import *
+from neuralmag import *
 
 def test_h(state):
     state.material.Di = CellFunction(state).from_constant(1e-3)

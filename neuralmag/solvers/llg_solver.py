@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from ..common import logging
+from ..common import logging, Function
 from torchdiffeq import odeint_adjoint as odeint
 
 __all__ = ["LLGSolver"]
@@ -23,8 +23,10 @@ class LLGSolver(nn.Module):
         }
         self._solver_options.update(solver_options)
         for param in parameters:
-            # TODO make sure that state.getattr returns a tensor
-            self._parameters[param] = torch.nn.Parameter(state.getattr(param))
+            value = state.getattr(param)
+            if isinstance(value, Function):
+                value = value.tensor
+            self._parameters[param] = torch.nn.Parameter(value)
 
         self.reset()
 

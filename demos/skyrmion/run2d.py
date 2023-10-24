@@ -1,6 +1,5 @@
-from nmagnum import *
+from neuralmag import *
 import torch
-import numpy as np
 from scipy import constants
 
 # setup state

@@ -1,8 +1,5 @@
-from nmagnum import *
-import numpy as np
+from neuralmag import *
 from scipy import constants
-import torch
-from torchdiffeq import odeint_adjoint as odeint
 
 config.fem['n_gauss'] = 1
 
@@ -18,7 +15,7 @@ state.material.alpha = 1.
 
 state.m = VectorFunction(state).from_constant((0, 0, 1))
 
-# setup external field depending on phi and theta
+# setup external field depending t
 Hc = 2 * 1e5 / (constants.mu_0 * 8e5)
 h_ext = lambda t: t * state.tensor([0, 2 / 50e-9 * Hc, 0]).reshape((1,1,1,3)).expand((3,3,3,3))
 

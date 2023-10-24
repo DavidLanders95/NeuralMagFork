@@ -1,6 +1,6 @@
 import pytest
 import torch
-from nmagnum import *
+from neuralmag import *
 import numpy as np
 
 def test_tensor_from_list(state):

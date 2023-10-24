@@ -1,4 +1,4 @@
-VERSION = "0.0.1"
+VERSION = "0.9.0"
 
 from .common import *
 from .field_terms import *
