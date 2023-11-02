@@ -4,7 +4,8 @@ from collections.abc import Iterable
 import torch
 
 from ..common import logging
-from . import FieldLogger, ScalarLogger
+from .field_logger import FieldLogger
+from .scalar_logger import ScalarLogger
 
 __all__ = ["Logger"]
 
