@@ -1,9 +1,5 @@
-backend = 'torch'
+backend = "torch"
 
-torch = {
-        'compile': True
-}
+torch = {"compile": True}
 
-fem = {
-        'n_gauss': 3
-}
+fem = {"n_gauss": 3}

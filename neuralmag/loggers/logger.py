@@ -1,10 +1,13 @@
-import torch
 import os
 from collections.abc import Iterable
-from . import ScalarLogger, FieldLogger
+
+import torch
+
 from ..common import logging
+from . import FieldLogger, ScalarLogger
 
 __all__ = ["Logger"]
+
 
 class Logger(object):
     """
@@ -34,16 +37,23 @@ class Logger(object):
             state = State(mesh)
             logger << state
     """
-    def __init__(self, directory, scalars = [], fields = [], scalars_every = 1, fields_every = 1):
+
+    def __init__(
+        self, directory, scalars=[], fields=[], scalars_every=1, fields_every=1
+    ):
         self.loggers = {}
         self._resume_time = None
         if len(scalars) > 0:
-            self.loggers["scalars"] = ScalarLogger(os.path.join(directory, "log.dat"), scalars, every = scalars_every)
+            self.loggers["scalars"] = ScalarLogger(
+                os.path.join(directory, "log.dat"), scalars, every=scalars_every
+            )
         if len(fields) > 0:
-            self.loggers["fields"] = FieldLogger(os.path.join(directory, "fields.pvd"), fields, every = fields_every)
+            self.loggers["fields"] = FieldLogger(
+                os.path.join(directory, "fields.pvd"), fields, every=fields_every
+            )
 
     def log(self, state):
-        if state.t == self._resume_time: # avoid logging directly after resume
+        if state.t == self._resume_time:  # avoid logging directly after resume
             self._resume_time = None
             return
         for logger in self.loggers.values():
@@ -69,11 +79,17 @@ class Logger(object):
             logging.warning("Resume not possible. Start over.")
             return
 
-        resumable_step = min(map(lambda logger: logger.resumable_step(), self.loggers.values()))
+        resumable_step = min(
+            map(lambda logger: logger.resumable_step(), self.loggers.values())
+        )
         assert resumable_step >= last_recorded_step + 1
 
-        state.m, state.t = self.loggers["fields"].step_data(last_recorded_step, "m", state)
-        logging.info_green("Resuming from step %d (t = %g)." % (last_recorded_step, state.t))
+        state.m, state.t = self.loggers["fields"].step_data(
+            last_recorded_step, "m", state
+        )
+        logging.info_green(
+            "Resuming from step %d (t = %g)." % (last_recorded_step, state.t)
+        )
 
         for logger in self.loggers.values():
             logger.resume(last_recorded_step + 1)

@@ -1,13 +1,16 @@
-import torch
 import os
 from collections.abc import Iterable
 from functools import reduce
-from ..common import logging, Function
+
+import torch
+
+from ..common import Function, logging
 
 __all__ = ["ScalarLogger"]
 
+
 class ScalarLogger(object):
-    def __init__(self, filename, columns, every = 1):
+    def __init__(self, filename, columns, every=1):
         """
         Simple logger class to log scalar values into a tab separated file.
 
@@ -36,28 +39,31 @@ class ScalarLogger(object):
                 logger << state
         """
         # create directory if not existent
-        if not os.path.dirname(filename) == '' and \
-             not os.path.exists(os.path.dirname(filename)):
+        if not os.path.dirname(filename) == "" and not os.path.exists(
+            os.path.dirname(filename)
+        ):
             try:
                 os.makedirs(os.path.dirname(filename))
-            except OSError as exc: # Guard against race condition
+            except OSError as exc:  # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
 
         self._filename = filename
-        self._file     = None
-        self._every    = every
-        self._i        = 0
-        self._columns  = columns
+        self._file = None
+        self._every = every
+        self._i = 0
+        self._columns = columns
 
     def add_column(self, column):
         if self._file is not None:
-            raise RuntimeError("You cannot add columns after first log row has been written.")
+            raise RuntimeError(
+                "You cannot add columns after first log row has been written."
+            )
         self._columns.append(column)
 
     def log(self, state):
         self._i += 1
-        if ((self._i - 1) % self._every > 0):
+        if (self._i - 1) % self._every > 0:
             return
 
         values = []
@@ -66,14 +72,14 @@ class ScalarLogger(object):
             if isinstance(column, str):
                 name = column
                 raw_value = state.getattr(column)
-            elif hasattr(column, '__call__'):
+            elif hasattr(column, "__call__"):
                 name = column.__name__
                 raw_value = column(state)
             elif isinstance(column, tuple) or isinstance(column, list):
                 name = column[0]
                 raw_value = column[1](state)
             else:
-                raise RuntimeError('Column type not supported.')
+                raise RuntimeError("Column type not supported.")
 
             if isinstance(raw_value, Function):
                 value = raw_value.avg().tolist()
@@ -84,7 +90,7 @@ class ScalarLogger(object):
             values.append((name, value))
 
         if self._file is None:
-            self._file = open(self._filename, 'w')
+            self._file = open(self._filename, "w")
             self._write_header(values)
 
         self._write_row(values)
@@ -97,12 +103,12 @@ class ScalarLogger(object):
 
         for column in columns:
             if isinstance(column[1], Iterable):
-                if (len(column[1]) == 3):
-                    for i in ('x', 'y', 'z'):
-                        headings.append(column[0] + '_' + i)
+                if len(column[1]) == 3:
+                    for i in ("x", "y", "z"):
+                        headings.append(column[0] + "_" + i)
                 else:
                     for i in range(len(column[1])):
-                        headings.append(column[0] + '_' + str(i))
+                        headings.append(column[0] + "_" + str(i))
             else:
                 headings.append(column[0])
 
@@ -111,8 +117,13 @@ class ScalarLogger(object):
         self._file.flush()
 
     def _write_row(self, columns):
-        flat_values = reduce(lambda x,y: x+y,
-            map(lambda x: tuple(x[1]) if isinstance(x[1], Iterable) else (x[1],), columns))
+        flat_values = reduce(
+            lambda x, y: x + y,
+            map(
+                lambda x: tuple(x[1]) if isinstance(x[1], Iterable) else (x[1],),
+                columns,
+            ),
+        )
         format_str = "    ".join(["%+.15e"] * len(flat_values)) + "\n"
         self._file.write(format_str % flat_values)
         self._file.flush()
@@ -132,10 +143,12 @@ class ScalarLogger(object):
                 The step number the logger is able to resume from
         """
         if self._file is not None:
-            raise RuntimeError("Cannot resume from log file that is already open for writing.")
+            raise RuntimeError(
+                "Cannot resume from log file that is already open for writing."
+            )
 
         i = 0
-        with open(self._filename, 'r') as f:
+        with open(self._filename, "r") as f:
             for i, l in enumerate(f):
                 pass
         return i * self._every
@@ -153,7 +166,7 @@ class ScalarLogger(object):
 
         # from https://superuser.com/questions/127786/efficiently-remove-the-last-two-lines-of-an-extremely-large-text-file
         count = 0
-        #with open(self._filename, 'r+b') as f:
+        # with open(self._filename, 'r+b') as f:
         #    f.seek(0, os.SEEK_END)
         #    end = f.tell()
         #    while f.tell() > 0:
@@ -168,26 +181,28 @@ class ScalarLogger(object):
         #            break
         #        f.seek(-1, os.SEEK_CUR)
 
-        with open(self._filename, 'r+b', buffering=0) as f:
+        with open(self._filename, "r+b", buffering=0) as f:
             f.seek(0, os.SEEK_END)
             end = f.tell()
             while f.tell() > 0:
                 f.seek(-1, os.SEEK_CUR)
-                #print(f.tell())
+                # print(f.tell())
                 char = f.read(1)
-                if char != b'\n' and f.tell() == end:
-                    raise RuntimeError("Cannot resume: logfile does not end with a newline.")
-                    #print ("No change: file does not end with a newline")
-                    #exit(1)
-                if char == b'\n':
+                if char != b"\n" and f.tell() == end:
+                    raise RuntimeError(
+                        "Cannot resume: logfile does not end with a newline."
+                    )
+                    # print ("No change: file does not end with a newline")
+                    # exit(1)
+                if char == b"\n":
                     count += 1
                 if count == number + 1:
                     f.truncate()
                     break
-                    #print ("Removed " + str(number) + " lines from end of file")
-                    #exit(0)
+                    # print ("Removed " + str(number) + " lines from end of file")
+                    # exit(0)
                 f.seek(-1, os.SEEK_CUR)
 
         self._i = i
         if self._i > 0:
-            self._file = open(self._filename, 'a')
+            self._file = open(self._filename, "a")

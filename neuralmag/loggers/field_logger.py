@@ -1,12 +1,13 @@
 import os
 import xml.etree.cElementTree as ET
-from xml.etree import cElementTree
 from xml.dom import minidom
+from xml.etree import cElementTree
 
 __all__ = ["FieldLogger"]
 
+
 class FieldLogger(object):
-    def __init__(self, filename, fields, every = 1):
+    def __init__(self, filename, fields, every=1):
         """
         Logger class for fields
 
@@ -29,11 +30,12 @@ class FieldLogger(object):
                 logger << state
         """
         # create directory if not existent
-        if not os.path.dirname(filename) == '' and \
-             not os.path.exists(os.path.dirname(filename)):
+        if not os.path.dirname(filename) == "" and not os.path.exists(
+            os.path.dirname(filename)
+        ):
             try:
                 os.makedirs(os.path.dirname(filename))
-            except OSError as exc: # Guard against race condition
+            except OSError as exc:  # Guard against race condition
                 if exc.errno != errno.EEXIST:
                     raise
 
@@ -47,21 +49,37 @@ class FieldLogger(object):
         self._fields = fields
         self._i = 0
         self._i_start = 0
-        self._xmlroot = cElementTree.Element("VTKFile", type="Collection", version="0.1", byte_order="LittleEndian")
+        self._xmlroot = cElementTree.Element(
+            "VTKFile", type="Collection", version="0.1", byte_order="LittleEndian"
+        )
         cElementTree.SubElement(self._xmlroot, "Collection")
 
     def log(self, state):
         self._i += 1
-        if ((self._i-1) % self._every > 0):
+        if (self._i - 1) % self._every > 0:
             return
-        if (self._i <= self._i_start):
+        if self._i <= self._i_start:
             return
 
         filename = "%s_%04d.vti" % (self._filename, self._i // self._every)
         state.write_vti(self._fields, filename)
-        cElementTree.SubElement(self._xmlroot[0], "DataSet", timestep=str(state.t.tolist()), file=os.path.basename(filename))
-        with open(self._filename + ".pvd", 'w') as fd:
-            fd.write(minidom.parseString(" ".join(cElementTree.tostring(self._xmlroot).decode().replace("\n","").split()).replace("> <", "><")).toprettyxml(indent="  "))
+        cElementTree.SubElement(
+            self._xmlroot[0],
+            "DataSet",
+            timestep=str(state.t.tolist()),
+            file=os.path.basename(filename),
+        )
+        with open(self._filename + ".pvd", "w") as fd:
+            fd.write(
+                minidom.parseString(
+                    " ".join(
+                        cElementTree.tostring(self._xmlroot)
+                        .decode()
+                        .replace("\n", "")
+                        .split()
+                    ).replace("> <", "><")
+                ).toprettyxml(indent="  ")
+            )
 
     def __lshift__(self, state):
         self.log(state)
@@ -72,7 +90,7 @@ class FieldLogger(object):
     def resumable_step(self):
         try:
             xml = cElementTree.parse(self._filename + ".pvd").getroot()
-            return len(list(xml.find('Collection'))) * self._every
+            return len(list(xml.find("Collection"))) * self._every
         except IOError:
             return 0
 
@@ -111,9 +129,11 @@ class FieldLogger(object):
             raise Exception()
 
         xml = cElementTree.parse(self._filename + ".pvd").getroot()
-        item = list(xml.find('Collection'))[i // self._every]
-        field = state.read_vti(os.path.join(os.path.dirname(self._filename), item.attrib['file']), field)
-        return field, float(item.attrib['timestep'])
+        item = list(xml.find("Collection"))[i // self._every]
+        field = state.read_vti(
+            os.path.join(os.path.dirname(self._filename), item.attrib["file"]), field
+        )
+        return field, float(item.attrib["timestep"])
 
     def resume(self, i):
         """
