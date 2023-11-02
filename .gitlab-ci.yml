@@ -44,15 +44,15 @@ test_py310:
     - *before-script-after
   script: *gen-script
 
-#test_code_formatting:
-#  image: "python:3.9"
-#  tags:
-#    - shared
-#    - docker
-#    - cloud
-#  stage: test
-#  before_script:
-#    - python -m pip install pre-commit
-#    - pre-commit install
-#  script:
-#    - pre-commit run --all-files
+test_code_formatting:
+  image: "python:3.9"
+  tags:
+    - shared
+    - docker
+    - cloud
+  stage: test
+  before_script:
+    - python -m pip install pre-commit
+    - pre-commit install
+  script:
+    - pre-commit run --all-files
