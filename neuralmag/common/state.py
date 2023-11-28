@@ -91,6 +91,9 @@ class State(object):
             value, device=self.device, dtype=self.dtype, requires_grad=requires_grad
         )
 
+    def zeros(self, shape):
+        return torch.zeros(shape, device=self.device, dtype=self.dtype)
+
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
             if not name in self._attr_funcs:
