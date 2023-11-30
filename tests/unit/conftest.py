@@ -1,8 +1,10 @@
-import pytest
 import numpy as np
+import pytest
+
 from neuralmag import *
 
-config.torch['compile'] = False
+config.torch["compile"] = False
+
 
 @pytest.fixture
 def state():
@@ -10,11 +12,12 @@ def state():
     state = State(mesh)
 
     state.m = VectorFunction(state)
-    state.m.tensor[0,:,:,0] = -1
-    state.m.tensor[1,:,:,1] = 1
-    state.m.tensor[2,:,:,0] = 1
+    state.m.tensor[0, :, :, 0] = -1
+    state.m.tensor[1, :, :, 1] = 1
+    state.m.tensor[2, :, :, 0] = 1
 
     return state
+
 
 @pytest.fixture
 def state2d():
@@ -22,8 +25,8 @@ def state2d():
     state = State(mesh)
 
     state.m = VectorFunction(state)
-    state.m.tensor[0,:,0] = -1
-    state.m.tensor[1,:,1] = 1
-    state.m.tensor[2,:,0] = 1
+    state.m.tensor[0, :, 0] = -1
+    state.m.tensor[1, :, 1] = 1
+    state.m.tensor[2, :, 0] = 1
 
     return state

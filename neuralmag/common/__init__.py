@@ -4,10 +4,4 @@ from .logging import *
 from .mesh import *
 from .state import *
 
-__all__ = (
-        ['config'] +
-        logging.__all__ +
-        function.__all__ +
-        mesh.__all__ +
-        state.__all__
-        )
+__all__ = ["config"] + logging.__all__ + function.__all__ + mesh.__all__ + state.__all__

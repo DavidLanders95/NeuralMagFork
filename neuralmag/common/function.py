@@ -2,6 +2,7 @@ import torch
 
 __all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
 
+
 class Function(object):
     def __init__(self, state, ftype="node", shape=(), tensor=None, name=None):
         self._state = state
@@ -65,29 +66,36 @@ class Function(object):
 
     def avg(self):
         # TODO get rid of conditionals?
-        if self._ftype == 'cell':
-            return self._tensor.mean(dim = tuple(range(self._state.mesh.dim)))
+        if self._ftype == "cell":
+            return self._tensor.mean(dim=tuple(range(self._state.mesh.dim)))
         else:
             if self._state.mesh.dim == 2:
-                return ((
-                    + self._tensor[1:,1:,...]
-                    + self._tensor[:-1,1:,...]
-                    + self._tensor[1:,:-1,...]
-                    + self._tensor[:-1,:-1,...]
-                ) / 4.).mean(dim = (0,1))
+                return (
+                    (
+                        +self._tensor[1:, 1:, ...]
+                        + self._tensor[:-1, 1:, ...]
+                        + self._tensor[1:, :-1, ...]
+                        + self._tensor[:-1, :-1, ...]
+                    )
+                    / 4.0
+                ).mean(dim=(0, 1))
             elif self._state.mesh.dim == 3:
-                return ((
-                    + self._tensor[1:,1:,1:,...]
-                    + self._tensor[:-1,1:,1:,...]
-                    + self._tensor[1:,:-1,1:,...]
-                    + self._tensor[:-1,:-1,1:,...]
-                    + self._tensor[1:,1:,:-1,...]
-                    + self._tensor[:-1,1:,:-1,...]
-                    + self._tensor[1:,:-1,:-1,...]
-                    + self._tensor[:-1,:-1,:-1,...]
-                ) / 8.).mean(dim = (0,1,2))
+                return (
+                    (
+                        +self._tensor[1:, 1:, 1:, ...]
+                        + self._tensor[:-1, 1:, 1:, ...]
+                        + self._tensor[1:, :-1, 1:, ...]
+                        + self._tensor[:-1, :-1, 1:, ...]
+                        + self._tensor[1:, 1:, :-1, ...]
+                        + self._tensor[:-1, 1:, :-1, ...]
+                        + self._tensor[1:, :-1, :-1, ...]
+                        + self._tensor[:-1, :-1, :-1, ...]
+                    )
+                    / 8.0
+                ).mean(dim=(0, 1, 2))
             else:
                 raise
+
 
 class CellFunction(Function):
     def __init__(self, *args, **kwargs):
