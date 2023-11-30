@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "neuralmag"
 version = "0.9.0"
 description = "neuralmag is a micromagnetic GPU code implementing the nodal FD discretization"
-requires-python = ">=3.8, <3.11"
+requires-python = ">=3.8, <3.12"
 
 authors = [{ name = "Claas Abert", email = "claas.abert@univie.ac.at" }]
 
