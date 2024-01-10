@@ -85,14 +85,16 @@ class State(object):
 
     def tensor(self, value, requires_grad=False):
         if isinstance(value, torch.Tensor):
-            # TODO check dtype and device?
-            return value
+            if value.device != self.device:
+                return value.to(self.device)
+            else:
+                return value
         return torch.tensor(
             value, device=self.device, dtype=self.dtype, requires_grad=requires_grad
         )
 
-    def zeros(self, shape):
-        return torch.zeros(shape, device=self.device, dtype=self.dtype)
+    def zeros(self, shape, **kwargs):
+        return torch.zeros(shape, device=self.device, dtype=self.dtype, **kwargs)
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
@@ -211,11 +213,13 @@ class State(object):
             self.dx[0] / 2.0 + self.mesh.origin[0],
             self.dx[0] * self.mesh.n[0] + self.mesh.origin[0],
             self.dx[0],
+            dtype=self.dtype,
         )
         y = torch.arange(
             self.dx[1] / 2.0 + self.mesh.origin[1],
             self.dx[1] * self.mesh.n[1] + self.mesh.origin[1],
             self.dx[1],
+            dtype=self.dtype,
         )
         if self.mesh.dim == 2:
             return torch.meshgrid(x, y, indexing="ij")
@@ -233,9 +237,7 @@ class State(object):
             fields = [fields]
 
         n = np.array(self.mesh.n + tuple([1] * (3 - self.mesh.dim))) + 1
-        grid = pv.UniformGrid(
-            dimensions=n, spacing=self.mesh.dx, origin=self.mesh.origin
-        )
+        grid = pv.ImageData(dimensions=n, spacing=self.mesh.dx, origin=self.mesh.origin)
 
         for field in fields:
             if isinstance(field, str):
