@@ -1,3 +1,4 @@
+import copy
 import datetime
 import os
 
@@ -9,16 +10,8 @@ import pytest
 from neuralmag import *
 
 
-def create_unique_directory():
-    timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    job_name = os.environ.get("CI_JOB_NAME", "default_job")
-    directory = f"tests/test_artifacts/{job_name}/{timestamp}"
-    os.makedirs(directory, exist_ok=True)
-    return directory
-
-
 # How the s_state_init.vti file was produced
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def s_state():
     mesh = Mesh([100, 25, 1], [5e-09, 5e-09, 3e-09], [0.0, 0.0, 0.0])
     state = State(mesh)
@@ -72,15 +65,13 @@ def test_sp4_field_switch_1(s_state):
     try:
         assert all(abs(difference) < 0.04)
     except AssertionError:
-        directory = create_unique_directory()
-        plot_path = os.path.join(directory, "sp4_failure_plot_field_switch_1.png")
         plt.plot(data["t"], data["m_y"], label="neural_mag")
         plt.plot(data_oommf["t"], data_oommf["m_y"], label="oommf")
         plt.legend()
         plt.xlim([0, 3e-10])
         plt.xlabel("t (s)")
         plt.ylabel("my (normalised)")
-        plt.savefig(plot_path)
+        plt.savefig("tests/test_artifacts/sp4_failure_plot_field_switch_1.png")
         raise
 
 
@@ -114,13 +105,11 @@ def test_sp4_field_switch_2(s_state):
     try:
         assert all(abs(difference) < 0.04)
     except AssertionError:
-        directory = create_unique_directory()
-        plot_path = os.path.join(directory, "sp4_failure_plot_field_switch_2.png")
         plt.plot(data["t"], data["m_y"], label="neural_mag")
         plt.plot(data_oommf["t"], data_oommf["m_y"], label="oommf")
         plt.legend()
         plt.xlim([0, 3e-10])
         plt.xlabel("t (s)")
         plt.ylabel("my (normalised)")
-        plt.savefig(plot_path)
+        plt.savefig("tests/test_artifacts/sp4_failure_plot_field_switch_2.png")
         raise
