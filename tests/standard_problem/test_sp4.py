@@ -27,10 +27,7 @@ def s_state():
     state.material.A = 1.3e-11
     state.material.alpha = 1
     h_ext = VectorFunction(state).from_constant((0, 0, 0))
-
-    # initial s-state
     state.m = VectorFunction(state).from_constant((1, 0.25, 0.1))
-    # state.read_vti("tests/unit/data/s_state_init.vti", "m")
 
     ExchangeField().register(state, "exchange")
     DemagField().register(state, "demag")
