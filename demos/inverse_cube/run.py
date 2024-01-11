@@ -17,6 +17,8 @@ state.material.Ku_axis = [0, 0, 1]
 state.material.alpha = 0.1
 
 state.m = VectorFunction(state).from_constant((0, 0, 1))
+state.write_vti(["m"], "m0.vti")
+exit()
 
 # setup external field depending on phi and theta
 Hc = 2 * 1e5 / (constants.mu_0 * 8e5)
