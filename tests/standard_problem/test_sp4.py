@@ -11,7 +11,8 @@ from neuralmag import *
 
 def create_unique_directory():
     timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
-    directory = f"tests/test_artifacts/{timestamp}"
+    job_name = os.environ.get("CI_JOB_NAME", "default_job")
+    directory = f"tests/test_artifacts/{job_name}/{timestamp}"
     os.makedirs(directory, exist_ok=True)
     return directory
 
