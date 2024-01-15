@@ -4,7 +4,6 @@ import os
 
 import matplotlib.pyplot as plt
 import numpy as np
-import pandas as pd
 import pytest
 
 from neuralmag import *
@@ -48,16 +47,12 @@ def test_sp4_field_switch_1(s_state):
         llg.step(1.0e-11)
         logger.log(s_state)
 
-    data_oommf = pd.read_csv(
-        "tests/unit/data/oommf_sp4_fieldswitch_1.csv",
+    data_oommf = np.genfromtxt(
+        "tests/unit/data/oommf_sp4_fieldswitch_1.csv", delimiter=",", names=True
     )
 
-    data = pd.read_csv(
-        "data/log.dat",
-        sep=r"\s+",
-        comment="#",
-        header=None,
-        names=["t", "m_x", "m_y", "m_z"],
+    data = np.genfromtxt(
+        "data/log.dat", delimiter="    ", comments="#", names=["t", "m_x", "m_y", "m_z"]
     )
 
     difference = data["m_y"] - np.interp(data["t"], data_oommf["t"], data_oommf["m_y"])
@@ -88,16 +83,12 @@ def test_sp4_field_switch_2(s_state):
         llg.step(1.0e-11)
         logger.log(s_state)
 
-    data_oommf = pd.read_csv(
-        "tests/unit/data/oommf_sp4_fieldswitch_2.csv",
+    data_oommf = np.genfromtxt(
+        "tests/unit/data/oommf_sp4_fieldswitch_2.csv", delimiter=",", names=True
     )
 
-    data = pd.read_csv(
-        "data/log.dat",
-        sep=r"\s+",
-        comment="#",
-        header=None,
-        names=["t", "m_x", "m_y", "m_z"],
+    data = np.genfromtxt(
+        "data/log.dat", delimiter="    ", comments="#", names=["t", "m_x", "m_y", "m_z"]
     )
 
     difference = data["m_y"] - np.interp(data["t"], data_oommf["t"], data_oommf["m_y"])
