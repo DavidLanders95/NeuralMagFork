@@ -29,6 +29,11 @@ test_py38:
     - conda create -n test_env -c conda-forge 'python=3.8'
     - *before-script-after
   script: *gen-script
+  artifacts:
+    paths:
+      - tests/test_artifacts/  # Or the directory where plots are saved
+    expire_in: 1 week  # Optional: set an expiration time for artifacts
+    when: on_failure  # Save artifacts only on failure
 
 test_py39:
   stage: test
@@ -36,6 +41,11 @@ test_py39:
     - conda create -n test_env -c conda-forge 'python=3.9'
     - *before-script-after
   script: *gen-script
+  artifacts:
+    paths:
+      - tests/test_artifacts/  # Or the directory where plots are saved
+    expire_in: 1 week  # Optional: set an expiration time for artifacts
+    when: on_failure  # Save artifacts only on failure
 
 test_py310:
   stage: test
@@ -43,6 +53,11 @@ test_py310:
     - conda create -n test_env -c conda-forge 'python=3.10'
     - *before-script-after
   script: *gen-script
+  artifacts:
+    paths:
+      - tests/test_artifacts/  # Or the directory where plots are saved
+    expire_in: 1 week  # Optional: set an expiration time for artifacts
+    when: on_failure  # Save artifacts only on failure
 
 test_code_formatting:
   image: "python:3.9"
