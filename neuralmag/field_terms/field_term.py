@@ -49,7 +49,9 @@ class FieldTerm(gen.CodeClass):
             # generate lumped mass cmds
             v = gen.Variable("v", "node", dim)
             Ms = gen.Variable("material__Ms", "cell", dim)
-            cmds2, vars2 = gen.linear_form_cmds(-constants.mu_0 * rho * Ms * v)
+            cmds2, vars2 = gen.linear_form_cmds(
+                -constants.mu_0 * rho * Ms * v * gen.dV()
+            )
 
             with code.add_function("h", sorted(list(vars1 | vars2 | {"m"}))) as f:
                 f.zeros_like("h", "m")

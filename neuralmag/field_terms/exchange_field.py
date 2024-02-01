@@ -1,4 +1,4 @@
-from ..generators.pytorch_generator import N, Variable
+from ..generators.pytorch_generator import N, Variable, dV
 from .field_term import FieldTerm
 
 __all__ = ["ExchangeField"]
@@ -13,8 +13,12 @@ class ExchangeField(FieldTerm):
     @staticmethod
     def e_expr(m, dim):
         A = Variable("material__A", "cell", dim)
-        return A * (
-            m.diff(N.x).dot(m.diff(N.x))
-            + m.diff(N.y).dot(m.diff(N.y))
-            + m.diff(N.z).dot(m.diff(N.z))
+        return (
+            A
+            * (
+                m.diff(N.x).dot(m.diff(N.x))
+                + m.diff(N.y).dot(m.diff(N.y))
+                + m.diff(N.z).dot(m.diff(N.z))
+            )
+            * dV()
         )

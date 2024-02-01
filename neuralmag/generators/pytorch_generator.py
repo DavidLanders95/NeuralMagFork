@@ -17,6 +17,22 @@ dx, dy, dz = sp.symbols("_dx[0]_ _dx[1]_ _dx[2]_", real=True, positive=True)
 N = sv.CoordSys3D("N")
 
 
+def dX(name, **kwargs):
+    # TODO check kwargs
+    name = ":".join(
+        ["dX", name] + ["=".join([str(y) for y in x]) for x in kwargs.items()]
+    )
+    return sp.Symbol(f"_{name}_", real=True)
+
+
+def dV(**kwargs):
+    return dX("dV", **kwargs)
+
+
+def dA(**kwargs):
+    return dX("dA", **kwargs)
+
+
 def compile(func):
     if config.torch["compile"]:
         return torch.compile(func)
@@ -166,6 +182,17 @@ def Variable(name, space, dim=3, shape=()):
 
 
 def integrate(expr, n=3):
+    # extract all integral measures
+    for symb in expr.free_symbols:
+        match = re.match(r"^_dX:(.*)_$", symb.name)
+        if match is None:
+            continue
+
+        measure = match[1].split(":")[0]
+        args = {
+            item.split("=")[0]: item.split("=")[1] for item in match[1].split(":")[1:]
+        }
+
     x, w = p_roots(n)
     intx = 0
     for i in range(n):
