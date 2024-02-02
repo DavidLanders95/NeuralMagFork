@@ -18,7 +18,7 @@ default:
     - python -v  # For debugging
     - pip install .[dev]
     # make sure PyTorch us using the GPUs
-    - python -c "import torch; raise RuntimeError('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
+    - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
   script: &gen-script
     - python -m pytest --verbose
 
