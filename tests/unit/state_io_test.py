@@ -11,7 +11,7 @@ def test_rw_function(state, tmp_path):
     g = state.read_vti(tmp_path / "f.vti")
     assert g.ftype == "node"
     assert g.state.mesh.dim == 3
-    assert g.avg() == pytest.approx(2.0)
+    assert g.avg().cpu() == pytest.approx(2.0)
 
 
 def test_rw_vector_function(state, tmp_path):
@@ -20,7 +20,7 @@ def test_rw_vector_function(state, tmp_path):
     g = state.read_vti(tmp_path / "f.vti")
     assert g.ftype == "node"
     assert g.state.mesh.dim == 3
-    assert g.avg() == pytest.approx((1.0, 2.0, 3.0))
+    assert g.avg().cpu() == pytest.approx((1.0, 2.0, 3.0))
 
 
 def test_rw_cell_function(state, tmp_path):
@@ -29,7 +29,7 @@ def test_rw_cell_function(state, tmp_path):
     g = state.read_vti(tmp_path / "f.vti")
     assert g.ftype == "cell"
     assert g.state.mesh.dim == 3
-    assert g.avg() == pytest.approx(2.0)
+    assert g.avg().cpu() == pytest.approx(2.0)
 
 
 def test_rw_vector_cell_function(state, tmp_path):
@@ -38,7 +38,7 @@ def test_rw_vector_cell_function(state, tmp_path):
     g = state.read_vti(tmp_path / "f.vti")
     assert g.ftype == "cell"
     assert g.state.mesh.dim == 3
-    assert g.avg() == pytest.approx((1.0, 2.0, 3.0))
+    assert g.avg().cpu() == pytest.approx((1.0, 2.0, 3.0))
 
 
 def test_rw_function_2d(state2d, tmp_path):
@@ -47,7 +47,7 @@ def test_rw_function_2d(state2d, tmp_path):
     g = state2d.read_vti(tmp_path / "f.vti")
     assert g.ftype == "node"
     assert g.state.mesh.dim == 2
-    assert g.avg() == pytest.approx(2.0)
+    assert g.avg().cpu() == pytest.approx(2.0)
 
 
 def test_rw_vector_function_2d(state2d, tmp_path):
@@ -56,7 +56,7 @@ def test_rw_vector_function_2d(state2d, tmp_path):
     g = state2d.read_vti(tmp_path / "f.vti")
     assert g.ftype == "node"
     assert g.state.mesh.dim == 2
-    assert g.avg() == pytest.approx((1.0, 2.0, 3.0))
+    assert g.avg().cpu() == pytest.approx((1.0, 2.0, 3.0))
 
 
 def test_rw_cell_function_2d(state2d, tmp_path):
@@ -65,7 +65,7 @@ def test_rw_cell_function_2d(state2d, tmp_path):
     g = state2d.read_vti(tmp_path / "f.vti")
     assert g.ftype == "cell"
     assert g.state.mesh.dim == 2
-    assert g.avg() == pytest.approx(2.0)
+    assert g.avg().cpu() == pytest.approx(2.0)
 
 
 def test_rw_vector_cell_function_2d(state2d, tmp_path):
@@ -74,4 +74,4 @@ def test_rw_vector_cell_function_2d(state2d, tmp_path):
     g = state2d.read_vti(tmp_path / "f.vti")
     assert g.ftype == "cell"
     assert g.state.mesh.dim == 2
-    assert g.avg() == pytest.approx((1.0, 2.0, 3.0))
+    assert g.avg().cpu() == pytest.approx((1.0, 2.0, 3.0))
