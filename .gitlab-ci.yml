@@ -10,9 +10,6 @@ default:
     # For pyvista/vtk and GCC
     - apt update -y -qq && apt install -y -qq libgl1 build-essential
     - gcc --version
-    # Find and install cudatoolkit for numba
-    - export CUDA_Version=$(nvidia-smi | grep CUDA | sed 's/.*CUDA Version..\(.*\)..*/\1/')
-    - conda install -y -n test_env -c conda-forge cudatoolkit=$CUDA_Version
     # load the conda infrastructure
     - conda init bash
     # because `conda activate` doesnot work out of the box!!
@@ -20,6 +17,8 @@ default:
     - conda activate test_env
     - python -v  # For debugging
     - pip install .[dev]
+    # make sure PyTorch us using the GPUs
+    - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
   script: &gen-script
     - python -m pytest --verbose
 
