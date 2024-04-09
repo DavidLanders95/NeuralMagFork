@@ -8,7 +8,7 @@ from scipy import constants
 from torch import abs, asinh, atan, log, sqrt
 
 from ..common import CellFunction, Function, VectorFunction, logging
-from ..generators.pytorch_generator import Variable
+from ..generators.pytorch_generator import Variable, dV
 from .field_term import FieldTerm
 
 __all__ = ["DemagField"]
@@ -235,7 +235,7 @@ class DemagField(FieldTerm):
         rho = Variable("rho", "cell", dim)
         Ms = Variable("material__Ms", "cell", dim)
         h_demag = Variable("h_demag", "node", dim, (3,))
-        return -0.5 * constants.mu_0 * Ms * m.dot(h_demag)
+        return -0.5 * constants.mu_0 * Ms * m.dot(h_demag) * dV()
 
     def _init_N_component(self, state, perm, func):
         n = state.mesh.n + tuple([1] * (3 - state.mesh.dim))

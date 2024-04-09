@@ -1,6 +1,6 @@
 from sympy.vector import divergence, gradient
 
-from ..generators.pytorch_generator import N, Variable
+from ..generators.pytorch_generator import N, Variable, dV
 from .field_term import FieldTerm
 
 __all__ = ["InterfaceDMIField"]
@@ -16,4 +16,4 @@ class InterfaceDMIField(FieldTerm):
     def e_expr(m, dim):
         D = Variable("material__Di", "cell", dim)
         axis = Variable("material__Di_axis", "cell", dim, (3,))
-        return D * (m.dot(gradient(m.dot(axis))) - divergence(m) * m.dot(axis))
+        return D * (m.dot(gradient(m.dot(axis))) - divergence(m) * m.dot(axis)) * dV()
