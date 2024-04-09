@@ -182,17 +182,6 @@ def Variable(name, space, dim=3, shape=()):
 
 
 def integrate(expr, n=3):
-    # extract all integral measures
-    for symb in expr.free_symbols:
-        match = re.match(r"^_dX:(.*)_$", symb.name)
-        if match is None:
-            continue
-
-        measure = match[1].split(":")[0]
-        args = {
-            item.split("=")[0]: item.split("=")[1] for item in match[1].split(":")[1:]
-        }
-
     x, w = p_roots(n)
     intx = 0
     for i in range(n):
@@ -207,6 +196,27 @@ def integrate(expr, n=3):
 
 
 def compile_functional(expr, n_gauss=3):
+    # extract all integral measures with parameters
+    measures = {}
+    for symb in expr.free_symbols:
+        match = re.match(r"^_dX:(.*)_$", symb.name)
+        if match is None:
+            continue
+
+        measure = match[1].split(":")[0]
+        args = {
+            item.split("=")[0]: item.split("=")[1] for item in match[1].split(":")[1:]
+        }
+        measures[symb] = args
+
+    integrals = sp.collect(expr, measures.keys(), exact=True, evaluate=False)
+
+    # check that all terms have exactly one integration measure
+    assert 1 not in integrals
+
+    print(integrals)
+
+    # integrate
     iexpr = integrate(expr, n_gauss)
 
     # find all named symbols (fields)
