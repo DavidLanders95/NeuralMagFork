@@ -1,4 +1,5 @@
 import importlib
+import json
 import pathlib
 import re
 from functools import reduce
@@ -19,8 +20,9 @@ N = sv.CoordSys3D("N")
 
 def dX(name, **kwargs):
     # TODO check kwargs
+    # TODO implement singleton
     args = kwargs.update({"mtype": name})
-    name = ":".join(["dX"] + ["=".join([str(y) for y in x]) for x in kwargs.items()])
+    name = "dX:" + json.dumps(kwargs)
     return sp.Symbol(f"_{name}_", real=True)
 
 
@@ -180,29 +182,29 @@ def Variable(name, space, dim=3, shape=()):
     return reduce(lambda x, y: x + y, result)
 
 
-def integrate(expr, n=3, mtype="dV", plane=None, **kwargs):
+def integrate(expr, n=3, mtype="dV", normal=None, **kwargs):
     x, w = p_roots(n)
 
-    if mtype == "dV" or (mtype == "dA" and "x" in plane):
+    if mtype == "dA" and normal == 0:
+        intx = expr.subs(N.x, 0.0)
+    else:
         intx = 0
         for i in range(n):
             intx += w[i] * dx / 2 * expr.subs(N.x, (1 + x[i]) * dx / 2)
-    else:
-        intx = expr
 
-    if mtype == "dV" or (mtype == "dA" and "y" in plane):
+    if mtype == "dA" and normal == 1:
+        inty = intx.subs(N.y, 0.0)
+    else:
         inty = 0
         for i in range(n):
             inty += w[i] * dy / 2 * intx.subs(N.y, (1 + x[i]) * dy / 2)
-    else:
-        inty = intx
 
-    if mtype == "dV" or (mtype == "dA" and "z" in plane):
+    if mtype == "dA" and normal == 2:
+        intz = inty.subs(N.z, 0.0)
+    else:
         intz = 0
         for i in range(n):
             intz += w[i] * dz / 2 * inty.subs(N.z, (1 + x[i]) * dz / 2)
-    else:
-        intz = inty
 
     return intz
 
@@ -215,10 +217,10 @@ def compile_functional(expr, n_gauss=3):
 
     for symb in measure_symbols:
         match = re.match(r"^_dX:(.*)_$", symb.name)
-        args = {item.split("=")[0]: item.split("=")[1] for item in match[1].split(":")}
+        args = json.loads(match[1])
 
         # integrate
-        # TODO add information on integration
+        # TODO make n_gauss configurable in measure
         iexpr = integrate(integrals[symb], n_gauss, **args)
 
         # find all named symbols (fields)
@@ -243,23 +245,32 @@ def compile_functional(expr, n_gauss=3):
             shape, idx = [eval(x) for x in match[1].split(":")[2:]]
 
             variables.add(name)
+
             if space == "node":
-                sidx = ",".join(
-                    (
-                        [
-                            [":-1", "1:"][j] if i < dim else str(j)
-                            for i, j in enumerate(idx)
-                        ]
-                    )
-                )
-                rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
+                sidx = [
+                    [":-1", "1:"][j] if i < dim else str(j) for i, j in enumerate(idx)
+                ]
+                if args["mtype"] == "dA":
+                    # right now, dA is only support on 3D meshes
+                    assert dim == 3
+                    sidx[args["normal"]] = args["idx"]
+                    if isinstance(args["idx"], str):
+                        variables.add(args["idx"])
+
+                rhs = rhs.replace(symb.name, f"{name}[{','.join(sidx)}]")
             else:
+                # allow only nodal values for interface integrals
+                # TODO enable also cell values
+                # assert args['mtype'] == 'dV'
+
                 if shape == ():
                     rhs = rhs.replace(symb.name, f"{name}")
                 elif shape == (3,):
                     rhs = rhs.replace(symb.name, f"{name}[...,{idx[-1]}]")
 
         rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
+
+    # TODO handle different integration types (return multiple RHSs)?
 
     return rhs, variables
 
