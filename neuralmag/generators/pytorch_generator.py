@@ -215,6 +215,7 @@ def compile_functional(expr, n_gauss=3):
     integrals = sp.collect(expr, measure_symbols, exact=True, evaluate=False)
     assert 1 not in integrals
 
+    cmds = []
     for symb in measure_symbols:
         match = re.match(r"^_dX:(.*)_$", symb.name)
         args = json.loads(match[1])
@@ -231,7 +232,7 @@ def compile_functional(expr, n_gauss=3):
         ]
 
         # try to reduce multiplications of fields for better performance
-        rhs = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
+        cmd = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
 
         # retrieve topological dimension from first symbol
         match = re.match(r"^_(.*:.*:.*:.*)_$", symbs[0].name)
@@ -257,22 +258,21 @@ def compile_functional(expr, n_gauss=3):
                     if isinstance(args["idx"], str):
                         variables.add(args["idx"])
 
-                rhs = rhs.replace(symb.name, f"{name}[{','.join(sidx)}]")
+                cmd = cmd.replace(symb.name, f"{name}[{','.join(sidx)}]")
             else:
                 # allow only nodal values for interface integrals
                 # TODO enable also cell values
-                # assert args['mtype'] == 'dV'
+                assert args["mtype"] == "dV"
 
                 if shape == ():
-                    rhs = rhs.replace(symb.name, f"{name}")
+                    cmd = cmd.replace(symb.name, f"{name}")
                 elif shape == (3,):
-                    rhs = rhs.replace(symb.name, f"{name}[...,{idx[-1]}]")
+                    cmd = cmd.replace(symb.name, f"{name}[...,{idx[-1]}]")
 
-        rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
+        args["cmd"] = re.sub(r"_(dx\[\d\])_", r"\1", cmd)
+        cmds.append(args)
 
-    # TODO handle different integration types (return multiple RHSs)?
-
-    return rhs, variables
+    return cmds, variables
 
 
 def linear_form_cmds(expr, n_gauss=3):
@@ -294,16 +294,26 @@ def linear_form_cmds(expr, n_gauss=3):
     variables = set()
     for vsymb in tqdm(v, desc="Generating..."):
         vexpr = expr.xreplace(dict([(s, 1.0) if s == vsymb else (s, 0.0) for s in v]))
-        rhs, vvars = compile_functional(vexpr, n_gauss)
+        terms, vvars = compile_functional(vexpr, n_gauss)
         variables = variables.union(vvars)
         vspace, vshape, vidx = v[vsymb]
-        if vspace == "node":
-            sidx = ",".join(
-                ([[":-1", "1:"][j] if i < dim else str(j) for i, j in enumerate(vidx)])
-            )
-        else:
-            sidx = ",".join(([":" if i < dim else str(j) for i, j in enumerate(vidx)]))
-        cmds.append((sidx, rhs))
+
+        for term in terms:
+            if vspace == "node":
+                # TODO duplicate from compile_functional, refactor?
+                sidx = [
+                    [":-1", "1:"][j] if i < dim else str(j) for i, j in enumerate(vidx)
+                ]
+                if term["mtype"] == "dA":
+                    # right now, dA is only support on 3D meshes
+                    assert dim == 3
+                    sidx[args["normal"]] = args["idx"]
+                    if isinstance(args["idx"], str):
+                        variables.add(args["idx"])
+            else:
+                assert term["mtype"] == "dV"
+                sidx = [":" if i < dim else str(j) for i, j in enumerate(vidx)]
+            cmds.append((",".join(sidx), term["cmd"]))
 
     return cmds, variables
 
