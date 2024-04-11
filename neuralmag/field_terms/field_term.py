@@ -43,7 +43,9 @@ class FieldTerm(gen.CodeClass):
 
         if not hasattr(cls, "h"):
             # generate linear-form cmds
-            field_expr = rho * gen.gateaux_derivative(cls.e_expr(m, dim), m)
+            # XXX XXX XXX XXX XXX rho!!!!!
+            # field_expr = rho * gen.gateaux_derivative(cls.e_expr(m, dim), m)
+            field_expr = gen.gateaux_derivative(cls.e_expr(m, dim), m)
             cmds1, vars1 = gen.linear_form_cmds(field_expr, n_gauss)
 
             # generate lumped mass cmds
@@ -65,8 +67,9 @@ class FieldTerm(gen.CodeClass):
                 f.retrn("h / mass.unsqueeze(-1)")  # TODO more abstraction?
 
         if not hasattr(cls, "E"):
-            # rhs, variables = gen.compile_functional(rho * cls.e_expr(m, dim), n_gauss)
-            terms, variables = gen.compile_functional(rho * cls.e_expr(m, dim), n_gauss)
+            # XXX XXX XXX XXX XXX rho!!!!!
+            # terms, variables = gen.compile_functional(rho * cls.e_expr(m, dim), n_gauss)
+            terms, variables = gen.compile_functional(cls.e_expr(m, dim), n_gauss)
             rhs = terms[0]["cmd"]  # XXX
             with code.add_function("E", variables) as f:
                 f.retrn_sum(rhs)

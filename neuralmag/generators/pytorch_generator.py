@@ -216,6 +216,7 @@ def compile_functional(expr, n_gauss=3):
     assert 1 not in integrals
 
     cmds = []
+    variables = {"dx"}
     for symb in measure_symbols:
         match = re.match(r"^_dX:(.*)_$", symb.name)
         args = json.loads(match[1])
@@ -223,6 +224,10 @@ def compile_functional(expr, n_gauss=3):
         # integrate
         # TODO make n_gauss configurable in measure
         iexpr = integrate(integrals[symb], n_gauss, **args)
+
+        # handle zero integrals
+        if iexpr.is_zero:
+            continue
 
         # find all named symbols (fields)
         symbs = [
@@ -239,7 +244,6 @@ def compile_functional(expr, n_gauss=3):
         shape, idx = [eval(x) for x in match[1].split(":")[2:]]
         dim = len(idx) - len(shape)
 
-        variables = {"dx"}
         for symb in symbs:
             match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
             name, space = match[1].split(":")[:2]
@@ -307,9 +311,9 @@ def linear_form_cmds(expr, n_gauss=3):
                 if term["mtype"] == "dA":
                     # right now, dA is only support on 3D meshes
                     assert dim == 3
-                    sidx[args["normal"]] = args["idx"]
-                    if isinstance(args["idx"], str):
-                        variables.add(args["idx"])
+                    sidx[term["normal"]] = term["idx"]
+                    if isinstance(term["idx"], str):
+                        variables.add(term["idx"])
             else:
                 assert term["mtype"] == "dV"
                 sidx = [":" if i < dim else str(j) for i, j in enumerate(vidx)]
