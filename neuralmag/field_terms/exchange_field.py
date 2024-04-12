@@ -12,7 +12,7 @@ class ExchangeField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        A = Variable("material__A", "cell", dim)
+        A = Variable("material__A", "c" * dim)
         return (
             A
             * (
