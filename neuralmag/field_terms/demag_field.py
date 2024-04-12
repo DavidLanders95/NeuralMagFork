@@ -232,9 +232,9 @@ class DemagField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        rho = Variable("rho", "cell", dim)
-        Ms = Variable("material__Ms", "cell", dim)
-        h_demag = Variable("h_demag", "node", dim, (3,))
+        rho = Variable("rho", "c" * dim)
+        Ms = Variable("material__Ms", "c" * dim)
+        h_demag = Variable("h_demag", "n" * dim, (3,))
         return -0.5 * constants.mu_0 * Ms * m.dot(h_demag) * dV()
 
     def _init_N_component(self, state, perm, func):

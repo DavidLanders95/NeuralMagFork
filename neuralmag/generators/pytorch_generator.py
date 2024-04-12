@@ -215,7 +215,9 @@ def compile_functional(expr, n_gauss=3):
                     if args["dims"][i] is None:
                         sidx.append([":-1", "1:"][idx[i]])
                     else:
-                        sidx.append(str(args["dims"]))
+                        sidx.append(str(args["dims"][i]))
+                        if isinstance(args["dims"][i], str):
+                            variables.add(args["dims"][i])
                 elif space == "c":
                     if args["dims"][i] is None:
                         sidx.append(":")
@@ -266,7 +268,7 @@ def linear_form_cmds(expr, n_gauss=3):
                     if term["dims"][i] is None:
                         sidx.append([":-1", "1:"][vidx[i]])
                     else:
-                        sidx.append(str(term["dims"]))
+                        sidx.append(str(term["dims"][i]))
                 elif space == "c":
                     if term["dims"][i] is None:
                         sidx.append(":")

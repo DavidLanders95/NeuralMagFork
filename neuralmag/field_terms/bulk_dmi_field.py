@@ -14,5 +14,5 @@ class BulkDMIField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        D = Variable("material__Db", "cell", dim)
+        D = Variable("material__Db", "c" * dim)
         return D * m.dot(curl(m)) * dV()

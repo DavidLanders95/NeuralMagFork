@@ -23,6 +23,6 @@ class ExternalField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        Ms = Variable("material__Ms", "cell", dim)
-        h_external = Variable("h_external", "node", dim, (3,))
+        Ms = Variable("material__Ms", "c" * dim)
+        h_external = Variable("h_external", "n" * dim, (3,))
         return -constants.mu_0 * Ms * m.dot(h_external) * dV()

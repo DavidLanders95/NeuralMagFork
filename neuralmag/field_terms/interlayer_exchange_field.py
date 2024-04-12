@@ -30,7 +30,7 @@ class InterlayerExchangeField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        iA = Variable("material__iA", "node", dim)
-        im_other = Variable("im_other", "node", dim, (3,))
+        iA = Variable("material__iA", "n" * dim)
+        im_other = Variable("im_other", "n" * dim, (3,))
 
         return -0.5 * iA * m.dot(im_other) * dA("iidx")

@@ -12,6 +12,6 @@ class UniaxialAnisotropyField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        K = Variable("material__Ku", "cell", dim)
-        axis = Variable("material__Ku_axis", "cell", dim, (3,))
+        K = Variable("material__Ku", "c" * dim)
+        axis = Variable("material__Ku_axis", "c" * dim, (3,))
         return -K * m.dot(axis) ** 2 * dV()
