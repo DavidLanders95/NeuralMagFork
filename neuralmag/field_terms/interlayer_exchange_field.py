@@ -29,7 +29,8 @@ class InterlayerExchangeField(FieldTerm):
     @staticmethod
     def e_expr(m, dim):
         assert dim == 3
-        iA = Variable("material__iA", "ccn")
+        # iA = Variable("material__iA", "ccn")
+        iA = Variable("material__iA", "nnn")
         im_other = Variable("im_other", "nnn", (3,))
 
         return -0.5 * iA * m.dot(im_other) * dA("iidx")
