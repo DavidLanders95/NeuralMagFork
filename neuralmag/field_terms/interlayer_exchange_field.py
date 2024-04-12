@@ -32,4 +32,4 @@ class InterlayerExchangeField(FieldTerm):
         iA = Variable("material__iA", "node", dim)
         im_other = Variable("im_other", "node", dim, (3,))
 
-        return iA * m.dot(im_other) * dA(normal=2, idx="iidx")
+        return -0.5 * iA * m.dot(im_other) * dA(normal=2, idx="iidx")
