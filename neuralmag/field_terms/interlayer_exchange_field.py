@@ -23,14 +23,13 @@ class InterlayerExchangeField(FieldTerm):
     def register(self, state, name=None):
         super().register(state, name)
 
-        # state.iidx = state.tensor(self._iidx, dtype = torch.int)
         state.iidx = torch.tensor(self._iidx, device=state.device, dtype=torch.int)
-        # TODO add function space
-        state.im_other = swap
+        state.im_other = (swap, "node", (3,))
 
     @staticmethod
     def e_expr(m, dim):
-        iA = Variable("material__iA", "n" * dim)
-        im_other = Variable("im_other", "n" * dim, (3,))
+        assert dim == 3
+        iA = Variable("material__iA", "ccn")
+        im_other = Variable("im_other", "nnn", (3,))
 
         return -0.5 * iA * m.dot(im_other) * dA("iidx")

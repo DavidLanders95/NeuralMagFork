@@ -16,6 +16,7 @@ def test_h():
 
     state.material.iA = Function(state).from_constant(0.005)
     state.material.Ms = 1 / constants.mu_0
+
     state.rho = CellFunction(state).from_constant(1.0)
     state.rho.tensor[:, :, 2] = torch.finfo(state.dtype).eps
 

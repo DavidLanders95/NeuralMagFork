@@ -140,6 +140,8 @@ def Variable(name, spaces, shape=()):
                     * phi
                     * cs_e[l]
                 )
+        else:
+            raise Exception("Shape not supported")
     return reduce(lambda x, y: x + y, result)
 
 
