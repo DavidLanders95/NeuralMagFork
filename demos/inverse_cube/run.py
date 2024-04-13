@@ -16,7 +16,7 @@ state.material.Ku = 1e5
 state.material.Ku_axis = [0, 0, 1]
 state.material.alpha = 0.1
 
-state.m = VectorFunction(state).from_constant((0, 0, 1))
+state.m = VectorFunction(state).fill((0, 0, 1))
 state.write_vti(["m"], "m0.vti")
 exit()
 
@@ -47,7 +47,7 @@ llg = LLGSolver(state, parameters=["phi", "theta"])
 optimizer = torch.optim.Adam(llg.parameters(), lr=0.05)
 my_loss = torch.nn.L1Loss()
 
-m_target = VectorFunction(state).from_constant((np.sqrt(0.5), 0, np.sqrt(0.5))).tensor
+m_target = VectorFunction(state).fill((np.sqrt(0.5), 0, np.sqrt(0.5))).tensor
 
 logger = ScalarLogger("log.dat", ["epoch", "phi", "theta", "loss"])
 for epoch in range(100):

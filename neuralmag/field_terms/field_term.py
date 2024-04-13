@@ -70,7 +70,7 @@ class FieldTerm(gen.CodeClass):
             # XXX XXX XXX XXX XXX rho!!!!!
             # terms, variables = gen.compile_functional(rho * cls.e_expr(m, dim), n_gauss)
             terms, variables = gen.compile_functional(cls.e_expr(m, dim), n_gauss)
-            rhs = terms[0]["cmd"]  # XXX
+            rhs = terms[0]["cmd"]  # XXX XXX XXX XXX
             with code.add_function("E", variables) as f:
                 f.retrn_sum(rhs)
 

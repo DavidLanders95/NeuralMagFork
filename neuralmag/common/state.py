@@ -47,6 +47,8 @@ class State(object):
         self.t = 0.0
         # TODO expand? add rho facet measures?
         self.rho = 1.0
+        self.rhoxy = Function(self, "ccn").expand(1.0)
+
         self.eps = torch.finfo(self.dtype).eps
 
         logging.info_green(f"[State] Running on device: {self._device}")

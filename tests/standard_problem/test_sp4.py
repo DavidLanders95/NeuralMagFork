@@ -18,8 +18,8 @@ def s_state():
     state.material.Ms = 800000.0
     state.material.A = 1.3e-11
     state.material.alpha = 1
-    h_ext = VectorFunction(state).from_constant((0, 0, 0))
-    state.m = VectorFunction(state).from_constant((1, 0.25, 0.1))
+    h_ext = VectorFunction(state).fill((0, 0, 0))
+    state.m = VectorFunction(state).fill((1, 0.25, 0.1))
 
     ExchangeField().register(state, "exchange")
     DemagField().register(state, "demag")
@@ -36,7 +36,7 @@ def s_state():
 
 def test_sp4_field_switch_1(s_state):
     s_state.material.alpha = 0.02
-    s_state.h_external = VectorFunction(s_state).from_constant(
+    s_state.h_external = VectorFunction(s_state).fill(
         (-19576.05800030313, 3421.8312764757497, 0.0)
     )
 
@@ -72,7 +72,7 @@ def test_sp4_field_switch_1(s_state):
 
 def test_sp4_field_switch_2(s_state):
     s_state.material.alpha = 0.02
-    s_state.h_external = VectorFunction(s_state).from_constant(
+    s_state.h_external = VectorFunction(s_state).fill(
         (-28250.00239881142, -5013.380707394703, 0.0)
     )
 

@@ -14,7 +14,7 @@ state.material.Ku = 1e5
 state.material.Ku_axis = [0, 0, 1]
 state.material.alpha = 1.0
 
-state.m = VectorFunction(state).from_constant((0, 0, 1))
+state.m = VectorFunction(state).fill((0, 0, 1))
 
 # setup external field depending t
 Hc = 2 * 1e5 / (constants.mu_0 * 8e5)
