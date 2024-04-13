@@ -219,9 +219,9 @@ class DemagField(FieldTerm):
     def register(self, state, name=None):
         super().register(state, name)
         if state.mesh.dim == 2:
-            setattr(state, self.attr_name("h", name), (h2d, "node", (3,)))
+            setattr(state, self.attr_name("h", name), (h2d, "nn", (3,)))
         elif state.mesh.dim == 3:
-            setattr(state, self.attr_name("h", name), (h3d, "node", (3,)))
+            setattr(state, self.attr_name("h", name), (h3d, "nnn", (3,)))
         else:
             raise
         # fix reference to h_demag in E_demag if suffix is changed

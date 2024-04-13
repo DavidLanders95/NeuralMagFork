@@ -11,8 +11,8 @@ state.material.Ms = 8e5
 state.material.A = 1.3e-11
 state.material.alpha = 1.0
 
-state.m = VectorFunction(state).from_constant((np.sqrt(0.5), np.sqrt(0.5), 0))
-h_ext = VectorFunction(state).from_constant((0, 0, 0))
+state.m = VectorFunction(state).fill((np.sqrt(0.5), np.sqrt(0.5), 0))
+h_ext = VectorFunction(state).expand((0, 0, 0))
 
 # register effective field
 ExchangeField().register(state, "exchange")
@@ -25,7 +25,7 @@ llg = LLGSolver(state)
 llg.step(1e-9)
 
 # set external field and perform switch
-h_ext.tensor[..., :] = state.tensor([-19576.0, 3421.0, 0.0])
+h_ext.expand([-19576.0, 3421.0, 0.0])
 state.material.alpha = 0.02
 
 logger = Logger("data", ["t", "m"], ["m"])

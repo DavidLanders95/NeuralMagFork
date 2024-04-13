@@ -14,10 +14,10 @@ def test_h():
     state.m.tensor[:, :, :3, 0] = 1
     state.m.tensor[:, :, 3:, 1] = 1
 
-    state.material.iA = Function(state).from_constant(0.005)
+    state.material.iA = Function(state).fill(0.005)
     state.material.Ms = 1 / constants.mu_0
 
-    state.rho = CellFunction(state).from_constant(1.0)
+    state.rho = CellFunction(state).fill(1.0)
     state.rho.tensor[:, :, 2] = torch.finfo(state.dtype).eps
 
     InterlayerExchangeField(2, 3).register(state)

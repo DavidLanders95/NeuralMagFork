@@ -40,7 +40,7 @@ def test_setting_tensor(state):
 
 
 def test_setting_function(state):
-    state.f = Function(state).from_constant(2.0)
+    state.f = Function(state).fill(2.0)
     assert isinstance(state.f, Function)
     assert state.f.tensor.sum().cpu() == pytest.approx(3**3 * 2.0)
 
@@ -66,8 +66,8 @@ def test_get_func(state):
 
 
 def test_setting_lambda_to_return_function(state):
-    state.a = Function(state).from_constant(1.0)
-    state.f = (lambda a: 2 * a, "node", ())
+    state.a = Function(state).fill(1.0)
+    state.f = (lambda a: 2 * a, "nnn", ())
     assert isinstance(state.f, Function)
     assert state.f.tensor.sum().cpu() == pytest.approx(3**3 * 2.0)
 
