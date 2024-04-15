@@ -39,21 +39,16 @@ class FieldTerm(gen.CodeClass):
     def generate_code(cls, n_gauss, dim):
         code = gen.CodeBlock()
         m = gen.Variable("m", "n" * dim, (3,))
-        rho = gen.Variable("rho", "c" * dim)
 
         if not hasattr(cls, "h"):
             # generate linear-form cmds
-            # XXX XXX XXX XXX XXX rho!!!!!
-            # field_expr = rho * gen.gateaux_derivative(cls.e_expr(m, dim), m)
             field_expr = gen.gateaux_derivative(cls.e_expr(m, dim), m)
             cmds1, vars1 = gen.linear_form_cmds(field_expr, n_gauss)
 
             # generate lumped mass cmds
             v = gen.Variable("v", "n" * dim)
             Ms = gen.Variable("material__Ms", "c" * dim)
-            cmds2, vars2 = gen.linear_form_cmds(
-                -constants.mu_0 * rho * Ms * v * gen.dV()
-            )
+            cmds2, vars2 = gen.linear_form_cmds(-constants.mu_0 * Ms * v * gen.dV(dim))
 
             with code.add_function("h", sorted(list(vars1 | vars2 | {"m"}))) as f:
                 f.zeros_like("h", "m")
@@ -67,8 +62,6 @@ class FieldTerm(gen.CodeClass):
                 f.retrn("h / mass.unsqueeze(-1)")  # TODO more abstraction?
 
         if not hasattr(cls, "E"):
-            # XXX XXX XXX XXX XXX rho!!!!!
-            # terms, variables = gen.compile_functional(rho * cls.e_expr(m, dim), n_gauss)
             terms, variables = gen.compile_functional(cls.e_expr(m, dim), n_gauss)
             rhs = terms[0]["cmd"]  # XXX XXX XXX XXX
             with code.add_function("E", variables) as f:

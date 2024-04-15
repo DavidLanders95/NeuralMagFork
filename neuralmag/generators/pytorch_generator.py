@@ -25,12 +25,19 @@ def dX(**kwargs):
     return sp.Symbol(f"_dX:{json.dumps(kwargs)}_")
 
 
-def dV(**kwargs):
-    return dX(dims=[None, None, None], **kwargs)
+def dV(dim=3, region="rho", **kwargs):
+    rho = Variable(region, "c" * dim)
+    return rho * dX(dims=[None, None, None], **kwargs)
 
 
-def dA(iz, **kwargs):
-    return dX(dims=[None, None, iz], **kwargs)
+def dA(dim=3, normal=2, region="rhoxy", idx=":", **kwargs):
+    assert dim == 3
+    spaces = ["c"] * 3
+    spaces[normal] = "n"
+    rho = Variable(region, "".join(spaces))
+    dims = [None, None, None]
+    dims[normal] = idx
+    return rho * dX(dims=dims, **kwargs)
 
 
 def compile(func):

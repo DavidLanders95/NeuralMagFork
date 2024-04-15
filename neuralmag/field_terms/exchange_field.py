@@ -20,5 +20,5 @@ class ExchangeField(FieldTerm):
                 + m.diff(N.y).dot(m.diff(N.y))
                 + m.diff(N.z).dot(m.diff(N.z))
             )
-            * dV()
+            * dV(dim)
         )

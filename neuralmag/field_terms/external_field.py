@@ -25,4 +25,4 @@ class ExternalField(FieldTerm):
     def e_expr(m, dim):
         Ms = Variable("material__Ms", "c" * dim)
         h_external = Variable("h_external", "n" * dim, (3,))
-        return -constants.mu_0 * Ms * m.dot(h_external) * dV()
+        return -constants.mu_0 * Ms * m.dot(h_external) * dV(dim)

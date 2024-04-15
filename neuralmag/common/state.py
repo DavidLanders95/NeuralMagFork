@@ -45,12 +45,13 @@ class State(object):
         self._mesh = mesh
         self.dx = self.tensor(mesh.dx)
         self.t = 0.0
+
         # TODO expand? add rho facet measures?
         self.rho = 1.0
         if mesh.dim == 3:
             self.rhoxy = Function(self, "ccn").expand(1.0)
 
-        self.eps = torch.finfo(self.dtype).eps
+        self._attr_values["eps"] = torch.finfo(self.dtype).eps
 
         logging.info_green(f"[State] Running on device: {self._device}")
         if mesh.dim == 2:
@@ -212,7 +213,10 @@ class State(object):
         compiled_code = compile(code, "<string>", "exec")
         return types.FunctionType(compiled_code.co_consts[0], {f"__{name}": f}, name)
 
-    def coordinates(self, spaces="ccc"):
+    def coordinates(self, spaces=None):
+        if spaces == None:
+            spaces = "c" * self.mesh.dim
+
         ranges = []
         for space in spaces:
             if space == "c":

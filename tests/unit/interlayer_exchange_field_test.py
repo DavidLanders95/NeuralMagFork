@@ -14,7 +14,7 @@ def test_h():
     state.m.tensor[:, :, :3, 0] = 1
     state.m.tensor[:, :, 3:, 1] = 1
 
-    state.material.iA = Function(state).fill(0.005)
+    state.material.iA = Function(state, "ccn").expand(0.005)
     state.material.Ms = 1 / constants.mu_0
 
     state.rho = CellFunction(state).fill(1.0)

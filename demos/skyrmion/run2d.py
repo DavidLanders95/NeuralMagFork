@@ -16,12 +16,12 @@ state.material.Ku_axis = [0, 0, 1]
 state.material.alpha = 0.1
 
 # set circular geometry
-state.rho = CellFunction(state).from_constant(torch.finfo(state.dtype).eps)
+state.rho = CellFunction(state).fill(state.eps)
 x, y = state.coordinates()
 state.rho.tensor[x**2.0 + y**2.0 < 50e-9**2.0] = 1.0
 
 # initial magnetization
-state.m = VectorFunction(state).from_constant((0, 0, 1))
+state.m = VectorFunction(state).fill((0, 0, 1))
 
 ## register effective field
 ExchangeField().register(state, "exchange")
