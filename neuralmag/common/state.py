@@ -47,7 +47,8 @@ class State(object):
         self.t = 0.0
         # TODO expand? add rho facet measures?
         self.rho = 1.0
-        self.rhoxy = Function(self, "ccn").expand(1.0)
+        if mesh.dim == 3:
+            self.rhoxy = Function(self, "ccn").expand(1.0)
 
         self.eps = torch.finfo(self.dtype).eps
 
