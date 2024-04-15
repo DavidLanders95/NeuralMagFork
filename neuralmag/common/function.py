@@ -41,6 +41,10 @@ class Function(object):
         return self._shape
 
     @property
+    def size(self):
+        return self._size
+
+    @property
     def state(self):
         return self._state
 

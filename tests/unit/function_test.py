@@ -59,3 +59,10 @@ def test_expand_with_vector(state):
 def test_set_name(state):
     f = CellFunction(state, name="f")
     assert f.name == "f"
+
+
+def test_size(state):
+    assert Function(state).size == (3, 3, 3)
+    assert VectorFunction(state).size == (3, 3, 3, 3)
+    assert CellFunction(state).size == (2, 2, 2)
+    assert VectorCellFunction(state).size == (2, 2, 2, 3)
