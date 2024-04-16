@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+import torch
 
 from neuralmag import *
 
@@ -44,16 +45,20 @@ def test_fill_with_vector(state):
     assert f.avg().cpu() == pytest.approx([1.0, 2.0, 3.0])
 
 
-def test_expand(state):
-    f = Function(state).expand(2.0)
+def test_fill_expanded(state):
+    f = Function(state).fill(2.0, expand=True)
     assert f.avg().cpu() == pytest.approx(2.0)
     assert f.tensor.size() == f._size
+    f.tensor[0, 0, 0] = 3.0
+    assert f.avg().cpu() == pytest.approx(3.0)
 
 
-def test_expand_with_vector(state):
-    f = VectorFunction(state).expand([1.0, 2.0, 3.0])
+def test_fill_expanded_with_vector(state):
+    f = VectorFunction(state).fill([1.0, 2.0, 3.0], expand=True)
     assert f.avg().cpu() == pytest.approx([1.0, 2.0, 3.0])
     assert f.tensor.size() == f._size
+    f.tensor[0, 0, 0, :] = torch.tensor([4.0, 5.0, 6.0])
+    assert f.avg().cpu() == pytest.approx([4.0, 5.0, 6.0])
 
 
 def test_set_name(state):

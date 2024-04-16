@@ -60,7 +60,9 @@ class Function(object):
             )
         return self._tensor
 
-    def fill(self, constant):
+    def fill(self, constant, expand=False):
+        if expand:
+            return self.fill_expanded(constant)
         if isinstance(constant, (int, float)):
             assert self.shape == ()
             self.tensor[...] = constant
@@ -73,7 +75,7 @@ class Function(object):
 
         return self
 
-    def expand(self, constant):
+    def fill_expanded(self, constant):
         if self._tensor is None:
             self._expanded = self.state.tensor(constant)
             if isinstance(constant, (int, float)):

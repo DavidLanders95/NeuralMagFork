@@ -49,7 +49,9 @@ class State(object):
         # TODO expand? add rho facet measures?
         self.rho = 1.0
         if mesh.dim == 3:
-            self.rhoxy = Function(self, "ccn").expand(1.0)
+            self.rhoxy = Function(self, "ccn").fill(1.0, expand=True)
+            self.rhoyz = Function(self, "cnc").fill(1.0, expand=True)
+            self.rhoxz = Function(self, "ncc").fill(1.0, expand=True)
 
         self._attr_values["eps"] = torch.finfo(self.dtype).eps
 
@@ -108,14 +110,16 @@ class State(object):
                 attr = self._attr_values[name]
                 self._attr_funcs[name] = self.get_func(attr)
             func, args = self._attr_funcs[name]
+            value = func(*args)
 
-            if name in self._attr_types:
-                spaces, shape = self._attr_types[name]
-                return Function(self, spaces=spaces, shape=shape, tensor=func(*args))
-            else:
-                return func(*args)
         else:
-            return self._attr_values[name]
+            value = self._attr_values[name]
+
+        if name in self._attr_types:
+            spaces, shape = self._attr_types[name]
+            return Function(self, spaces=spaces, shape=shape, tensor=value)
+        else:
+            return value
 
     def __setattr__(self, name, value):
         # don't mess with protected attributes
