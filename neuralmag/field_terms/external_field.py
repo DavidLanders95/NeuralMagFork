@@ -12,6 +12,13 @@ __all__ = ["ExternalField"]
 
 
 class ExternalField(FieldTerm):
+    r"""
+    Effective field contribution corresponding to the external field
+
+    .. math::
+
+      E = - \int_\Omega \mu_0 M_s  \vec{m} \cdot \vec{h} \dx
+    """
     _name = "external"
     h = None
 

@@ -5,6 +5,15 @@ __all__ = ["ExchangeField"]
 
 
 class ExchangeField(FieldTerm):
+    r"""
+    Effective field contribution corresponding to the micromagnetic exchange energy
+
+    .. math::
+
+      E = \int_\Omega A \big( \nabla m_x^2 + \nabla m_y^2 + \nabla m_z^2 \big) \dx
+
+    with the exchange constant :math:`A` given in units of :math:`\text{J/m}`.
+    """
     _name = "exchange"
 
     def __init__(self, *args, **kwargs):

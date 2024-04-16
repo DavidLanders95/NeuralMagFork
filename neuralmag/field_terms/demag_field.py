@@ -209,6 +209,22 @@ def h3d(N_demag, m, material__Ms, rho):
 
 
 class DemagField(FieldTerm):
+    r"""
+    Effective field contribution corresponding to the demagnetization field (also referred to as magnetostatic field or stray field).
+    The demagnetization field is computed from the scalar potential :math:`u` as
+
+    .. math::
+
+        \vec{H}_\text{demag} = - \nabla u
+
+    with :math:`u` being calculated by the Poisson equation
+
+    .. math::
+
+      \Delta u = \nabla \cdot (M_s \vec{m})
+
+    with open boundary conditions.
+    """
     _name = "demag"
     h = None
 

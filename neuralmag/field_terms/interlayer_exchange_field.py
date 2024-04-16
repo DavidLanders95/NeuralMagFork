@@ -14,6 +14,21 @@ def swap(m, iidx):
 
 
 class InterlayerExchangeField(FieldTerm):
+    r"""
+    Effective field contribution for interface exchange up to bbiquadratic order
+
+    .. math::
+
+      E = - 0.5 \int_\Gamma A \vec{m} \cdot \vec{m}_\text{other} \ds
+
+    where :math:`\Gamma` denotes two coupled interfaces and :math:`\vec{m}_\text{other}` denotes the magnetization at the nearest point of the other interface. This expression is equivalent to the more common expression
+
+    .. math::
+
+      E = - \int_\Gamma A \vec{m}_1 \cdot \vec{m}_2 \ds
+
+    where :math:`\Gamma` denotes a shared interface and :math:`\vec{m}_1` and :math:`\vec{m}_2` denote the magnetization on the respective sides.
+    """
     _name = "iexchange"
 
     def __init__(self, idx1, idx2, *args, **kwargs):

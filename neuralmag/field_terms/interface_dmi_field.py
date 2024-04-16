@@ -7,6 +7,18 @@ __all__ = ["InterfaceDMIField"]
 
 
 class InterfaceDMIField(FieldTerm):
+    r"""
+    Effective field contribution corresponding to the micromagnetic interface-DMI energy
+
+    .. math::
+
+      E = \int_\Omega D \Big[
+         \vec{m} \cdot \nabla (\vec{e}_D \cdot \vec{m}) -
+         (\nabla \cdot \vec{m}) (\vec{e}_D \cdot \vec{m})
+         \Big] \dx
+
+    with the DMI constant :math:`D` given in units of :math:`\text{J/m}^2`.
+    """
     _name = "idmi"
 
     def __init__(self, *args, **kwargs):
