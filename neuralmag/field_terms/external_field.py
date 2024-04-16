@@ -28,7 +28,6 @@ class ExternalField(FieldTerm):
                 arg_names = list(inspect.signature(func).parameters.keys())
                 code = f"def h({', '.join(arg_names)}):\n"
                 code += f"    return __h({', '.join(arg_names)}).expand({size})\n"
-                self.h = lambda *a: func(*a).expand(size)
                 compiled_code = compile(code, "<string>", "exec")
                 self.h = types.FunctionType(
                     compiled_code.co_consts[0], {f"__h": self._h}, name

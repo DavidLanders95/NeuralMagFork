@@ -63,8 +63,7 @@ class FieldTerm(gen.CodeClass):
 
         if not hasattr(cls, "E"):
             terms, variables = gen.compile_functional(cls.e_expr(m, dim), n_gauss)
-            rhs = terms[0]["cmd"]  # XXX XXX XXX XXX
             with code.add_function("E", variables) as f:
-                f.retrn_sum(rhs)
+                f.retrn_sum(*[term["cmd"] for term in terms])
 
         return code

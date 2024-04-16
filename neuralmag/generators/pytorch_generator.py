@@ -85,8 +85,9 @@ class CodeFunction(object):
     def retrn(self, code):
         self.add_line(f"return {code}")
 
-    def retrn_sum(self, code):
-        self.add_line(f"return ({code}).sum()")
+    def retrn_sum(self, *terms):
+        retval = " + ".join([f"({term}).sum()" for term in terms])
+        self.add_line(f"return {retval}")
 
 
 class CodeBlock(object):
