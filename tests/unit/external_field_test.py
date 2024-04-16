@@ -1,6 +1,5 @@
 import numpy as np
 import pytest
-import torch
 
 from neuralmag import *
 
@@ -17,7 +16,7 @@ def test_h_from_array(state):
 
 
 def test_h_from_func(state):
-    h_ext = lambda t: t * torch.tensor([1.0, 2.0, 3.0]).expand((3, 3, 3, 3))
+    h_ext = lambda t: t * state.tensor([1.0, 2.0, 3.0]).expand((3, 3, 3, 3))
     ExternalField(h_ext).register(state)
     state.t = 0.0
     assert state.h_external.avg().cpu() == pytest.approx([0.0, 0.0, 0.0])
@@ -26,7 +25,7 @@ def test_h_from_func(state):
 
 
 def test_h_from_array_func(state):
-    h_ext = lambda t: t * torch.tensor([1.0, 2.0, 3.0])
+    h_ext = lambda t: t * state.tensor([1.0, 2.0, 3.0])
     ExternalField(h_ext).register(state)
     state.t = 0.0
     assert state.h_external.avg().cpu() == pytest.approx([0.0, 0.0, 0.0])
