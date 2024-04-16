@@ -22,16 +22,12 @@ state.m = VectorFunction(state).fill((0, 0, 1))
 Hc = 2 * 1e5 / (constants.mu_0 * 8e5)
 state.phi = np.pi / 2
 state.theta = np.pi / 2
-h_ext = (
-    lambda phi, theta: torch.stack(
-        [
-            Hc / 2 * torch.sin(theta) * torch.cos(phi),
-            Hc / 2 * torch.sin(theta) * torch.sin(phi),
-            Hc / 2 * torch.cos(theta),
-        ]
-    )
-    .reshape((1, 1, 1, 3))
-    .expand((3, 3, 3, 3))
+h_ext = lambda phi, theta: torch.stack(
+    [
+        Hc / 2 * torch.sin(theta) * torch.cos(phi),
+        Hc / 2 * torch.sin(theta) * torch.sin(phi),
+        Hc / 2 * torch.cos(theta),
+    ]
 )
 
 # register effective field
