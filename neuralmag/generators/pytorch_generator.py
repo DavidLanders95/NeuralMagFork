@@ -1,4 +1,5 @@
 import importlib
+import json
 import pathlib
 import re
 from functools import reduce
@@ -13,8 +14,30 @@ from tqdm import tqdm
 
 from ..common import config, logging
 
-dx, dy, dz = sp.symbols("_dx[0]_ _dx[1]_ _dx[2]_", real=True, positive=True)
 N = sv.CoordSys3D("N")
+cs_dx = sp.symbols("_dx[0]_ _dx[1]_ _dx[2]_", real=True, positive=True)
+cs_x = [N.x, N.y, N.z]
+cs_e = [N.i, N.j, N.k]
+
+
+def dX(**kwargs):
+    # TODO implement singleton
+    return sp.Symbol(f"_dX:{json.dumps(kwargs)}_")
+
+
+def dV(dim=3, region="rho", **kwargs):
+    rho = Variable(region, "c" * dim)
+    return rho * dX(dims=[None, None, None], **kwargs)
+
+
+def dA(dim=3, normal=2, region="rhoxy", idx=":", **kwargs):
+    assert dim == 3
+    spaces = ["c"] * 3
+    spaces[normal] = "n"
+    rho = Variable(region, "".join(spaces))
+    dims = [None, None, None]
+    dims[normal] = idx
+    return rho * dX(dims=dims, **kwargs)
 
 
 def compile(func):
@@ -62,8 +85,9 @@ class CodeFunction(object):
     def retrn(self, code):
         self.add_line(f"return {code}")
 
-    def retrn_sum(self, code):
-        self.add_line(f"return ({code}).sum()")
+    def retrn_sum(self, *terms):
+        retval = " + ".join([f"({term}).sum()" for term in terms])
+        self.add_line(f"return {retval}")
 
 
 class CodeBlock(object):
@@ -106,115 +130,121 @@ class CodeClass(object):
         module_spec.loader.exec_module(self._code)
 
 
-def Variable(name, space, dim=3, shape=()):
+def Variable(name, spaces, shape=()):
     result = []
-    if space == "node":
-        if dim == 2:
-            for i, j in product([0, 1], [0, 1]):
-                phi = (1 - N.x / dx + 2 * i * N.x / dx - i) * (
-                    1 - N.y / dy + 2 * j * N.y / dy - j
-                )
-
-                if shape == ():
-                    result.append(
-                        sp.Symbol(f"_{name}:{space}:{shape}:{[i,j]}_", real=True) * phi
-                    )
-                elif shape == (3,):
-                    for l in range(3):
-                        result.append(
-                            sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,l]}_", real=True)
-                            * phi
-                            * [N.i, N.j, N.k][l]
-                        )
-        elif dim == 3:
-            for i, j, k in product([0, 1], [0, 1], [0, 1]):
-                phi = (
-                    (1 - N.x / dx + 2 * i * N.x / dx - i)
-                    * (1 - N.y / dy + 2 * j * N.y / dy - j)
-                    * (1 - N.z / dz + 2 * k * N.z / dz - k)
-                )
-
-                if shape == ():
-                    result.append(
-                        sp.Symbol(f"_{name}:{space}:{shape}:{[i,j,k]}_", real=True)
-                        * phi
-                    )
-                elif shape == (3,):
-                    for l in range(3):
-                        result.append(
-                            sp.Symbol(
-                                f"_{name}:{space}:{shape}:{[i,j,k,l]}_", real=True
-                            )
-                            * phi
-                            * [N.i, N.j, N.k][l]
-                        )
-        else:
-            raise
-
-    elif space == "cell":
+    for idx in product(*[{"n": [0, 1], "c": [None]}[s] for s in spaces]):
+        phi = 1.0
+        for i, j in enumerate(idx):
+            if j is not None:
+                phi *= 1 - cs_x[i] / cs_dx[i] + 2 * j * cs_x[i] / cs_dx[i] - j
         if shape == ():
-            result.append(sp.Symbol(f"_{name}:{space}:{shape}:{[0]*dim}_", real=True))
+            result.append(
+                sp.Symbol(f"_{name}:{spaces}:{shape}:{list(idx)}_", real=True) * phi
+            )
         elif shape == (3,):
             for l in range(3):
                 result.append(
-                    sp.Symbol(f"_{name}:{space}:{shape}:{[0]*dim + [l]}_", real=True)
-                    * [N.i, N.j, N.k][l]
+                    sp.Symbol(f"_{name}:{spaces}:{shape}:{list(idx) + [l]}_", real=True)
+                    * phi
+                    * cs_e[l]
                 )
-    else:
-        raise NotImplemented
+        else:
+            raise Exception("Shape not supported")
     return reduce(lambda x, y: x + y, result)
 
 
-def integrate(expr, n=3):
+def integrate(expr, dims, n=3):
     x, w = p_roots(n)
-    intx = 0
-    for i in range(n):
-        intx += w[i] * dx / 2 * expr.subs(N.x, (1 + x[i]) * dx / 2)
-    inty = 0
-    for i in range(n):
-        inty += w[i] * dy / 2 * intx.subs(N.y, (1 + x[i]) * dy / 2)
-    intz = 0
-    for i in range(n):
-        intz += w[i] * dz / 2 * inty.subs(N.z, (1 + x[i]) * dz / 2)
-    return intz
+
+    integrand = expr
+    for i, dim in enumerate(dims):
+        if dim is None:
+            integral = 0
+            for j in range(n):
+                integral += (
+                    w[j]
+                    * cs_dx[i]
+                    / 2
+                    * integrand.subs(cs_x[i], (1 + x[j]) * cs_dx[i] / 2)
+                )
+        else:
+            integral = integrand.subs(cs_x[i], 0.0)
+        integrand = integral
+
+    return integral
 
 
 def compile_functional(expr, n_gauss=3):
-    iexpr = integrate(expr, n_gauss)
+    # extract all integral measures with parameters and check consistency
+    measure_symbols = [s for s in expr.free_symbols if re.match(r"^_dX:(.*)_$", s.name)]
+    integrals = sp.collect(expr, measure_symbols, exact=True, evaluate=False)
+    assert 1 not in integrals
 
-    # find all named symbols (fields)
-    symbs = [
-        symb for symb in iexpr.free_symbols if re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
-    ]
-
-    # try to reduce multiplications of fields for better performance
-    rhs = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
-
-    # retrieve topological dimension from first symbol
-    match = re.match(r"^_(.*:.*:.*:.*)_$", symbs[0].name)
-    shape, idx = [eval(x) for x in match[1].split(":")[2:]]
-    dim = len(idx) - len(shape)
-
+    cmds = []
     variables = {"dx"}
-    for symb in symbs:
-        match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
-        name, space = match[1].split(":")[:2]
+    for symb in measure_symbols:
+        match = re.match(r"^_dX:(.*)_$", symb.name)
+        args = json.loads(match[1])
+
+        # integrate
+        # TODO use | operator for python 3.9
+        iexpr = integrate(integrals[symb], **{**{"n": n_gauss}, **args})
+
+        # skip zero integrals
+        if iexpr.is_zero:
+            continue
+
+        # find all named symbols (fields)
+        symbs = [
+            symb
+            for symb in iexpr.free_symbols
+            if re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
+        ]
+
+        if len(symbs) == 0:
+            raise Exception("Need at least one variable to integrate.")
+
+        # try to reduce multiplications of fields for better performance
+        cmd = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
+
+        # retrieve topological dimension from first symbol
+        match = re.match(r"^_(.*:.*:.*:.*)_$", symbs[0].name)
         shape, idx = [eval(x) for x in match[1].split(":")[2:]]
+        dim = len(idx) - len(shape)
 
-        variables.add(name)
-        if space == "node":
-            sidx = ",".join(
-                ([[":-1", "1:"][j] if i < dim else str(j) for i, j in enumerate(idx)])
-            )
-            rhs = rhs.replace(symb.name, f"{name}[{sidx}]")
-        else:
-            if shape == ():
-                rhs = rhs.replace(symb.name, f"{name}")
-            elif shape == (3,):
-                rhs = rhs.replace(symb.name, f"{name}[...,{idx[-1]}]")
+        for symb in symbs:
+            match = re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
+            name, spaces = match[1].split(":")[:2]
+            shape, idx = [eval(x) for x in match[1].split(":")[2:]]
 
-    rhs = re.sub(r"_(dx\[\d\])_", r"\1", rhs)
-    return rhs, variables
+            variables.add(name)
+
+            sidx = []
+            for i, space in enumerate(spaces):
+                if space == "n":
+                    if args["dims"][i] is None:
+                        sidx.append([":-1", "1:"][idx[i]])
+                    else:
+                        sidx.append(str(args["dims"][i]))
+                        if isinstance(args["dims"][i], str):
+                            variables.add(args["dims"][i])
+                elif space == "c":
+                    if args["dims"][i] is None:
+                        sidx.append(":")
+                    else:
+                        raise Exception("Use node discretization in normal direction.")
+
+            if shape == (3,):
+                sidx.append(str(idx[-1]))
+
+            # contract leading sequence of ":,: to ...
+            arr_idx = re.sub(r"^(:,)+:($|,)", r"...\2", ",".join(sidx))
+            cmd = cmd.replace(symb.name, f"{name}[{arr_idx}]")
+
+        args["cmd"] = re.sub(r"_(dx\[\d\])_", r"\1", cmd)
+        cmds.append(args)
+
+    return cmds, variables
 
 
 def linear_form_cmds(expr, n_gauss=3):
@@ -236,16 +266,29 @@ def linear_form_cmds(expr, n_gauss=3):
     variables = set()
     for vsymb in tqdm(v, desc="Generating..."):
         vexpr = expr.xreplace(dict([(s, 1.0) if s == vsymb else (s, 0.0) for s in v]))
-        rhs, vvars = compile_functional(vexpr, n_gauss)
+        terms, vvars = compile_functional(vexpr, n_gauss)
         variables = variables.union(vvars)
-        vspace, vshape, vidx = v[vsymb]
-        if vspace == "node":
-            sidx = ",".join(
-                ([[":-1", "1:"][j] if i < dim else str(j) for i, j in enumerate(vidx)])
-            )
-        else:
-            sidx = ",".join(([":" if i < dim else str(j) for i, j in enumerate(vidx)]))
-        cmds.append((sidx, rhs))
+        vspaces, vshape, vidx = v[vsymb]
+
+        for term in terms:
+            # TODO why call it term here and args in compile_function?
+            sidx = []
+            for i, space in enumerate(vspaces):
+                if space == "n":
+                    if term["dims"][i] is None:
+                        sidx.append([":-1", "1:"][vidx[i]])
+                    else:
+                        sidx.append(str(term["dims"][i]))
+                elif space == "c":
+                    if term["dims"][i] is None:
+                        sidx.append(":")
+                    else:
+                        raise Exception("Use node discretization in normal direction.")
+
+            if shape == (3,):
+                sidx.append(str(vidx[-1]))
+
+            cmds.append((",".join(sidx), term["cmd"]))
 
     return cmds, variables
 

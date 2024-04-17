@@ -16,24 +16,18 @@ state.material.Ku = 1e5
 state.material.Ku_axis = [0, 0, 1]
 state.material.alpha = 0.1
 
-state.m = VectorFunction(state).from_constant((0, 0, 1))
-state.write_vti(["m"], "m0.vti")
-exit()
+state.m = VectorFunction(state).fill((0, 0, 1))
 
 # setup external field depending on phi and theta
 Hc = 2 * 1e5 / (constants.mu_0 * 8e5)
 state.phi = np.pi / 2
 state.theta = np.pi / 2
-h_ext = (
-    lambda phi, theta: torch.stack(
-        [
-            Hc / 2 * torch.sin(theta) * torch.cos(phi),
-            Hc / 2 * torch.sin(theta) * torch.sin(phi),
-            Hc / 2 * torch.cos(theta),
-        ]
-    )
-    .reshape((1, 1, 1, 3))
-    .expand((3, 3, 3, 3))
+h_ext = lambda phi, theta: torch.stack(
+    [
+        Hc / 2 * torch.sin(theta) * torch.cos(phi),
+        Hc / 2 * torch.sin(theta) * torch.sin(phi),
+        Hc / 2 * torch.cos(theta),
+    ]
 )
 
 # register effective field
@@ -47,7 +41,7 @@ llg = LLGSolver(state, parameters=["phi", "theta"])
 optimizer = torch.optim.Adam(llg.parameters(), lr=0.05)
 my_loss = torch.nn.L1Loss()
 
-m_target = VectorFunction(state).from_constant((np.sqrt(0.5), 0, np.sqrt(0.5))).tensor
+m_target = VectorFunction(state).fill((np.sqrt(0.5), 0, np.sqrt(0.5))).tensor
 
 logger = ScalarLogger("log.dat", ["epoch", "phi", "theta", "loss"])
 for epoch in range(100):

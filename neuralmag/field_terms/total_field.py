@@ -37,5 +37,5 @@ class TotalField(FieldTerm):
             f"[{self.__class__.__name__}] Register state methods (field:"
             f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}')"
         )
-        setattr(state, self.attr_name("h", name), (h_func, "node", (3,)))
+        setattr(state, self.attr_name("h", name), (h_func, "n" * state.mesh.dim, (3,)))
         setattr(state, self.attr_name("E", name), E_func)

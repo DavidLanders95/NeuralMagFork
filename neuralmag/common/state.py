@@ -45,7 +45,15 @@ class State(object):
         self._mesh = mesh
         self.dx = self.tensor(mesh.dx)
         self.t = 0.0
+
+        # initialize density fields for volume and facet measure with 1
         self.rho = 1.0
+        if mesh.dim == 3:
+            self.rhoxy = Function(self, "ccn").fill(1.0, expand=True)
+            self.rhoxz = Function(self, "cnc").fill(1.0, expand=True)
+            self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
+
+        self._attr_values["eps"] = torch.finfo(self.dtype).eps
 
         logging.info_green(f"[State] Running on device: {self._device}")
         if mesh.dim == 2:
@@ -102,14 +110,16 @@ class State(object):
                 attr = self._attr_values[name]
                 self._attr_funcs[name] = self.get_func(attr)
             func, args = self._attr_funcs[name]
+            value = func(*args)
 
-            if name in self._attr_types:
-                ftype, shape = self._attr_types[name]
-                return Function(self, ftype=ftype, shape=shape, tensor=func(*args))
-            else:
-                return func(*args)
         else:
-            return self._attr_values[name]
+            value = self._attr_values[name]
+
+        if name in self._attr_types:
+            spaces, shape = self._attr_types[name]
+            return Function(self, spaces=spaces, shape=shape, tensor=value)
+        else:
+            return value
 
     def __setattr__(self, name, value):
         # don't mess with protected attributes
@@ -207,30 +217,34 @@ class State(object):
         compiled_code = compile(code, "<string>", "exec")
         return types.FunctionType(compiled_code.co_consts[0], {f"__{name}": f}, name)
 
-    def coordinates(self, ftype="cell"):
-        assert ftype == "cell"
-        x = torch.arange(
-            self.dx[0] / 2.0 + self.mesh.origin[0],
-            self.dx[0] * self.mesh.n[0] + self.mesh.origin[0],
-            self.dx[0],
-            dtype=self.dtype,
-        )
-        y = torch.arange(
-            self.dx[1] / 2.0 + self.mesh.origin[1],
-            self.dx[1] * self.mesh.n[1] + self.mesh.origin[1],
-            self.dx[1],
-            dtype=self.dtype,
-        )
-        if self.mesh.dim == 2:
-            return torch.meshgrid(x, y, indexing="ij")
-        if self.mesh.dim == 3:
-            z = torch.arange(
-                self.dx[2] / 2.0 + self.mesh.origin[2],
-                self.dx[2] * self.mesh.n[2] + self.mesh.origin[2],
-                self.dx[2],
-            )
-            return torch.meshgrid(x, y, z, indexing="ij")
-        raise NotImplemented
+    def coordinates(self, spaces=None):
+        if spaces == None:
+            spaces = "c" * self.mesh.dim
+
+        ranges = []
+        for space in spaces:
+            if space == "c":
+                ranges.append(
+                    torch.arange(
+                        self.dx[0] / 2.0 + self.mesh.origin[0],
+                        self.dx[0] * self.mesh.n[0] + self.mesh.origin[0],
+                        self.dx[0],
+                        dtype=self.dtype,
+                    )
+                )
+            elif space == "n":
+                ranges.append(
+                    torch.arange(
+                        self.mesh.origin[0],
+                        self.dx[0] * self.mesh.n[0] + self.mesh.origin[0] + self.eps,
+                        self.dx[0],
+                        dtype=self.dtype,
+                    )
+                )
+            else:
+                raise Excpetion(f"Unknown function space '{space}'.")
+
+        return torch.meshgrid(*ranges, indexing="ij")
 
     def write_vti(self, fields, filename):
         if isinstance(fields, Function):
@@ -247,7 +261,7 @@ class State(object):
                 name = field.name
 
             if field.shape == ():
-                if self.mesh.dim == 2 and field.ftype == "node":
+                if field.spaces == "nn":
                     data = (
                         field.tensor.detach()
                         .unsqueeze(-1)
@@ -259,7 +273,7 @@ class State(object):
                 else:
                     data = field.tensor.detach().cpu().numpy().flatten("F")
             elif field.shape == (3,):
-                if self.mesh.dim == 2 and field.ftype == "node":
+                if field.spaces == "nn":
                     data = (
                         field.tensor.detach()
                         .unsqueeze(-2)
@@ -271,14 +285,14 @@ class State(object):
                 else:
                     data = field.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
             else:
-                raise NotImplemented("Unsupported shape.")
+                raise NotImplemented(f"Unsupported shape '{field.shape}'.")
 
-            if field.ftype == "node":
+            if field.spaces == "nn" or field.spaces == "nnn":
                 grid.point_data.set_array(data, name)
-            elif field.ftype == "cell":
+            elif field.spaces == "cc" or field.spaces == "ccc":
                 grid.cell_data.set_array(data, name)
             else:
-                raise NotImplemented("Unsupported ftype.")
+                raise NotImplemented(f"Unsupported space '{field.spaces}'.")
 
         dirname = os.path.dirname(filename)
         if dirname and not os.path.isdir(dirname):
@@ -287,7 +301,6 @@ class State(object):
         grid.save(filename)
 
     def read_vti(self, filename, name=None):
-        # TODO enable reading of 2D data
         fields = {}
         data = pv.read(filename)
 
@@ -303,10 +316,10 @@ class State(object):
         if self.mesh.dim == 2:
             n += (1,)
         if name in data.point_data.keys():
-            ftype = "node"
+            spaces = "n" * self.mesh.dim
             n = tuple([x + 1 for x in n])
         elif name in data.cell_data.keys():
-            ftype = "cell"
+            spaces = "c" * self.mesh.dim
         else:
             raise
 
@@ -322,7 +335,7 @@ class State(object):
         if self.mesh.dim == 2:
             values = values[:, :, 0, ...]
 
-        return Function(self, ftype=ftype, shape=shape, tensor=values)
+        return Function(self, spaces=spaces, shape=shape, tensor=values)
 
     def domains_from_file(self, filename, scale=1.0):
         mesh = self.mesh
@@ -345,4 +358,6 @@ class State(object):
             containing_cells == -1
         ] = -1  # containing_cell == -1, if point is not included in any cell
 
-        return Function(self, ftype="cell", tensor=self.tensor(data.reshape(mesh.n)))
+        return Function(
+            self, spaces="c" * mesh.dim, tensor=self.tensor(data.reshape(mesh.n))
+        )

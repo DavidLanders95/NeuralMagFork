@@ -8,7 +8,7 @@ from scipy import constants
 from torch import abs, asinh, atan, log, sqrt
 
 from ..common import CellFunction, Function, VectorFunction, logging
-from ..generators.pytorch_generator import Variable
+from ..generators.pytorch_generator import Variable, dV
 from .field_term import FieldTerm
 
 __all__ = ["DemagField"]
@@ -209,6 +209,22 @@ def h3d(N_demag, m, material__Ms, rho):
 
 
 class DemagField(FieldTerm):
+    r"""
+    Effective field contribution corresponding to the demagnetization field (also referred to as magnetostatic field or stray field).
+    The demagnetization field is computed from the scalar potential :math:`u` as
+
+    .. math::
+
+        \vec{H}_\text{demag} = - \nabla u
+
+    with :math:`u` being calculated by the Poisson equation
+
+    .. math::
+
+      \Delta u = \nabla \cdot (M_s \vec{m})
+
+    with open boundary conditions.
+    """
     _name = "demag"
     h = None
 
@@ -219,9 +235,9 @@ class DemagField(FieldTerm):
     def register(self, state, name=None):
         super().register(state, name)
         if state.mesh.dim == 2:
-            setattr(state, self.attr_name("h", name), (h2d, "node", (3,)))
+            setattr(state, self.attr_name("h", name), (h2d, "nn", (3,)))
         elif state.mesh.dim == 3:
-            setattr(state, self.attr_name("h", name), (h3d, "node", (3,)))
+            setattr(state, self.attr_name("h", name), (h3d, "nnn", (3,)))
         else:
             raise
         # fix reference to h_demag in E_demag if suffix is changed
@@ -232,10 +248,10 @@ class DemagField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        rho = Variable("rho", "cell", dim)
-        Ms = Variable("material__Ms", "cell", dim)
-        h_demag = Variable("h_demag", "node", dim, (3,))
-        return -0.5 * constants.mu_0 * Ms * m.dot(h_demag)
+        rho = Variable("rho", "c" * dim)
+        Ms = Variable("material__Ms", "c" * dim)
+        h_demag = Variable("h_demag", "n" * dim, (3,))
+        return -0.5 * constants.mu_0 * Ms * m.dot(h_demag) * dV()
 
     def _init_N_component(self, state, perm, func):
         n = state.mesh.n + tuple([1] * (3 - state.mesh.dim))

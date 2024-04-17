@@ -1,10 +1,19 @@
-from ..generators.pytorch_generator import N, Variable
+from ..generators.pytorch_generator import N, Variable, dV
 from .field_term import FieldTerm
 
 __all__ = ["UniaxialAnisotropyField"]
 
 
 class UniaxialAnisotropyField(FieldTerm):
+    r"""
+    Effective field contribution corresponding to the quadratic uniaxial anisotropy energy
+
+    .. math::
+      E = - \int_\Omega K \big( \vec{m} \cdot \vec{e}_k \big)^2 \dx
+
+    with the anisotropy constant :math:`K` given in units of :math:`\text{J/m}^3`.
+    For higher order anisotropy, use the :class:`UniaxialAnisotropyField2`.
+    """
     _name = "uaniso"
 
     def __init__(self, *args, **kwargs):
@@ -12,6 +21,6 @@ class UniaxialAnisotropyField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim):
-        K = Variable("material__Ku", "cell", dim)
-        axis = Variable("material__Ku_axis", "cell", dim, (3,))
-        return -K * m.dot(axis) ** 2
+        K = Variable("material__Ku", "c" * dim)
+        axis = Variable("material__Ku_axis", "c" * dim, (3,))
+        return -K * m.dot(axis) ** 2 * dV(dim)

@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from scipy import constants
 
 from neuralmag import *
 
@@ -15,6 +16,8 @@ def state():
     state.m.tensor[0, :, :, 0] = -1
     state.m.tensor[1, :, :, 1] = 1
     state.m.tensor[2, :, :, 0] = 1
+
+    state.material.Ms = 1 / constants.mu_0
 
     return state
 
