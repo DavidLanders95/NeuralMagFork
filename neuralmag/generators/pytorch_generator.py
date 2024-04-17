@@ -9,7 +9,7 @@ import sympy as sp
 import sympy.vector as sv
 import torch
 from scipy import constants
-from scipy.special.orthogonal import p_roots
+from scipy.special import p_roots
 from tqdm import tqdm
 
 from ..common import config, logging
