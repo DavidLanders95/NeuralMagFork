@@ -46,12 +46,12 @@ class State(object):
         self.dx = self.tensor(mesh.dx)
         self.t = 0.0
 
-        # TODO expand? add rho facet measures?
+        # initialize density fields for volume and facet measure with 1
         self.rho = 1.0
         if mesh.dim == 3:
             self.rhoxy = Function(self, "ccn").fill(1.0, expand=True)
-            self.rhoyz = Function(self, "cnc").fill(1.0, expand=True)
-            self.rhoxz = Function(self, "ncc").fill(1.0, expand=True)
+            self.rhoxz = Function(self, "cnc").fill(1.0, expand=True)
+            self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
 
         self._attr_values["eps"] = torch.finfo(self.dtype).eps
 
