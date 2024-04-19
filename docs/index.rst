@@ -11,6 +11,8 @@ Welcome to NeuralMag's documentation!
    :caption: Contents:
 
    introduction
+   nodal_fd
+   field_terms
 
 Indices and tables
 ==================
