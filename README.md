@@ -1,6 +1,5 @@
----
-title: Introduction
----
+NeuralMag
+=========
 
 NeuralMag is a micromagnetic simulation software using the nodal
 finite-difference discretization scheme, designed specifically with
