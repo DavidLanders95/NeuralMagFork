@@ -11,6 +11,7 @@ Welcome to NeuralMag's documentation!
    :caption: Contents:
 
    introduction
+   getting_started
    nodal_fd
    field_terms
 

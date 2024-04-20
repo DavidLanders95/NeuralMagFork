@@ -18,6 +18,7 @@ extensions = ["sphinx.ext.autodoc", "sphinx.ext.mathjax", "nbsphinx"]
 
 templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+numfig = True
 
 
 # -- Options for HTML output -------------------------------------------------
