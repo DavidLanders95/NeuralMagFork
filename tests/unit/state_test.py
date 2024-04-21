@@ -82,3 +82,26 @@ def test_wrap_func(state):
     state.g = g
     assert state.f.sum().cpu() == pytest.approx(3.0)
     assert state.g.sum().cpu() == pytest.approx(5.0)
+
+
+def test_coordinates(state):
+    mesh = Mesh((10, 5, 1), (1e-9, 2e-9, 3e-9), (1e-9, 2e-9, 3e-9))
+    state = State(mesh)
+
+    x, y, z = state.coordinates("nnn")
+    assert x.shape == (11, 6, 2)
+    assert x.cpu()[1, 0, 0] == pytest.approx(2e-9)
+    assert y.cpu()[0, 1, 0] == pytest.approx(4e-9)
+    assert z.cpu()[0, 0, 0] == pytest.approx(3e-9)
+
+    x, y, z = state.coordinates("ccc")
+    assert x.shape == (10, 5, 1)
+    assert x.cpu()[1, 0, 0] == pytest.approx(2.5e-9)
+    assert y.cpu()[0, 1, 0] == pytest.approx(5e-9)
+    assert z.cpu()[0, 0, 0] == pytest.approx(4.5e-9)
+
+    x, y, z = state.coordinates("cnc")
+    assert x.shape == (10, 6, 1)
+    assert x.cpu()[1, 0, 0] == pytest.approx(2.5e-9)
+    assert y.cpu()[0, 1, 0] == pytest.approx(4e-9)
+    assert z.cpu()[0, 0, 0] == pytest.approx(4.5e-9)
