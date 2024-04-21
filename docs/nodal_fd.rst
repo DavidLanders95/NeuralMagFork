@@ -17,7 +17,7 @@ For the continuous field, we use product-space 1D-Lagrange (trilinear) basis fun
     %\end{align}
     %with $i,j,k \in \{0,1\}$.
 
-For the field computation, we apply the finite-element formalism with mass lumping according to \cite{abert2019micromagnetics}, i.e.
+For the field computation, we apply the finite-element formalism with mass lumping according to [Abert2019]_, i.e.
 
 .. math::
 
@@ -47,7 +47,11 @@ Due to this structure, the nodal discretization can be trivially implemented as 
   (b) 2D basis function :math:`\phi_i(x_1, x_2)` for nodal finite-differences.
 
 For the demagnetization field, we use the well established FFT accelerated fast convolution method employed in standard finite-difference micromagnetics. 
-Specifically, we reuse the demagnetization-field implementation of magnum.np, which has been optimized and benchmarked against established codes\cite{bruckner2023magnum}.
+Specifically, we reuse the demagnetization-field implementation of magnum.np, which has been optimized and benchmarked against established codes [Bruckner2023]_.
 
 By combining the fast demagnetization field of finite-difference micromagnetics with the accurate discretization of material interfaces for the remaining field terms, the nodal finite-difference method combines the speed of finite differences with the accuracy of finite elements.
+
+.. [Abert2019] Abert, C. "Micromagnetics and spintronics: models and numerical methods." The European Physical Journal B 92.6 (2019): 1-45.
+.. [Bruckner2023] Bruckner, F., Koraltan, S., Abert, C., & Suess, D. "magnum.np: a PyTorch based GPU enhanced finite difference micromagnetic simulation framework for high level development and inverse design." Scientific Reports 13.1 (2023): 12054.
+Chicago 
 

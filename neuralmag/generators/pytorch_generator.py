@@ -320,3 +320,22 @@ def gateaux_derivative(expr, var):
         v = sp.Symbol(re.sub(r"^_.*:(.*:.*:.*_)$", r"_v:\1", symb.name))
         result.append(v * expr.diff(symb))
     return reduce(lambda x, y: x + y, result)
+
+
+def linear_form_code(form, n_gauss=3):
+    cmds, variables = linear_form_cmds(form, n_gauss)
+    code = CodeBlock()
+    with code.add_function("L", ["result"] + sorted(list(variables))) as f:
+        for cmd in cmds:
+            f.add_to("result", cmd[0], cmd[1])
+
+    return code
+
+
+def functional_code(form, n_gauss=3):
+    terms, variables = compile_functional(form, n_gauss)
+    code = CodeBlock()
+    with code.add_function("M", variables) as f:
+        f.retrn_sum(*[term["cmd"] for term in terms])
+
+    return code

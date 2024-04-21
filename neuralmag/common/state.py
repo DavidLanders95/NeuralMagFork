@@ -266,7 +266,7 @@ class State(object):
         return torch.meshgrid(*ranges, indexing="ij")
 
     def write_vti(self, fields, filename):
-        if isinstance(fields, Function):
+        if isinstance(fields, (Function, str)):
             fields = [fields]
 
         n = np.array(self.mesh.n + tuple([1] * (3 - self.mesh.dim))) + 1
