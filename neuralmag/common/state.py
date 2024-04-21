@@ -222,22 +222,22 @@ class State(object):
             spaces = "c" * self.mesh.dim
 
         ranges = []
-        for space in spaces:
+        for i, space in enumerate(spaces):
             if space == "c":
                 ranges.append(
                     torch.arange(
-                        self.dx[0] / 2.0 + self.mesh.origin[0],
-                        self.dx[0] * self.mesh.n[0] + self.mesh.origin[0],
-                        self.dx[0],
+                        self.dx[i] / 2.0 + self.mesh.origin[i],
+                        self.dx[i] * self.mesh.n[i] + self.mesh.origin[i],
+                        self.dx[i],
                         dtype=self.dtype,
                     )
                 )
             elif space == "n":
                 ranges.append(
                     torch.arange(
-                        self.mesh.origin[0],
-                        self.dx[0] * self.mesh.n[0] + self.mesh.origin[0] + self.eps,
-                        self.dx[0],
+                        self.mesh.origin[i],
+                        self.dx[i] * self.mesh.n[i] + self.mesh.origin[i] + self.eps,
+                        self.dx[i],
                         dtype=self.dtype,
                     )
                 )
