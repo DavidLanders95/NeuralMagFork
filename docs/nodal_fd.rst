@@ -5,18 +5,6 @@ The nodal finite-difference scheme applies a finite-element approach on a regula
 This allows the use of a continuous, piecewise polynomial function space for fields such as the magnetization :math:`\vec{m}` and a piecewise constant function space for material parameters such as the exchange constant :math:`A`, see :numref:`nodal_fd` (a).
 For the continuous field, we use product-space 1D-Lagrange (trilinear) basis functions :math:`\phi_i`, see exemplary 2D representation in :numref:`nodal_fd` (b).
 
-..
-    %For the continuous field, we use product-space 1D-Lagrange functions, see Fig.~\ref{fig:nodal}(b) with cell size $\Delta x_1 \Delta x_2 \Delta x_3$ that read
-    %\begin{align}
-    %    \begin{split}
-    %    \phi_{i,j,k}(\vec{x}) = 
-    %    &[x_1 + i (\Delta x_1 - 2 x_1)] / \Delta x_1 \cdot\\
-    %    &[x_2 + j (\Delta x_2 - 2 x_2)] / \Delta x_2 \cdot\\
-    %    &[x_3 + k (\Delta x_3 - 2 x_3)] / \Delta x_3
-    %    \end{split}
-    %\end{align}
-    %with $i,j,k \in \{0,1\}$.
-
 For the field computation, we apply the finite-element formalism with mass lumping according to [Abert2019]_, i.e.
 
 .. math::
@@ -51,7 +39,27 @@ Specifically, we reuse the demagnetization-field implementation of magnum.np, wh
 
 By combining the fast demagnetization field of finite-difference micromagnetics with the accurate discretization of material interfaces for the remaining field terms, the nodal finite-difference method combines the speed of finite differences with the accuracy of finite elements.
 
+Form Compiler
+-------------
+
+NeuralMag features a form compiler that translates arbitrary functionals and linear form in efficient, vectorized PyTorch routines.
+As an input the form compiler takes `SymPy <https://www.sympy.org/>`_ expressions with special symbols for the representation of discretized functions and integration measures.
+For the representation of discretized fields, NeuralMag introduces the :class:`Variable` class.
+
+NeuralMag uses SymPy for the 
+
+..
+    %For the continuous field, we use product-space 1D-Lagrange functions, see Fig.~\ref{fig:nodal}(b) with cell size $\Delta x_1 \Delta x_2 \Delta x_3$ that read
+    %\begin{align}
+    %    \begin{split}
+    %    \phi_{i,j,k}(\vec{x}) = 
+    %    &[x_1 + i (\Delta x_1 - 2 x_1)] / \Delta x_1 \cdot\\
+    %    &[x_2 + j (\Delta x_2 - 2 x_2)] / \Delta x_2 \cdot\\
+    %    &[x_3 + k (\Delta x_3 - 2 x_3)] / \Delta x_3
+    %    \end{split}
+    %\end{align}
+    %with $i,j,k \in \{0,1\}$.
+
 .. [Abert2019] Abert, C. "Micromagnetics and spintronics: models and numerical methods." The European Physical Journal B 92.6 (2019): 1-45.
 .. [Bruckner2023] Bruckner, F., Koraltan, S., Abert, C., & Suess, D. "magnum.np: a PyTorch based GPU enhanced finite difference micromagnetic simulation framework for high level development and inverse design." Scientific Reports 13.1 (2023): 12054.
 Chicago 
-

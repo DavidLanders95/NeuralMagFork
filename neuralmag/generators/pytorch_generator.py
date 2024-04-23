@@ -335,7 +335,7 @@ def linear_form_code(form, n_gauss=3):
 def functional_code(form, n_gauss=3):
     terms, variables = compile_functional(form, n_gauss)
     code = CodeBlock()
-    with code.add_function("M", variables) as f:
+    with code.add_function("M", sorted(list(variables))) as f:
         f.retrn_sum(*[term["cmd"] for term in terms])
 
     return code
