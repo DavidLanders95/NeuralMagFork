@@ -1,8 +1,8 @@
 default:
   image: continuumio/miniconda3:4.10.3p1
-  tags:
-    - cloud-gpu
-    - nvidia-cc80
+  # tags:
+  #   - cloud-gpu
+  #   - nvidia-cc80
 
 # Dot in front of the job will hide it from the CI
 .setup_python_containers_and_test:
