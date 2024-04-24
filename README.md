@@ -1,20 +1,52 @@
-# NeuralMag
+NeuralMag
+=========
 
-Joint project Claas Abert and Hans Fangohr and co-workers.
-NeuralMag is a micromagnetic simulation package that implements the nodal finite-difference method in PyTorch.
-Besides classical micromagnetic forward simulations, this package supports the efficient solution of time-dependent optimization problems using the adjoint method in space and time.
+NeuralMag is a micromagnetic simulation software using the nodal
+finite-difference discretization scheme, designed specifically with
+inverse problems in mind. It uses [PyTorch](https://pytorch.org/) as a
+numerical backend for tensor operations and automatic differentiation,
+enabling computations on both CPU and GPU systems. At the moment
+NeuralMag implements the most common micromagnetic effective-field
+contributions
 
-## Currently implemented effective-field contributions:
-* Exchange
-* Demagnetization
-* External (with arbitrary spatial and temporal dependencies)
-* DMI
-* Anisotropy
+-   external field
+-   exchange field
+-   demagnetization field
+-   uniaxial anisotropy
+-   DMI (interface and bulk)
+-   interlayer exchange
 
-## Repository location
+as well as a differentiable time-domain solver for the
+Landau-Lifshitz-Gilbert equation.
 
-Until 13 October 2023, this repository was at https://gitlab.mpcdf.mpg.de/hafan/nmagnum (with git ssh URL: git@gitlab.mpcdf.mpg.de:hafan/nmagnum.git).
+NeuralMag is designed in a modular fashion resulting in a very high
+flexibility for the problem definition. For instance, all simulation
+parameters (e.g. material parameters) can be functions of space, time or
+any other simulation parameter.
 
-From 13 October 2023, the repository is located at https://gitlab.mpcdf.mpg.de/nmagnum/nmagnum (with git ssh URL: git@gitlab.mpcdf.mpg.de:nmagnum/nmagnum.git).
+At the heart of NeuralMag is a form compiler powered by
+[SymPy](https://www.sympy.org/) that translates arbitrary functionals
+and linear weak forms into vectorized PyTorch code. This allows to
+easily add new effective-field contributions by simply stating the
+corresponding energy as a sympy expression.
 
-We can change the name of the organisation and repository when we like (only the URLs will update again.) There may be (partial) forwarding from old URLs to new ones.
+Download and Install
+====================
+
+NeuralMag is a Python package and requires Python \>=3.8. To install the
+latest version from Gitlab with pip run
+
+``` {.sourceCode .}
+pip install git+https://gitlab.com/neuralmag/neuralmag.git
+```
+
+Contribute
+==========
+
+Thank you for considering contributing to our project! We welcome any
+contributions, whether they are in the form of bug fixes, feature
+enhancements, documentation improvements, or any other kind of
+enhancement. NeuralMag is licensed under the [GNU Lesser General Public
+License (LPGL)](https://www.gnu.org/licenses/). By contributing to this
+project, you agree to license your contributions under the terms of the
+LGPL.

@@ -1,3 +1,22 @@
+"""
+NeuralMag - A nodal finite-difference code for inverse micromagnetics
+
+Copyright (c) 2024 NeuralMag team
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the Lesser Python General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+Lesser Python General Public License for more details.
+
+You should have received a copy of the Lesser Python General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 import importlib
 import json
 import pathlib
@@ -301,3 +320,22 @@ def gateaux_derivative(expr, var):
         v = sp.Symbol(re.sub(r"^_.*:(.*:.*:.*_)$", r"_v:\1", symb.name))
         result.append(v * expr.diff(symb))
     return reduce(lambda x, y: x + y, result)
+
+
+def linear_form_code(form, n_gauss=3):
+    cmds, variables = linear_form_cmds(form, n_gauss)
+    code = CodeBlock()
+    with code.add_function("L", ["result"] + sorted(list(variables))) as f:
+        for cmd in cmds:
+            f.add_to("result", cmd[0], cmd[1])
+
+    return code
+
+
+def functional_code(form, n_gauss=3):
+    terms, variables = compile_functional(form, n_gauss)
+    code = CodeBlock()
+    with code.add_function("M", sorted(list(variables))) as f:
+        f.retrn_sum(*[term["cmd"] for term in terms])
+
+    return code
