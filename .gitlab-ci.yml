@@ -103,7 +103,8 @@ deploy_documentation:
   # Take compiled html, and make available on gitlab pages
   # at neuralmag.gitlab.io/neuralmag
   stage: deploy
-  dependencies: test
+  dependencies:
+    - test
   script:
     # gitlab pages will published everything in `public`
     - mkdir -p public
