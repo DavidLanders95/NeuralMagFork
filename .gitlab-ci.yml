@@ -90,9 +90,28 @@ docs:
   script:
     - cd docs
     - make html
+    - cd ..
   artifacts:
     paths:
       - docs/_build
   inherit:
     default:
       - image
+
+
+deploy-documentation:
+  # Take compiled html, and make available on gitlab pages
+  # at neuralmag.gitlab.io/neuralmag
+  stage: deploy
+  dependencies: test
+  script:
+    # gitlab pages will published everything in `public`
+    - mkdir -p public
+    - cp -a docs/_build/html/* public
+  artifacts:
+    paths:
+      - public
+  rules:
+    # This ensures that only pushes to the default branch will trigger
+    # a pages deploy.
+    - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
