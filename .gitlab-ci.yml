@@ -60,10 +60,10 @@ test_py310:
 
 test_code_formatting:
   image: "python:3.9"
-  tags:
-    - shared
-    - docker
-    - cloud
+  #XXX# tags:
+  #XXX#   - shared
+  #XXX#   - docker
+  #XXX#   - cloud
   stage: test
   before_script:
     - python -m pip install pre-commit
