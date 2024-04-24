@@ -92,7 +92,7 @@ docs:
     - make html
   artifacts:
     paths:
-      - _build/html
+      - docs/_build
   inherit:
     default:
       - image
