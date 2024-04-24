@@ -78,7 +78,7 @@ docs:
     # TODO remove duplication: the rest of the before script is
     # copied from before-script-after (to remove the GPU check)
     # For pyvista/vtk and GCC
-    - apt update -y -qq && apt install -y -qq libgl1 build-essential
+    - apt update -y -qq && apt install -y -qq libgl1 build-essential pandoc
     - gcc --version
     # load the conda infrastructure
     - conda init bash
