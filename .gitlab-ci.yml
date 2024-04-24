@@ -99,7 +99,7 @@ docs:
       - image
 
 
-deploy-documentation:
+deploy_documentation:
   # Take compiled html, and make available on gitlab pages
   # at neuralmag.gitlab.io/neuralmag
   stage: deploy
