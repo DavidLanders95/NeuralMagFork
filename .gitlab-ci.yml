@@ -93,3 +93,6 @@ docs:
   artifacts:
     paths:
       - _build/html
+  inherit:
+    default:
+      - image
