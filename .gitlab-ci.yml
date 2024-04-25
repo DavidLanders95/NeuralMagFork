@@ -1,11 +1,10 @@
-
 # Dot in front of the job will hide it from the CI
 .setup_gpu:
   gpu_runner_image: &gpu-runner-image
     image: mambaorg/micromamba:jammy-cuda-12.3.1
-    tags: saas-linux-medium-amd64-gpu-standard
+    tags:
+      - saas-linux-medium-amd64-gpu-standard
   before_script_gpu: &gpu-before-script
-    - micromamba install -y -n base -c conda-forge 'python=3.11'
     - python --version  # For debugging
     - nvidia-smi  # Nvidia GPU information
     - pip install .[dev]
@@ -15,83 +14,69 @@
 .setup_cpu:
   image: &cpu-runner-image mambaorg/micromamba:jammy
   before_script: &cpu-before-script
-    - micromamba install -y -n base -c conda-forge 'python=3.11'
     - python --version  # For debugging
     - pip install .[dev]
 
 .setup_test_artifacts: &setup-artifacts
-  artifacts:
-    paths:
-      - tests/test_artifacts/  # Or the directory where plots are saved
-    expire_in: 1 week  # Optional: set an expiration time for artifacts
-    when: on_failure  # Save artifacts only on failure
+  paths:
+    - tests/test_artifacts/  # Or the directory where plots are saved
+  expire_in: 1 week  # Optional: set an expiration time for artifacts
+  when: on_failure  # Save artifacts only on failure
 
-test_py3_11:
+test_py3_11_gpu:
   <<: *gpu-runner-image
-  <<: *gpu-before-script
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.11'
+    - *gpu-before-script
   stage: test
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
 
-# test_py39:
-#   stage: test
-#   before_script:
-#     - conda create -n test_env -c conda-forge 'python=3.9'
-#     - *before-script-after
-#   script: *gen-script
-#   artifacts:
-#     paths:
-#       - tests/test_artifacts/  # Or the directory where plots are saved
-#     expire_in: 1 week  # Optional: set an expiration time for artifacts
-#     when: on_failure  # Save artifacts only on failure
-#
-# test_py310:
-#   stage: test
-#   before_script:
-#     - conda create -n test_env -c conda-forge 'python=3.10'
-#     - *before-script-after
-#   script: *gen-script
-#   artifacts:
-#     paths:
-#       - tests/test_artifacts/  # Or the directory where plots are saved
-#     expire_in: 1 week  # Optional: set an expiration time for artifacts
-#     when: on_failure  # Save artifacts only on failure
-#
-# test_code_formatting:
-#   image: "python:3.9"
-#   tags:
-#     - saas-linux-small-amd64
-#   stage: test
-#   before_script:
-#     - python -m pip install pre-commit
-#     - pre-commit install
-#   script:
-#     - pre-commit run --all-files
-#
-# docs:
-#   tags:
-#     - saas-linux-small-amd64
-#   stage: test
-#   before_script:
-#     - conda create -n test_env -c conda-forge 'python=3.10'
-#     # TODO remove duplication: the rest of the before script is
-#     # copied from before-script-after (to remove the GPU check)
-#     # For pyvista/vtk and GCC
-#     - apt update -y -qq && apt install -y -qq libgl1 build-essential pandoc
-#     - gcc --version
-#     # load the conda infrastructure
-#     - conda init bash
-#     # because `conda activate` doesnot work out of the box!!
-#     - source ~/.bashrc
-#     - conda activate test_env
-#     - python --version  # For debugging
-#     - pip install .[dev]
-#   script:
-#     - cd docs
-#     - make html
-#   artifacts:
-#     paths:
-#       - docs/_build
-#   inherit:
-#     default:
-#       - image
+test_py3_11_cpu:
+  <<: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.11'
+    - *cpu-before-script
+  stage: test
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_10_gpu:
+  when: manual
+  <<: *gpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.10'
+    - *gpu-before-script
+  stage: test
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_10_cpu:
+  when: manual
+  <<: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.10'
+    - *cpu-before-script
+  stage: test
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_9_gpu:
+  when: manual
+  <<: *gpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.9'
+    - *gpu-before-script
+  stage: test
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_9_cpu:
+  when: manual
+  <<: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.9'
+    - *cpu-before-script
+  stage: test
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
