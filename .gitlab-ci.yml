@@ -33,7 +33,7 @@ test_py3_11_gpu:
   artifacts: *setup-artifacts
 
 test_py3_11_cpu:
-  <<: *cpu-runner-image
+  image: *cpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.11'
     - *cpu-before-script
@@ -53,7 +53,7 @@ test_py3_10_gpu:
 
 test_py3_10_cpu:
   when: manual
-  <<: *cpu-runner-image
+  image: *cpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.10'
     - *cpu-before-script
@@ -73,7 +73,7 @@ test_py3_9_gpu:
 
 test_py3_9_cpu:
   when: manual
-  <<: *cpu-runner-image
+  image: *cpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.9'
     - *cpu-before-script
