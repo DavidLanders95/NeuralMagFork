@@ -80,3 +80,12 @@ test_py3_9_cpu:
   stage: test
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
+
+test_code_formatting:
+  image: *cpu-runner-image
+  stage: test
+  before_script:
+    - python -m pip install pre-commit
+    - pre-commit install
+  script:
+    - pre-commit run --all-files
