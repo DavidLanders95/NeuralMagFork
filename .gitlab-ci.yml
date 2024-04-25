@@ -1,30 +1,37 @@
-default:
-  image: mambaorg/micromamba:jammy-cuda-12.3.1
-  tags:
-    - saas-linux-medium-amd64-gpu-standard
 
 # Dot in front of the job will hide it from the CI
-.setup_python_containers_and_test:
-  before_script: &before-script-after
+.setup_gpu:
+  gpu_runner_image: &gpu-runner-image
+    image: mambaorg/micromamba:jammy-cuda-12.3.1
+    tags: saas-linux-medium-amd64-gpu-standard
+  before_script_gpu: &gpu-before-script
+    - micromamba install -y -n base -c conda-forge 'python=3.11'
     - python --version  # For debugging
     - nvidia-smi  # Nvidia GPU information
     - pip install .[dev]
     # make sure PyTorch us using the GPUs
     - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
-  script: &gen-script
-    - python -m pytest --verbose
 
-test_py38:
-  stage: test
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.8'
-    - *before-script-after
-  script: *gen-script
+.setup_cpu:
+  image: &cpu-runner-image mambaorg/micromamba:jammy
+  before_script: &cpu-before-script
+    - micromamba install -y -n base -c conda-forge 'python=3.11'
+    - python --version  # For debugging
+    - pip install .[dev]
+
+.setup_test_artifacts: &setup-artifacts
   artifacts:
     paths:
       - tests/test_artifacts/  # Or the directory where plots are saved
     expire_in: 1 week  # Optional: set an expiration time for artifacts
     when: on_failure  # Save artifacts only on failure
+
+test_py3_11:
+  <<: *gpu-runner-image
+  <<: *gpu-before-script
+  stage: test
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
 
 # test_py39:
 #   stage: test
