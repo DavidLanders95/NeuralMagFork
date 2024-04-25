@@ -14,7 +14,7 @@ default:
     # because `conda activate` doesnot work out of the box!!
     - source ~/.bashrc
     - conda activate test_env
-    - python -v  # For debugging
+    - python --version  # For debugging
     - pip install .[dev]
     # make sure PyTorch us using the GPUs
     - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
@@ -84,7 +84,7 @@ docs:
     # because `conda activate` doesnot work out of the box!!
     - source ~/.bashrc
     - conda activate test_env
-    - python -v  # For debugging
+    - python --version  # For debugging
     - pip install .[dev]
   script:
     - cd docs
