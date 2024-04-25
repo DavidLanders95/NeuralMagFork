@@ -13,7 +13,7 @@ authors = [{ name = "Claas Abert", email = "claas.abert@univie.ac.at" }]
 dependencies = ["numpy", "sympy", "pyvista", "scipy", "torch", "torchdiffeq", "tqdm"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pre-commit"]
+dev = ["pytest", "pre-commit", "nbsphinx", "pydata-sphinx-theme", "jupyterlab"]
 
 [tool.setuptools.packages.find]
 include = ["neuralmag*"]

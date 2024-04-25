@@ -70,3 +70,29 @@ test_code_formatting:
     - pre-commit install
   script:
     - pre-commit run --all-files
+
+docs:
+  stage: test
+  before_script:
+    - conda create -n test_env -c conda-forge 'python=3.10'
+    # TODO remove duplication: the rest of the before script is
+    # copied from before-script-after (to remove the GPU check)
+    # For pyvista/vtk and GCC
+    - apt update -y -qq && apt install -y -qq libgl1 build-essential pandoc
+    - gcc --version
+    # load the conda infrastructure
+    - conda init bash
+    # because `conda activate` doesnot work out of the box!!
+    - source ~/.bashrc
+    - conda activate test_env
+    - python -v  # For debugging
+    - pip install .[dev]
+  script:
+    - cd docs
+    - make html
+  artifacts:
+    paths:
+      - docs/_build
+  inherit:
+    default:
+      - image
