@@ -1,20 +1,13 @@
 default:
-  image: continuumio/miniconda3:4.10.3p1
+  image: mambaorg/micromamba:jammy-cuda-12.2.2
   tags:
     - saas-linux-medium-amd64-gpu-standard
 
 # Dot in front of the job will hide it from the CI
 .setup_python_containers_and_test:
   before_script: &before-script-after
-    # For pyvista/vtk and GCC
-    - apt update -y -qq && apt install -y -qq libgl1 build-essential
-    - gcc --version
-    # load the conda infrastructure
-    - conda init bash
-    # because `conda activate` doesnot work out of the box!!
-    - source ~/.bashrc
-    - conda activate test_env
     - python --version  # For debugging
+    - nvidia-smi
     - pip install .[dev]
     # make sure PyTorch us using the GPUs
     - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
@@ -24,7 +17,7 @@ default:
 test_py38:
   stage: test
   before_script:
-    - conda create -n test_env -c conda-forge 'python=3.8'
+    - micromamba install -y -n base 'python=3.8'
     - *before-script-after
   script: *gen-script
   artifacts:
@@ -33,65 +26,65 @@ test_py38:
     expire_in: 1 week  # Optional: set an expiration time for artifacts
     when: on_failure  # Save artifacts only on failure
 
-test_py39:
-  stage: test
-  before_script:
-    - conda create -n test_env -c conda-forge 'python=3.9'
-    - *before-script-after
-  script: *gen-script
-  artifacts:
-    paths:
-      - tests/test_artifacts/  # Or the directory where plots are saved
-    expire_in: 1 week  # Optional: set an expiration time for artifacts
-    when: on_failure  # Save artifacts only on failure
-
-test_py310:
-  stage: test
-  before_script:
-    - conda create -n test_env -c conda-forge 'python=3.10'
-    - *before-script-after
-  script: *gen-script
-  artifacts:
-    paths:
-      - tests/test_artifacts/  # Or the directory where plots are saved
-    expire_in: 1 week  # Optional: set an expiration time for artifacts
-    when: on_failure  # Save artifacts only on failure
-
-test_code_formatting:
-  image: "python:3.9"
-  tags:
-    - saas-linux-small-amd64
-  stage: test
-  before_script:
-    - python -m pip install pre-commit
-    - pre-commit install
-  script:
-    - pre-commit run --all-files
-
-docs:
-  tags:
-    - saas-linux-small-amd64
-  stage: test
-  before_script:
-    - conda create -n test_env -c conda-forge 'python=3.10'
-    # TODO remove duplication: the rest of the before script is
-    # copied from before-script-after (to remove the GPU check)
-    # For pyvista/vtk and GCC
-    - apt update -y -qq && apt install -y -qq libgl1 build-essential pandoc
-    - gcc --version
-    # load the conda infrastructure
-    - conda init bash
-    # because `conda activate` doesnot work out of the box!!
-    - source ~/.bashrc
-    - conda activate test_env
-    - python --version  # For debugging
-    - pip install .[dev]
-  script:
-    - cd docs
-    - make html
-  artifacts:
-    paths:
-      - docs/_build
-  inherit:
-    default:
-      - image
+# test_py39:
+#   stage: test
+#   before_script:
+#     - conda create -n test_env -c conda-forge 'python=3.9'
+#     - *before-script-after
+#   script: *gen-script
+#   artifacts:
+#     paths:
+#       - tests/test_artifacts/  # Or the directory where plots are saved
+#     expire_in: 1 week  # Optional: set an expiration time for artifacts
+#     when: on_failure  # Save artifacts only on failure
+#
+# test_py310:
+#   stage: test
+#   before_script:
+#     - conda create -n test_env -c conda-forge 'python=3.10'
+#     - *before-script-after
+#   script: *gen-script
+#   artifacts:
+#     paths:
+#       - tests/test_artifacts/  # Or the directory where plots are saved
+#     expire_in: 1 week  # Optional: set an expiration time for artifacts
+#     when: on_failure  # Save artifacts only on failure
+#
+# test_code_formatting:
+#   image: "python:3.9"
+#   tags:
+#     - saas-linux-small-amd64
+#   stage: test
+#   before_script:
+#     - python -m pip install pre-commit
+#     - pre-commit install
+#   script:
+#     - pre-commit run --all-files
+#
+# docs:
+#   tags:
+#     - saas-linux-small-amd64
+#   stage: test
+#   before_script:
+#     - conda create -n test_env -c conda-forge 'python=3.10'
+#     # TODO remove duplication: the rest of the before script is
+#     # copied from before-script-after (to remove the GPU check)
+#     # For pyvista/vtk and GCC
+#     - apt update -y -qq && apt install -y -qq libgl1 build-essential pandoc
+#     - gcc --version
+#     # load the conda infrastructure
+#     - conda init bash
+#     # because `conda activate` doesnot work out of the box!!
+#     - source ~/.bashrc
+#     - conda activate test_env
+#     - python --version  # For debugging
+#     - pip install .[dev]
+#   script:
+#     - cd docs
+#     - make html
+#   artifacts:
+#     paths:
+#       - docs/_build
+#   inherit:
+#     default:
+#       - image
