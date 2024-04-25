@@ -89,3 +89,16 @@ test_code_formatting:
     - pre-commit install
   script:
     - pre-commit run --all-files
+
+docs:
+  stage: test
+  image: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.11'
+    - *cpu-before-script
+  script:
+    - cd docs
+    - make html
+  artifacts:
+    paths:
+      - docs/_build
