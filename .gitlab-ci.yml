@@ -17,7 +17,7 @@ default:
 test_py38:
   stage: test
   before_script:
-    - micromamba install -y -n base 'python=3.8'
+    - micromamba install -y -n base -c conda-forge 'python=3.8'
     - *before-script-after
   script: *gen-script
   artifacts:
