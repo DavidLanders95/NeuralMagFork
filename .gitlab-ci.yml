@@ -94,6 +94,7 @@ docs:
   stage: test
   image: *cpu-runner-image
   before_script:
+    - apt update -y -qq && apt install -y -qq build-essential pandoc
     - micromamba install -y -n base -c conda-forge 'python=3.11'
     - *cpu-before-script
   script:
