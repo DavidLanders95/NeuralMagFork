@@ -1,8 +1,7 @@
 default:
   image: continuumio/miniconda3:4.10.3p1
-  #XXX# tags:
-  #XXX#   - cloud-gpu
-  #XXX#   - nvidia-cc80
+  tags:
+    - saas-linux-medium-amd64-gpu-standard
 
 # Dot in front of the job will hide it from the CI
 .setup_python_containers_and_test:
@@ -17,8 +16,8 @@ default:
     - conda activate test_env
     - python -v  # For debugging
     - pip install .[dev]
-    #XXX# # make sure PyTorch us using the GPUs
-    #XXX# - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
+    # make sure PyTorch us using the GPUs
+    - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
   script: &gen-script
     - python -m pytest --verbose
 
