@@ -24,66 +24,66 @@
   when: on_failure  # Save artifacts only on failure
 
 test_py3_11_gpu:
+  stage: test
   <<: *gpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.11'
     - *gpu-before-script
-  stage: test
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
 
 test_py3_11_cpu:
+  stage: test
   image: *cpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.11'
     - *cpu-before-script
-  stage: test
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
 
 test_py3_10_gpu:
   when: manual
+  stage: test
   <<: *gpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.10'
     - *gpu-before-script
-  stage: test
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
 
 test_py3_10_cpu:
   when: manual
+  stage: test
   image: *cpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.10'
     - *cpu-before-script
-  stage: test
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
 
 test_py3_9_gpu:
   when: manual
+  stage: test
   <<: *gpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.9'
     - *gpu-before-script
-  stage: test
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
 
 test_py3_9_cpu:
   when: manual
+  stage: test
   image: *cpu-runner-image
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.9'
     - *cpu-before-script
-  stage: test
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
 
 test_code_formatting:
-  image: *cpu-runner-image
   stage: test
+  image: *cpu-runner-image
   before_script:
     - python -m pip install pre-commit
     - pre-commit install
