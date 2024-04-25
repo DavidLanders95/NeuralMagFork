@@ -69,6 +69,8 @@ test_code_formatting:
     - pre-commit run --all-files
 
 docs:
+  tags:
+    - saas-linux-small-amd64
   stage: test
   before_script:
     - conda create -n test_env -c conda-forge 'python=3.10'
