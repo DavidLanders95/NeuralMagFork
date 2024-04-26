@@ -85,7 +85,7 @@ test_code_formatting:
   stage: test
   image: *cpu-runner-image
   before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.11'
+    - micromamba install -y -n base -c conda-forge 'python=3.11' git
     - python -m pip install pre-commit
     - pre-commit install
   script:
