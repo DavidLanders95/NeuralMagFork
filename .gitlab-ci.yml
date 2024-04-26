@@ -90,7 +90,6 @@ docs:
   script:
     - cd docs
     - make html
-    - cd ..
   artifacts:
     paths:
       - docs/_build
