@@ -19,7 +19,6 @@ dev = ["pytest", "pre-commit", "nbsphinx", "pydata-sphinx-theme", "jupyterlab"]
 include = ["neuralmag*"]
 
 [tool.black]
-experimental-string-processing = true
 exclude = "/field_terms/neuralmag"
 
 [tool.isort]
