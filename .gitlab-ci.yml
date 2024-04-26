@@ -4,6 +4,10 @@ default:
   #XXX#   - cloud-gpu
   #XXX#   - nvidia-cc80
 
+stages:
+  - test
+  - deploy
+
 # Dot in front of the job will hide it from the CI
 .setup_python_containers_and_test:
   before_script: &before-script-after
