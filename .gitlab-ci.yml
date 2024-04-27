@@ -81,6 +81,26 @@ test_py3_9_cpu:
   script: python -m pytest --verbose
   artifacts: *setup-artifacts
 
+test_py3_8_gpu:
+  when: manual
+  stage: test
+  <<: *gpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.8'
+    - *gpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_8_cpu:
+  when: manual
+  stage: test
+  image: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.8'
+    - *cpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
 test_code_formatting:
   stage: test
   image: *cpu-runner-image
