@@ -32,9 +32,7 @@ class TotalField(FieldTerm):
         self._field_names = field_names
 
     def register(self, state, name=None):
-        code = (
-            f"def h_total({', '.join([self.attr_name('h', name) for name in self._field_names])}):\n"
-        )
+        code = f"def h_total({', '.join([self.attr_name('h', name) for name in self._field_names])}):\n"
         code += (
             "    return"
             f" {' + '.join([self.attr_name('h', name) for name in self._field_names])}"
@@ -42,9 +40,7 @@ class TotalField(FieldTerm):
         compiled_code = compile(code, "<string>", "exec")
         h_func = types.FunctionType(compiled_code.co_consts[0], {}, "h_total")
 
-        code = (
-            f"def E_total({', '.join([self.attr_name('E', name) for name in self._field_names])}):\n"
-        )
+        code = f"def E_total({', '.join([self.attr_name('E', name) for name in self._field_names])}):\n"
         code += (
             "    return"
             f" {' + '.join([self.attr_name('E', name) for name in self._field_names])}"
