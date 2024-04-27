@@ -87,6 +87,7 @@ test_code_formatting:
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.11' git
     - git --version # make sure git in installed
+    - git config --global --add safe.directory $(pwd)
     - python -m pip install pre-commit
     - pre-commit install
   script:
