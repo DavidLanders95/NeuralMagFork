@@ -3,8 +3,6 @@
 Field Terms
 ===========
 
-Hallo
-
 .. autoclass:: BulkDMIField
    :members:
 

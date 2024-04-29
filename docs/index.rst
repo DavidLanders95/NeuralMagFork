@@ -48,8 +48,8 @@ By contributing to this project, you agree to license your contributions under t
 
    getting_started
    nodal_fd
+   reference/index
    examples/index
-   field_terms
 
 Indices and tables
 ==================

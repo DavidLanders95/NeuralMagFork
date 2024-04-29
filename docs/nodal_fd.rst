@@ -1,9 +1,12 @@
+
+.. _nodal_fd:
+
 Nodal Finite-Differences
 ========================
 
 The nodal finite-difference scheme applies a finite-element approach on a regular cuboidal grid for local field contributions such as the exchange field.
-This allows the use of a continuous, piecewise polynomial function space for fields such as the magnetization :math:`\vec{m}` and a piecewise constant function space for material parameters such as the exchange constant :math:`A`, see :numref:`nodal_fd` (a).
-For the continuous field, we use product-space 1D-Lagrange (trilinear) basis functions :math:`\phi_i`, see exemplary 2D representation in :numref:`nodal_fd` (b).
+This allows the use of a continuous, piecewise polynomial function space for fields such as the magnetization :math:`\vec{m}` and a piecewise constant function space for material parameters such as the exchange constant :math:`A`, see :numref:`fig_nodal_fd` (a).
+For the continuous field, we use product-space 1D-Lagrange (trilinear) basis functions :math:`\phi_i`, see exemplary 2D representation in :numref:`fig_nodal_fd` (b).
 
 For the field computation, we apply the finite-element formalism with mass lumping according to [Abert2019]_, i.e.
 
@@ -27,7 +30,7 @@ Since we apply the finite-element method on a regular grid, the matrix :math:`A`
 Due to this structure, the nodal discretization can be trivially implemented as a matrix-free method with no significant memory nor performance overhead compared to the standard finite-difference methodology.
 
 .. figure:: figures/nodal_fd.png
-  :name: nodal_fd
+  :name: fig_nodal_fd
   :scale: 40%
 
   Nodal finite-difference discretization.

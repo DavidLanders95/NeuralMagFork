@@ -46,6 +46,16 @@ class Material:
 
 
 class State(object):
+    r"""
+    This class carries all information of the spatial discretization, parameters
+    and the current state of the simulation.
+
+    :param mesh: The mesh for the simulation
+    :type mesh: class:`Mesh`
+    :param device: The PyTorch device to me used, defaults to "cpu"
+    :type device: str, optional
+    """
+
     def __init__(self, mesh, device=None):
         self._attr_values = {}
         self._attr_types = {}
@@ -88,21 +98,41 @@ class State(object):
 
     @property
     def device(self):
+        """
+        The PyTorch device used for all tensors.
+        """
         return self._device
 
     @property
     def dtype(self):
+        """
+        The PyTorch dtype used for all tensors.
+        """
         return torch.float64
 
     @property
     def mesh(self):
+        """
+        The mesh
+        """
         return self._mesh
 
     @property
     def material(self):
+        """
+        The material namespace
+        """
         return self._material
 
     def getattr(self, name):
+        """
+        Returns the attribute for the given name. Attributes in in namespaces
+        can be accessed by using "." as a seperator, e.g. :code:`material.Ms`.
+
+        :param name: The name of the attribute
+        :type name: str
+        :return: The value of the attribute
+        """
         container = self
         while "." in name:
             parent, child = name.split(".", 1)
@@ -111,6 +141,17 @@ class State(object):
         return getattr(container, name)
 
     def tensor(self, value, requires_grad=False):
+        """
+        Creates a PyTorch tensor with device and dtype set according to the
+        state defaults.
+
+        :param value: The value of the tensor
+        :type value: torch.Tensor, list
+        :param requires_grad: Flag to indicate if tensor should be tracked for autodifferentiation
+        :type requires_grad: bool
+        :return: The tensor
+        :rtype: :class:`torch.Tensor`
+        """
         if isinstance(value, torch.Tensor):
             if value.device != self.device:
                 return value.to(self.device)
@@ -121,6 +162,15 @@ class State(object):
         )
 
     def zeros(self, shape, **kwargs):
+        """
+        Creates an empty tensor of given shape with default dtype on the default device.
+
+        :param shape: The shape of the tensor
+        :type shape: tuple
+        :param \**kwargs: Parameters passed to the PyTorch routine
+        :return: The tensor
+        :rtype: torch.Tensor
+        """
         return torch.zeros(shape, device=self.device, dtype=self.dtype, **kwargs)
 
     def __getattr__(self, name):
@@ -187,6 +237,18 @@ class State(object):
         return func_names, args
 
     def get_func(self, f, add_args=[]):
+        """
+        Analyse arguments of supplied function and create Python function that
+        depends solely on static state attributes of the state.
+
+        :param f: The function to by analyzed
+        :type f: Callable
+        :param add_args: Additional arguments to be added
+        :type add_args: list, optional
+        :return: New function that only depends on static state attributes and
+                 list of references to the static attributes.
+        :rtype: tuple
+        """
         func_names, args = self._collect_func_deps(f)
         args = list(set(args) - set(add_args))
         name = f.__name__
@@ -226,6 +288,26 @@ class State(object):
 
     @staticmethod
     def wrap_func(f, mapping):
+        """
+        Wrappes a given function into another function renaming its arguemnts
+        according to the mapping provided.
+
+        :param f: The function to be wrapped
+        :type f: Callable
+        :param mapping: The name mapping of the arguments
+        :type mapping: dict
+        :return: The wrapped function
+        :rtype: Callable
+
+        :Example:
+            .. code-block::
+                
+                def f(a, b):
+                   return a + b
+
+                g = state.wrap_func(f, {"a": "x", "b": "y"})
+                # g is a function with arguments "x" and "y"
+        """
         name = "lmda" if f.__name__ == "<lambda>" else f.__name__
         old_args = list(inspect.signature(f).parameters.keys())
         new_args = [mapping.get(a, a) for a in old_args]
@@ -237,6 +319,26 @@ class State(object):
         return types.FunctionType(compiled_code.co_consts[0], {f"__{name}": f}, name)
 
     def coordinates(self, spaces=None):
+        """
+        Returns 3 tensors containing the x, y, z coordinates of each cell/node
+        of the mesh. In the case of cell discretization the coordinates at the
+        cell centers are provided. In the case of node discretization the node
+        positions are returned.
+
+        :param spaces: function spaces, e.g. "ccc", "nnn"
+        :type spaces: str
+        :return: The coordinates
+
+        :Example:
+            .. code-block::
+                
+                x, y, z = state.coordinates('nnn')
+
+                # initialize magnetization based on coordinate function
+                state.m = VectorFunction(state)
+                state.m.tensor[...,0] = torch.sin(x/20e-9)
+                state.m.tensor[...,1] = torch.cos(x/20e-9)
+        """
         if spaces == None:
             spaces = "c" * self.mesh.dim
 
@@ -266,6 +368,32 @@ class State(object):
         return torch.meshgrid(*ranges, indexing="ij")
 
     def write_vti(self, fields, filename):
+        """
+        Write field data into VTI file.
+
+        :param fields: The field data to be written. The field can be provided
+            either as a :class:`Function` or as attribute name(s) of state
+            attributes
+        :type fields: str, Function, list
+        :param filename: The name of the VTI file
+        :type filename: str
+
+        :Example:
+            .. code-block::
+                
+                state.material.Ms = CellFunction(state).fill(8e5)
+                state.m = VectorFunction(state).fill([0, 0, 1])
+
+                # Write m into m.vti
+                state.write_vti("m", "m.vti")
+
+                # Write Ms and m into data.vti
+                state.write_vti(["material.Ms", "m"], "data.vti")
+
+                # Write some function f into f.vti
+                f = Function(state)
+                state.write_vti(f, "f.vti")
+        """
         if isinstance(fields, (Function, str)):
             fields = [fields]
 
@@ -320,6 +448,17 @@ class State(object):
         grid.save(filename)
 
     def read_vti(self, filename, name=None):
+        """
+        Read field data from VTI file.
+
+        :param filename: The filename of the VTI file
+        :type filename: str
+        :param name: The name of the attribute in the VTI file. If not
+            provided, the first field in the VTI file will be read.
+        :type name: str, None
+        :return: The function
+        :rvalue: :class:`Function`
+        """
         fields = {}
         data = pv.read(filename)
 
