@@ -130,7 +130,6 @@ pages:
   # Take compiled html, and make available on gitlab pages
   # at neuralmag.gitlab.io/neuralmag
   stage: deploy
-  image: *cpu-runner-image
   variables:
     # The deploy job does not need the neuralmag sources.
     GIT_STRATEGY: none
