@@ -33,7 +33,7 @@ def s_state():
 
     return state
 
-
+@pytest.mark.sp
 def test_sp4_field_switch_1(s_state):
     s_state.material.alpha = 0.02
     s_state.h_external = VectorFunction(s_state).fill(
@@ -69,7 +69,7 @@ def test_sp4_field_switch_1(s_state):
         plt.savefig("tests/test_artifacts/sp4_failure_plot_field_switch_1.png")
         raise
 
-
+@pytest.mark.sp
 def test_sp4_field_switch_2(s_state):
     s_state.material.alpha = 0.02
     s_state.h_external = VectorFunction(s_state).fill(
