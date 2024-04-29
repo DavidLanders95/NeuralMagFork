@@ -31,6 +31,8 @@ html_sidebars = {
     "**": [],
 }
 
+html_show_sourcelink = False
+
 mathjax3_config = {
     "tex": {
         "macros": {
