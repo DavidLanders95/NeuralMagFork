@@ -1,14 +1,16 @@
+{# Displays the current page's Table of Contents.  #}
 {% set page_toc = generate_toc_html() %}
-
 {%- if page_toc | length >= 1 %}
-<div class="tocsection onthispage pt-5 pb-3">
-    <i class="fas fa-list"></i> {{ _("On this page") }}
+{%- set page_navigation_heading_id = unique_html_id("pst-page-navigation-heading") -%}
+<div
+    id="{{ page_navigation_heading_id }}"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> {{ _("On this page") }}
 </div>
-{%- endif %}
-
-<nav id="bd-toc-nav">
+<nav class="bd-toc-nav page-toc" aria-labelledby="{{ page_navigation_heading_id }}">
     {{ page_toc }}
 </nav>
+{%- endif %}
 
 {% if ('examples' in pagename or 'getting_started' in pagename) and not 'index' in pagename %}
 <div class="tocsection onthispace pt-5 bp-3">
