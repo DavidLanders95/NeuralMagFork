@@ -13,9 +13,10 @@
 {%- endif %}
 
 {% if ('examples' in pagename or 'getting_started' in pagename) and not 'index' in pagename %}
+{% set siteroot = pathto(root_doc).split('/')[:-1] | join('/') %}
 <div class="tocsection onthispace pt-5 bp-3">
     <h5>Try locally:</h5>
-    <a href="https://neuralmag.gitlab.io/neuralmag/_sources/{{ pagename }}.ipynb.txt" download="{{ pagename.split('/')[-1] }}.ipynb">
+    <a href="{{ siteroot }}/_sources/{{ pagename }}.ipynb.txt" download="{{ pagename.split('/')[-1] }}.ipynb">
         <img src="https://img.shields.io/badge/download-notebook-blue">
     </a>
 </div>
