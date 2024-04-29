@@ -1,10 +1,10 @@
 import pytest
 
+
 def pytest_configure(config):
-    config.addinivalue_line(
-        "markers", "sp: mark a test as a standard problem"
-    )
-    
+    config.addinivalue_line("markers", "sp: mark a test as a standard problem")
+
+
 def pytest_addoption(parser):
     parser.addoption(
         "--run-sp",
@@ -12,6 +12,7 @@ def pytest_addoption(parser):
         default=False,
         help="Run slow tests",
     )
+
 
 def pytest_collection_modifyitems(config, items):
     if not config.getoption("--run-sp"):
