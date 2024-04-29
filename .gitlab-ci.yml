@@ -1,71 +1,113 @@
-default:
-  image: continuumio/miniconda3:4.10.3p1
-  #XXX# tags:
-  #XXX#   - cloud-gpu
-  #XXX#   - nvidia-cc80
-
 # Dot in front of the job will hide it from the CI
-.setup_python_containers_and_test:
-  before_script: &before-script-after
-    # For pyvista/vtk and GCC
-    - apt update -y -qq && apt install -y -qq libgl1 build-essential
-    - gcc --version
-    # load the conda infrastructure
-    - conda init bash
-    # because `conda activate` doesnot work out of the box!!
-    - source ~/.bashrc
-    - conda activate test_env
-    - python -v  # For debugging
+.setup_gpu:
+  gpu_runner_image: &gpu-runner-image
+    image: mambaorg/micromamba:jammy-cuda-12.3.1
+    tags:
+      - saas-linux-medium-amd64-gpu-standard
+  before_script_gpu: &gpu-before-script
+    - python --version  # For debugging
+    - nvidia-smi  # Nvidia GPU information
     - pip install .[dev]
-    #XXX# # make sure PyTorch us using the GPUs
-    #XXX# - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
-  script: &gen-script
-    - python -m pytest --verbose
+    # make sure PyTorch us using the GPUs
+    - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
 
-test_py38:
-  stage: test
-  before_script:
-    - conda create -n test_env -c conda-forge 'python=3.8'
-    - *before-script-after
-  script: *gen-script
-  artifacts:
-    paths:
-      - tests/test_artifacts/  # Or the directory where plots are saved
-    expire_in: 1 week  # Optional: set an expiration time for artifacts
-    when: on_failure  # Save artifacts only on failure
+.setup_cpu:
+  image: &cpu-runner-image mambaorg/micromamba:jammy
+  before_script: &cpu-before-script
+    - python --version  # For debugging
+    - pip install .[dev]
 
-test_py39:
-  stage: test
-  before_script:
-    - conda create -n test_env -c conda-forge 'python=3.9'
-    - *before-script-after
-  script: *gen-script
-  artifacts:
-    paths:
-      - tests/test_artifacts/  # Or the directory where plots are saved
-    expire_in: 1 week  # Optional: set an expiration time for artifacts
-    when: on_failure  # Save artifacts only on failure
+.setup_test_artifacts: &setup-artifacts
+  paths:
+    - tests/test_artifacts/  # Or the directory where plots are saved
+  expire_in: 1 week  # Optional: set an expiration time for artifacts
+  when: on_failure  # Save artifacts only on failure
 
-test_py310:
+test_py3_11_gpu:
   stage: test
+  <<: *gpu-runner-image
   before_script:
-    - conda create -n test_env -c conda-forge 'python=3.10'
-    - *before-script-after
-  script: *gen-script
-  artifacts:
-    paths:
-      - tests/test_artifacts/  # Or the directory where plots are saved
-    expire_in: 1 week  # Optional: set an expiration time for artifacts
-    when: on_failure  # Save artifacts only on failure
+    - micromamba install -y -n base -c conda-forge 'python=3.11'
+    - *gpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_11_cpu:
+  stage: test
+  image: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.11'
+    - *cpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_10_gpu:
+  when: manual
+  stage: test
+  <<: *gpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.10'
+    - *gpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_10_cpu:
+  when: manual
+  stage: test
+  image: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.10'
+    - *cpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_9_gpu:
+  when: manual
+  stage: test
+  <<: *gpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.9'
+    - *gpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_9_cpu:
+  when: manual
+  stage: test
+  image: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.9'
+    - *cpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_8_gpu:
+  when: manual
+  stage: test
+  <<: *gpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.8'
+    - *gpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
+
+test_py3_8_cpu:
+  when: manual
+  stage: test
+  image: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.8'
+    - *cpu-before-script
+  script: python -m pytest --verbose
+  artifacts: *setup-artifacts
 
 test_code_formatting:
-  image: "python:3.9"
-  #XXX# tags:
-  #XXX#   - shared
-  #XXX#   - docker
-  #XXX#   - cloud
   stage: test
+  image: *cpu-runner-image
   before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.11' git
+    - git --version # make sure git in installed
+    - git config --global --add safe.directory $(pwd)
     - python -m pip install pre-commit
     - pre-commit install
   script:
@@ -73,31 +115,17 @@ test_code_formatting:
 
 docs:
   stage: test
+  image: *cpu-runner-image
   before_script:
-    - conda create -n test_env -c conda-forge 'python=3.10'
-    # TODO remove duplication: the rest of the before script is
-    # copied from before-script-after (to remove the GPU check)
-    # For pyvista/vtk and GCC
-    - apt update -y -qq && apt install -y -qq libgl1 build-essential pandoc
-    - gcc --version
-    # load the conda infrastructure
-    - conda init bash
-    # because `conda activate` doesnot work out of the box!!
-    - source ~/.bashrc
-    - conda activate test_env
-    - python -v  # For debugging
-    - pip install .[dev]
+    - micromamba install -y -n base -c conda-forge 'python=3.11' make pandoc
+    - *cpu-before-script
   script:
     - cd docs
     - make html
   artifacts:
     paths:
       - docs/_build
-  inherit:
-    default:
-      - image
-
-
+  
 pages:
   # Take compiled html, and make available on gitlab pages
   # at neuralmag.gitlab.io/neuralmag
