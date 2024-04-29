@@ -112,7 +112,7 @@ Define and Evaluate Functionals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :class:`Variable` method returns a SymPy expression which can be used to define arbitrary functionals and linear forms.
-The simplest functional just integrated a scalar variable over the mesh and is simply set up in NeuralMag by multiplying the variable with the volume integration measure
+The simplest functional just integrates a scalar variable over the mesh and is simply set up in NeuralMag by multiplying the variable with the volume integration measure
 
 .. code:: python
 
@@ -134,11 +134,11 @@ which results in the following code
         return (0.125*dx[0]*dx[1]*dx[2]*rho[...]*(u[:-1,:-1,:-1] + u[:-1,:-1,1:] + u[:-1,1:,:-1] + u[:-1,1:,1:] + u[1:,:-1,:-1] + u[1:,:-1,1:] + u[1:,1:,:-1] + u[1:,1:,1:])).sum()
 
 
-that can be reasily used.
+that can be readily used.
 The generated code takes the following PyTorch tensor objects as an input:
 
 dx
-  1D tensor that contains the simulation cell size in the principal directions
+  1D tensor that contains the simulation cell sizes in the principal directions
 
 rho
   3D tensor that describes the geomtry of the integration volume in terms of a density field defined on the simulation cells
@@ -154,8 +154,43 @@ Each value of the :code:`u` tensor represents the value of the discretized funct
 Define and Evaluate Linear Forms
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-TODO
+NeuralMag can also autogenerate PyTorch code for the evaluation of linear weak forms that evaluate to PyTorch tensors representing elements from the dual space.
+For instance, the action of a simple mass matrix :math:`L(v) = \int u v \dx` of two nodal fields :math:`u` and :math:`v` can be set up by
+
+.. code:: python
+
+    u = Variable("u", "nnn")
+    v = Variable("v", "nnn")
+    form = u * v * dV()
+
+    code = linear_form_code(form)
+
+By naming convention, the variable "v" acts as the test function of the linear form.
+The resulting method has the following form
+
+.. code:: python
+
+	def L(result, dx, rho, u):
+		result[:-1,:-1,:-1] += dx[0]*dx[1]*dx[2]*rho[...]*(0.037037037037037*u[:-1,:-1,:-1] + 0.0185185185185185*u[:-1,:-1,1:] + 0.0185185185185185*u[:-1,1:,:-1] + 0.00925925925925925*u[:-1,1:,1:] + 0.0185185185185185*u[1:,:-1,:-1] + 0.00925925925925926*u[1:,:-1,1:] + 0.00925925925925926*u[1:,1:,:-1] + 0.00462962962962963*u[1:,1:,1:])
+		result[:-1,:-1,1:] += dx[0]*dx[1]*dx[2]*rho[...]*(0.0185185185185185*u[:-1,:-1,:-1] + 0.037037037037037*u[:-1,:-1,1:] + 0.00925925925925925*u[:-1,1:,:-1] + 0.0185185185185185*u[:-1,1:,1:] + 0.00925925925925926*u[1:,:-1,:-1] + 0.0185185185185185*u[1:,:-1,1:] + 0.00462962962962963*u[1:,1:,:-1] + 0.00925925925925926*u[1:,1:,1:])
+		result[:-1,1:,:-1] += dx[0]*dx[1]*dx[2]*rho[...]*(0.0185185185185185*u[:-1,:-1,:-1] + 0.00925925925925925*u[:-1,:-1,1:] + 0.037037037037037*u[:-1,1:,:-1] + 0.0185185185185185*u[:-1,1:,1:] + 0.00925925925925926*u[1:,:-1,:-1] + 0.00462962962962963*u[1:,:-1,1:] + 0.0185185185185185*u[1:,1:,:-1] + 0.00925925925925926*u[1:,1:,1:])
+		result[:-1,1:,1:] += dx[0]*dx[1]*dx[2]*rho[...]*(0.00925925925925925*u[:-1,:-1,:-1] + 0.0185185185185185*u[:-1,:-1,1:] + 0.0185185185185185*u[:-1,1:,:-1] + 0.037037037037037*u[:-1,1:,1:] + 0.00462962962962963*u[1:,:-1,:-1] + 0.00925925925925926*u[1:,:-1,1:] + 0.00925925925925926*u[1:,1:,:-1] + 0.0185185185185185*u[1:,1:,1:])
+		result[1:,:-1,:-1] += dx[0]*dx[1]*dx[2]*rho[...]*(0.0185185185185185*u[:-1,:-1,:-1] + 0.00925925925925926*u[:-1,:-1,1:] + 0.00925925925925926*u[:-1,1:,:-1] + 0.00462962962962963*u[:-1,1:,1:] + 0.037037037037037*u[1:,:-1,:-1] + 0.0185185185185185*u[1:,:-1,1:] + 0.0185185185185185*u[1:,1:,:-1] + 0.00925925925925925*u[1:,1:,1:])
+		result[1:,:-1,1:] += dx[0]*dx[1]*dx[2]*rho[...]*(0.00925925925925926*u[:-1,:-1,:-1] + 0.0185185185185185*u[:-1,:-1,1:] + 0.00462962962962963*u[:-1,1:,:-1] + 0.00925925925925926*u[:-1,1:,1:] + 0.0185185185185185*u[1:,:-1,:-1] + 0.037037037037037*u[1:,:-1,1:] + 0.00925925925925925*u[1:,1:,:-1] + 0.0185185185185185*u[1:,1:,1:])
+		result[1:,1:,:-1] += dx[0]*dx[1]*dx[2]*rho[...]*(0.00925925925925926*u[:-1,:-1,:-1] + 0.00462962962962963*u[:-1,:-1,1:] + 0.0185185185185185*u[:-1,1:,:-1] + 0.00925925925925926*u[:-1,1:,1:] + 0.0185185185185185*u[1:,:-1,:-1] + 0.00925925925925925*u[1:,:-1,1:] + 0.037037037037037*u[1:,1:,:-1] + 0.0185185185185185*u[1:,1:,1:])
+		result[1:,1:,1:] += dx[0]*dx[1]*dx[2]*rho[...]*(0.00462962962962963*u[:-1,:-1,:-1] + 0.00925925925925926*u[:-1,:-1,1:] + 0.00925925925925926*u[:-1,1:,:-1] + 0.0185185185185185*u[:-1,1:,1:] + 0.00925925925925925*u[1:,:-1,:-1] + 0.0185185185185185*u[1:,:-1,1:] + 0.0185185185185185*u[1:,1:,:-1] + 0.037037037037037*u[1:,1:,1:])
+
+
+where the result is written to the PyTorch tensor :code:`result` that has to be provided with zero entries to the method as a first argument.
+The entries of the result vector :math:`\vec{r}` are given by the linear form evaluated for the individual basis vectors :math:`r_i = L(\phi_i)`.
+
+What about Bilinear Forms?
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+NeuralMag does not support code generation of bilinear forms in order to set up matrices for the solution of weak forms.
+However, with the use of iterative solvers, the solution of weak forms does not require direct access to the system matrix.
+In this case, it is sufficient to have access to the action of matrix, namely a method that returns the result of a matrix-vector multiplication.
+Since NeuralMag provides very efficient methods for the evaluation of linear forms, these methods can also be used in the context of bilinear forms in order to set up matrix-free solution routines.
 
 .. [Abert2019] Abert, C. "Micromagnetics and spintronics: models and numerical methods." The European Physical Journal B 92.6 (2019): 1-45.
 .. [Bruckner2023] Bruckner, F., Koraltan, S., Abert, C., & Suess, D. "magnum.np: a PyTorch based GPU enhanced finite difference micromagnetic simulation framework for high level development and inverse design." Scientific Reports 13.1 (2023): 12054.
-Chicago 
