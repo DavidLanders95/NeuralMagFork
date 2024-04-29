@@ -1,0 +1,20 @@
+{% set page_toc = generate_toc_html() %}
+
+{%- if page_toc | length >= 1 %}
+<div class="tocsection onthispage pt-5 pb-3">
+    <i class="fas fa-list"></i> {{ _("On this page") }}
+</div>
+{%- endif %}
+
+<nav id="bd-toc-nav">
+    {{ page_toc }}
+</nav>
+
+{% if ('examples' in pagename or 'getting_started' in pagename) and not 'index' in pagename %}
+<div class="tocsection onthispace pt-5 bp-3">
+    <h5>Try locally:</h5>
+    <a href="/_sources/{{ pagename }}.ipynb.txt" download="{{ pagename.split('/')[-1] }}.ipynb">
+        <img src="https://img.shields.io/badge/download-notebook-blue">
+    </a>
+</div>
+{% endif %}
