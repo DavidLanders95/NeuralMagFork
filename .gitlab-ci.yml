@@ -46,47 +46,47 @@ test_code_formatting:
 test_py3_11_gpu:
   extends: .gpu_template
   variables:
-    PHYTHON_VERSION: "3.11"
+    PYTHON_VERSION: "3.11"
 
 test_py3_11_cpu:
   extends: .cpu_template
   variables:
-    PHYTHON_VERSION: "3.11"
+    PYTHON_VERSION: "3.11"
 
 test_py3_10_gpu:
   extends: .gpu_template
   variables:
-    PHYTHON_VERSION: "3.10"
+    PYTHON_VERSION: "3.10"
   when: manual
 
 test_py3_10_cpu:
   extends: .cpu_template
   variables:
-    PHYTHON_VERSION: "3.10"
+    PYTHON_VERSION: "3.10"
   when: manual
 
 test_py3_9_gpu:
   extends: .gpu_template
   variables:
-    PHYTHON_VERSION: "3.9"
+    PYTHON_VERSION: "3.9"
   when: manual
 
 test_py3_9_cpu:
   extends: .cpu_template
   variables:
-    PHYTHON_VERSION: "3.9"
+    PYTHON_VERSION: "3.9"
   when: manual
 
 test_py3_8_gpu:
   extends: .gpu_template
   variables:
-    PHYTHON_VERSION: "3.8"
+    PYTHON_VERSION: "3.8"
   when: manual
 
 test_py3_8_cpu:
   extends: .cpu_template
   variables:
-    PHYTHON_VERSION: "3.8"
+    PYTHON_VERSION: "3.8"
   when: manual
 
 
