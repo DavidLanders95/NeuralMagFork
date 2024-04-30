@@ -1,7 +1,7 @@
 .. module:: neuralmag
 
-State and Mesh
-==============
+Mesh, State and Functions
+=========================
 
 The :class:`State` class plays a central role in every NeuralMag simulation. It's main purpose is to keep track of the current simulation state, such as the magentization and the time.
 Moreover, the :code:`state` object holds the mesh along with domain information and helps to connect the different solver modules through virtual attributes.
@@ -109,4 +109,7 @@ Class-Reference
 ^^^^^^^^^^^^^^^
 
 .. autoclass:: State
+   :members:
+
+.. autoclass:: Function
    :members:
