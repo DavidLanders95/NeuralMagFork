@@ -75,7 +75,7 @@ class ScalarLogger(object):
         Add column to log file. This method is automatically called for all
         columns on initialization of the logger.
         The column can be provided either as attribute name or as a Callable
-        that takes the state as the only argument. 
+        that takes the state as the only argument.
         If the column is a :class:`Function`, the functional is averaged over
         the whole mesh before logging.
 
