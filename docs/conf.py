@@ -28,8 +28,13 @@ nbsphinx_execute = "never"
 html_theme = "pydata_sphinx_theme"
 # html_static_path = ["_static"]
 html_sidebars = {
-    "**": [],
+    "**": ["sidebar-nav-bs"],
+    "index": [],
+    "getting_started": [],
+    "nodal_fd": [],
 }
+
+html_show_sourcelink = False
 
 mathjax3_config = {
     "tex": {

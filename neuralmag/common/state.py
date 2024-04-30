@@ -94,7 +94,8 @@ class State(object):
                 "[Mesh] 3D, %dx%dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx)
             )
         else:
-            raise
+            # TODO support 1D meshes
+            raise RuntimeError(f"Mesh dimension must be 2 or 3")
 
     @property
     def device(self):
@@ -301,7 +302,7 @@ class State(object):
 
         :Example:
             .. code-block::
-                
+
                 def f(a, b):
                    return a + b
 
@@ -331,7 +332,7 @@ class State(object):
 
         :Example:
             .. code-block::
-                
+
                 x, y, z = state.coordinates('nnn')
 
                 # initialize magnetization based on coordinate function
@@ -363,7 +364,7 @@ class State(object):
                     )
                 )
             else:
-                raise Excpetion(f"Unknown function space '{space}'.")
+                raise NotImplementedError(f"Unknown function space '{space}'.")
 
         return torch.meshgrid(*ranges, indexing="ij")
 
@@ -380,7 +381,7 @@ class State(object):
 
         :Example:
             .. code-block::
-                
+
                 state.material.Ms = CellFunction(state).fill(8e5)
                 state.m = VectorFunction(state).fill([0, 0, 1])
 
@@ -479,7 +480,7 @@ class State(object):
         elif name in data.cell_data.keys():
             spaces = "c" * self.mesh.dim
         else:
-            raise
+            raise RuntimeError(f"Field '{name}' not found in VTI file.")
 
         vals = data.get_array(name)
         if len(vals.shape) == 1:
