@@ -26,28 +26,29 @@ __all__ = ["FieldLogger"]
 
 
 class FieldLogger(object):
+    """
+    Logger class for fields
+
+    :param filename: The name of the log file
+    :type filename: str
+    :param fields: The fields to be written to the log file as a list of
+        attribute names.
+    :type fields: list
+    :param every: Write field to log file every nth call
+    :type every: int, optional
+
+    :Example:
+        .. code-block:: python
+
+            # provide key strings with are available in state
+            logger = FieldLogger("data/m.pvd", ["m", "h_demag"])
+
+            # Actually log fields
+            state = State(mesh)
+            logger << state
+    """
+
     def __init__(self, filename, fields, every=1):
-        """
-        Logger class for fields
-
-        *Arguments*
-            filename (:class:`str`)
-                The name of the log file
-            fields ([:class:`str` | :class:`function`])
-                The columns to be written to the log file
-            every (:class:`int`)
-                Write row to log file every nth call
-
-        *Example*
-            .. code-block:: python
-
-                # provide key strings with are available in state
-                logger = FieldLogger('data/m.pvd', ['m', demag.h])
-
-                # Actually log fields
-                state = State(mesh)
-                logger << state
-        """
         # create directory if not existent
         if not os.path.dirname(filename) == "" and not os.path.exists(
             os.path.dirname(filename)
@@ -74,6 +75,12 @@ class FieldLogger(object):
         cElementTree.SubElement(self._xmlroot, "Collection")
 
     def log(self, state):
+        """
+        Log simulation step
+
+        :param state: The state to be logged
+        :type state: :class:`State`
+        """
         self._i += 1
         if (self._i - 1) % self._every > 0:
             return
@@ -104,9 +111,18 @@ class FieldLogger(object):
         self.log(state)
 
     def reset(self):
+        """
+        Reset the internal step counter
+        """
         self._i = 0
 
     def resumable_step(self):
+        """
+        Returns the step number from which the logger can resume
+
+        :return: The step number
+        :rtype: int
+        """
         try:
             xml = cElementTree.parse(self._filename + ".pvd").getroot()
             return len(list(xml.find("Collection"))) * self._every
@@ -118,9 +134,8 @@ class FieldLogger(object):
         Returns the number of the last step logged and None if no
         step was yet logged.
 
-        *Returns*
-            :class:`int`
-                Number of the last step recorded
+        :return: Number of the last step recorded
+        :rtype: int
         """
         result = (self.resumable_step() // self._every - 1) * self._every
         if result < 0:
@@ -132,17 +147,14 @@ class FieldLogger(object):
         """
         Returns field and time to a given step number.
 
-        *Arguments*
-            i (:class:`int`)
-                The step number
-            field (:class:`str`)
-                The field to be read
-            state (:class:`State`)
-                The state to be used in the field function
-
-        *Returns*
-            (:class:`dolfin.Function`, :class:`float`)
-                The field of step i and the corresponding time
+        :param i: The step number
+        :type i: int
+        :param field: The name of the field to be read
+        :type field: str
+        :param state: The state used for the read
+        :type state: :class:`State`
+        :return: The field as a function
+        :rtype: :class:`Function`
         """
         if i % self._every > 0:
             raise Exception()
@@ -159,9 +171,8 @@ class FieldLogger(object):
         Try to resume existing log file from log step i. The log file
         is truncated accordingly.
 
-        *Arguments*
-            i (:class:`int`)
-                The log step to resume from
+        :param i: The log step to resume from
+        :type i: int
         """
         self._i = i
         self._i_start = self.last_recorded_step() + 1

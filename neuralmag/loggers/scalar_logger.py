@@ -29,34 +29,31 @@ __all__ = ["ScalarLogger"]
 
 
 class ScalarLogger(object):
+    """
+    Simple logger class to log scalar values into a tab separated file.
+
+    :param filename: The name of the log file
+    :type filename: str
+    :param columns: List of attribute names to be logged
+    :type columns: list
+    :param every: Write row to log file every nth call
+    :type every: int
+
+    :Example:
+        .. code-block:: python
+
+            # provide key strings with are available in state
+            logger = ScalarLogger("log.dat", ["t","m"])
+
+            # provide func(state) or tuple (name, func(state))
+            logger = ScalarLogger("log.dat", [("t[ns]", lambda state: state.t*1e9)])
+
+            # Actually log a row
+            state = State(mesh)
+            logger << state
+    """
+
     def __init__(self, filename, columns, every=1):
-        """
-        Simple logger class to log scalar values into a tab separated file.
-
-        *Arguments*
-            filename (:class:`str`)
-                The name of the log file
-            columns ([:class:`str` | :class:`function`])
-                The columns to be written to the log file
-            every (:class:`int`)
-                Write row to log file every nth call
-
-        *Example*
-            .. code-block:: python
-
-                # provide key strings with are available in state
-                logger = ScalarLogger('log.dat', ['t','m'])
-
-                # provide func(state) or tuple (name, func(state))
-                logger = ScalarLogger('log.dat', [('t[ns]', lambda state: state.t*1e9)])
-
-                # provide predifined functions
-                logger = ScalarLogger('log.dat', [demag.h, demag.E])
-
-                # Actually log a row
-                state = State(mesh)
-                logger << state
-        """
         # create directory if not existent
         if not os.path.dirname(filename) == "" and not os.path.exists(
             os.path.dirname(filename)
@@ -74,6 +71,17 @@ class ScalarLogger(object):
         self._columns = columns
 
     def add_column(self, column):
+        """
+        Add column to log file. This method is automatically called for all
+        columns on initialization of the logger.
+        The column can be provided either as attribute name or as a Callable
+        that takes the state as the only argument. 
+        If the column is a :class:`Function`, the functional is averaged over
+        the whole mesh before logging.
+
+        :param column: The column to be logged
+        :type column: str, Callable
+        """
         if self._file is not None:
             raise RuntimeError(
                 "You cannot add columns after first log row has been written."
@@ -81,6 +89,12 @@ class ScalarLogger(object):
         self._columns.append(column)
 
     def log(self, state):
+        """
+        Log simulation step
+
+        :param state: The state to be logged
+        :type state: :class:`State`
+        """
         self._i += 1
         if (self._i - 1) % self._every > 0:
             return

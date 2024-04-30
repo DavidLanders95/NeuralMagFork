@@ -33,25 +33,22 @@ class Logger(object):
     """
     Combined Scalar- and Field-Logger class
 
-    *Arguments*
-        directory (:class:`str`)
-            The name of the log file
-        scalars ([:class:`str` | :class:`function`])
-            The columns to be written to the log file
-        scalars_every (:class:`int`)
-            Write scalar to log file every nth call
-        fields ([:class:`str` | :class:`function`])
-            The columns to be written to the log file
-        every (:class:`int`)
-            Write row to log file every nth call
-        fields_every (:class:`int`)
-            Write fields to log file every nth call
+    :param directory: The name of the log file
+    :type directory: str
+    :param scalars: List of attribute names of the scalars to be logged
+    :type scalars: list
+    :param fields: List of attribute names of the fields to be logged
+    :type fields: list
+    :param scalars_every: Write scalars every nth step
+    :type scalars_every: int
+    :param fields_every: Write fields every nth step
+    :type fields_every: int
 
-    *Example*
+    :Example:
         .. code-block:: python
 
             # provide key strings with are available in state
-            logger = Logger('data', ['m', demag.h], ['m'], fields_every = 100)
+            logger = Logger("data", ["m", "h_demag"], ["m"], fields_every = 100)
 
             # Actually log fields
             state = State(mesh)
@@ -73,6 +70,12 @@ class Logger(object):
             )
 
     def log(self, state):
+        """
+        Log simulation step
+
+        :param state: The state to be logged
+        :type state: :class:`State`
+        """
         if state.t == self._resume_time:  # avoid logging directly after resume
             self._resume_time = None
             return
@@ -90,9 +93,8 @@ class Logger(object):
         If resume is not possible the state is not modiefied and the
         simulations starts from the beginning.
 
-        *Arguments*
-            state (:class:`State`)
-                The state to be resumed from the log data
+        :param state: The state to be resumed from
+        :type state: :class:`State`
         """
         last_recorded_step = self.loggers["fields"].last_recorded_step()
         if last_recorded_step is None:
@@ -120,8 +122,7 @@ class Logger(object):
         """
         Returns True if logger can resume from log files.
 
-        *Returns*
-            :class:`bool`
-                True if resumable, False otherwise
+        :return: True of resumable, False otherwise
+        :rtype: bool
         """
         return self.loggers["fields"].last_recorded_step() is not None
