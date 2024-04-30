@@ -152,6 +152,7 @@ We use pre-commit hooks to ensure code quality and consistency. Our pre-commit s
    ```bash
    pre-commit install
    ```
+   This will enable run pre-commits to run automatically whenever you make a commit.
 
 3. **Manual Run**:
    To manually run pre-commit on all files in the repository, use:
