@@ -126,7 +126,7 @@ Enhancement suggestions are tracked as [GitHub issues](https://gitlab.com/neural
 <!-- You might want to create an issue template for enhancement suggestions that can be used as a guide and that defines the structure of the information to be included. If you do so, reference it here in the description. -->
 
 ### Your First Code Contribution
-To contribute to NeuralMag, you'll need to set up your development environment. Follow these steps to get started:
+To contribute to neuralmag, you'll need to set up your development environment. Follow these steps to get started:
 
 #### Cloning the Repository
 
