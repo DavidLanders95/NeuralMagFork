@@ -32,7 +32,6 @@ html_sidebars = {
     "index": [],
     "getting_started": [],
     "nodal_fd": [],
-
 }
 
 html_show_sourcelink = False
