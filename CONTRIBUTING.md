@@ -19,9 +19,15 @@ All types of contributions are encouraged and valued. See the [Table of Contents
   - [Reporting Bugs](#reporting-bugs)
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Your First Code Contribution](#your-first-code-contribution)
+    - [Cloning the Repository](#cloning-the-repository)
+    - [Installing the Development Version](#installing-the-development-version)
+    - [Next Steps](#next-steps)
   - [Improving The Documentation](#improving-the-documentation)
 - [Styleguides](#styleguides)
-  - [Commit Messages](#commit-messages)
+  - [Pre-commit Guidelines](#pre-commit-guidelines)
+    - [Setting up Pre-commit](#setting-up-pre-commit)
+    - [Our Hooks](#our-hooks)
+    - [Best Practices](#best-practices)
 - [Join The Project Team](#join-the-project-team)
 
 
@@ -120,6 +126,40 @@ Enhancement suggestions are tracked as [GitHub issues](https://gitlab.com/neural
 <!-- You might want to create an issue template for enhancement suggestions that can be used as a guide and that defines the structure of the information to be included. If you do so, reference it here in the description. -->
 
 ### Your First Code Contribution
+To contribute to neuralmag, you'll need to set up your development environment. Follow these steps to get started:
+
+#### Cloning the Repository
+
+You can clone the repository using either SSH or HTTPS, depending on your setup:
+
+- **SSH** (recommended if you have an SSH key configured):
+  ```bash
+  git clone git@gitlab.com:neuralmag/neuralmag.git
+  ```
+
+- **HTTPS** (use this method if you don't have an SSH key):
+  ```bash
+  git clone https://gitlab.com/neuralmag/neuralmag.git
+  ```
+
+#### Installing the Development Version
+
+After cloning, navigate into the cloned directory:
+```bash
+cd neuralmag
+```
+
+Install the development dependencies along with the package in editable mode:
+```bash
+pip install -e .[dev]
+```
+
+This setup will allow you to make changes to the codebase and test them in real-time.
+
+#### Next Steps
+
+Once installed, you can begin making changes and testing them using the tools provided in the development environment. Remember to keep your branch updated and adhere to the coding and contribution guidelines provided.
+
 <!-- TODO
 include Setup of env, IDE and typical getting started instructions?
 
@@ -132,10 +172,43 @@ Updating, improving and correcting the documentation
 -->
 
 ## Styleguides
-### Commit Messages
-<!-- TODO
+### Pre-commit Guidelines
 
--->
+We use pre-commit hooks to ensure code quality and consistency.
+
+#### Setting up Pre-commit
+
+1. **Install pre-commit**:
+   Pre-commit is installed when installing the development version of neuralmag.
+
+2. **Install the pre-commit hooks**:
+   Run the following command in the repository root to set up the pre-commit hooks:
+   ```bash
+   pre-commit install
+   ```
+   This will enable pre-commits to run automatically whenever you make a commit.
+
+3. **Manual Run**:
+   To manually run pre-commit on all files in the repository, use:
+   ```bash
+   pre-commit run --all-files
+   ```
+
+#### Our Hooks
+
+- **Code Formatting**: We use `Black` for Python files and Jupyter notebooks, ensuring consistent coding styles.
+- **Import Sorting**: `isort` is used to sort imports in a standard way across all Python files.
+- **Syntax and Debug Checks**:
+  - `check-merge-conflict`: Prevents code with merge conflict markers from being committed.
+  - `check-toml`: Ensures TOML files are correctly formatted and syntactically correct.
+  - `debug-statements`: Checks for any debug-related statements in Python source files.
+
+#### Best Practices
+
+Ensure you have activated pre-commit locally and all hooks pass before pushing your changes. This saves time and streamlines the review process, making it easier for everyone involved.
+
+For additional information or troubleshooting with pre-commit, visit the [official pre-commit documentation](https://pre-commit.com/).
+```
 
 ## Join The Project Team
 <!-- TODO -->
