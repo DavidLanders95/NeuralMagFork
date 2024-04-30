@@ -1,0 +1,22 @@
+{# Displays the current page's Table of Contents.  #}
+{% set page_toc = generate_toc_html() %}
+{%- if page_toc | length >= 1 %}
+{%- set page_navigation_heading_id = unique_html_id("pst-page-navigation-heading") -%}
+<div
+    id="{{ page_navigation_heading_id }}"
+    class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> {{ _("On this page") }}
+</div>
+<nav class="bd-toc-nav page-toc" aria-labelledby="{{ page_navigation_heading_id }}">
+    {{ page_toc }}
+</nav>
+{%- endif %}
+
+{% if ('examples' in pagename or 'getting_started' in pagename) and not 'index' in pagename %}
+<div class="tocsection onthispace pt-5 bp-3">
+    <h5>Try locally:</h5>
+    <a href="{{ pathto('_sources/' + pagename + '.ipynb.txt', true) }}" download="{{ pagename.split('/')[-1] }}.ipynb">
+        <img src="https://img.shields.io/badge/download-notebook-blue">
+    </a>
+</div>
+{% endif %}
