@@ -19,9 +19,9 @@ All types of contributions are encouraged and valued. See the [Table of Contents
   - [Reporting Bugs](#reporting-bugs)
   - [Suggesting Enhancements](#suggesting-enhancements)
   - [Your First Code Contribution](#your-first-code-contribution)
-- [Testing](#testing)
-  - [Writing Tests](#writing-tests)
-  - [Running Tests](#running-tests)
+  - [Testing](#testing)
+    - [Writing Tests](#writing-tests)
+    - [Running Tests](#running-tests)
   - [Improving The Documentation](#improving-the-documentation)
 - [Styleguides](#styleguides)
   - [Commit Messages](#commit-messages)
@@ -128,16 +128,16 @@ include Setup of env, IDE and typical getting started instructions?
 
 -->
 
-## Testing
+### Testing
 
 We use `pytest` for running our tests. Here are a few guidelines to help you contribute effectively:
 
-### Writing Tests
+#### Writing Tests
 - **Types of Tests**: You are encouraged to write unit tests, integration tests, and standard problems. tests.
 - **Naming Conventions**: Follow Python's typical naming conventions for test files (e.g., `test_feature.py`) and use descriptive test function names. Please also place the files in the relevant testing folder.
 - **New Features**: All new features should be accompanied by corresponding tests that validate both the functionality and integration of the new feature.
 
-### Running Tests
+#### Running Tests
 - **Default Test Run**: To run tests, use the standard `pytest` commands. By default, this will exclude standard problem tests.
 - **Including Standard Problems**: If you want to include standard problem tests in your test run, use the `--run-sp` flag with your `pytest` command.
 
