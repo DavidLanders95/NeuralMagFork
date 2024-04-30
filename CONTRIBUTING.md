@@ -137,7 +137,7 @@ Updating, improving and correcting the documentation
 ## Styleguides
 ### Pre-commit Guidelines
 
-We use pre-commit hooks to ensure code quality and consistency. Our pre-commit setup includes checks for code formatting, sorting imports, and ensuring that no merge conflicts are committed.
+We use pre-commit hooks to ensure code quality and consistency.
 
 #### Setting up Pre-commit
 
@@ -152,7 +152,7 @@ We use pre-commit hooks to ensure code quality and consistency. Our pre-commit s
    ```bash
    pre-commit install
    ```
-   This will enable run pre-commits to run automatically whenever you make a commit.
+   This will enable pre-commits to run automatically whenever you make a commit.
 
 3. **Manual Run**:
    To manually run pre-commit on all files in the repository, use:
@@ -165,13 +165,13 @@ We use pre-commit hooks to ensure code quality and consistency. Our pre-commit s
 - **Code Formatting**: We use `Black` for Python files and Jupyter notebooks, ensuring consistent coding styles.
 - **Import Sorting**: `isort` is used to sort imports in a standard way across all Python files.
 - **Syntax and Debug Checks**:
-  - `check-merge-conflict`: Prevents code with merge conflicts from being committed.
+  - `check-merge-conflict`: Prevents code with merge conflict markers from being committed.
   - `check-toml`: Ensures TOML files are correctly formatted and syntactically correct.
   - `debug-statements`: Checks for any debug-related statements in Python source files.
 
 #### Best Practices
 
-Ensure you have run pre-commit locally and all hooks pass before pushing your changes. This saves time and streamlines the review process, making it easier for everyone involved.
+Ensure you have activated pre-commit locally and all hooks pass before pushing your changes. This saves time and streamlines the review process, making it easier for everyone involved.
 
 For additional information or troubleshooting with pre-commit, visit the [official pre-commit documentation](https://pre-commit.com/).
 ```
