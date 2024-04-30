@@ -21,7 +21,10 @@ All types of contributions are encouraged and valued. See the [Table of Contents
   - [Your First Code Contribution](#your-first-code-contribution)
   - [Improving The Documentation](#improving-the-documentation)
 - [Styleguides](#styleguides)
-  - [Commit Messages](#commit-messages)
+  - [Pre-commit Guidelines](#pre-commit-guidelines)
+    - [Setting up Pre-commit](#setting-up-pre-commit)
+    - [Our Hooks](#our-hooks)
+    - [Best Practices](#best-practices)
 - [Join The Project Team](#join-the-project-team)
 
 
@@ -132,10 +135,45 @@ Updating, improving and correcting the documentation
 -->
 
 ## Styleguides
-### Commit Messages
-<!-- TODO
+### Pre-commit Guidelines
 
--->
+We use pre-commit hooks to ensure code quality and consistency. Our pre-commit setup includes checks for code formatting, sorting imports, and ensuring that no merge conflicts are committed.
+
+#### Setting up Pre-commit
+
+1. **Install pre-commit**:
+   Make sure you have pre-commit installed. If not, you can install it using pip:
+   ```bash
+   pip install pre-commit
+   ```
+
+2. **Install the pre-commit hooks**:
+   Run the following command in the repository root to set up the pre-commit hooks:
+   ```bash
+   pre-commit install
+   ```
+
+3. **Manual Run**:
+   To manually run pre-commit on all files in the repository, use:
+   ```bash
+   pre-commit run --all-files
+   ```
+
+#### Our Hooks
+
+- **Code Formatting**: We use `Black` for Python files and Jupyter notebooks, ensuring consistent coding styles.
+- **Import Sorting**: `isort` is used to sort imports in a standard way across all Python files.
+- **Syntax and Debug Checks**:
+  - `check-merge-conflict`: Prevents code with merge conflicts from being committed.
+  - `check-toml`: Ensures TOML files are correctly formatted and syntactically correct.
+  - `debug-statements`: Checks for any debug-related statements in Python source files.
+
+#### Best Practices
+
+Ensure you have run pre-commit locally and all hooks pass before pushing your changes. This saves time and streamlines the review process, making it easier for everyone involved.
+
+For additional information or troubleshooting with pre-commit, visit the [official pre-commit documentation](https://pre-commit.com/).
+```
 
 ## Join The Project Team
 <!-- TODO -->
