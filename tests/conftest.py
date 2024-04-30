@@ -2,21 +2,21 @@ import pytest
 
 
 def pytest_configure(config):
-    config.addinivalue_line("markers", "sp: mark a test as a standard problem")
+    config.addinivalue_line("markers", "slow: mark a test as a slow")
 
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--run-sp",
+        "--run-slow",
         action="store_true",
         default=False,
-        help="Run standard problem tests",
+        help="Run slow tests",
     )
 
 
 def pytest_collection_modifyitems(config, items):
-    if not config.getoption("--run-sp"):
-        skipper = pytest.mark.skip(reason="Only run when --run-sp is given")
+    if not config.getoption("--run-slow"):
+        skipper = pytest.mark.skip(reason="Only run when --run-slow is given")
         for item in items:
-            if "sp" in item.keywords:
+            if "slow" in item.keywords:
                 item.add_marker(skipper)

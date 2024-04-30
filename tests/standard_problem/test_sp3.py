@@ -12,7 +12,7 @@ from neuralmag import *
 mu0 = 4 * np.pi * 1e-7
 
 
-@pytest.mark.sp
+@pytest.mark.slow
 def test_sp3():
     mu0 = 4 * np.pi * 1e-7
     N = 16  # discretisation in one dimension
