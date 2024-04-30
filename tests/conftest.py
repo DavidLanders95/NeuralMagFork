@@ -10,7 +10,7 @@ def pytest_addoption(parser):
         "--run-sp",
         action="store_true",
         default=False,
-        help="Run slow tests",
+        help="Run standard problem tests",
     )
 
 
