@@ -92,6 +92,8 @@ test_py3_8_cpu:
 
 docs:
   extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
   script:
     - micromamba install -y -n base -c conda-forge make pandoc
     - cd docs
