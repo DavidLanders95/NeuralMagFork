@@ -30,6 +30,13 @@ and linear weak forms into vectorized PyTorch code. This allows to
 easily add new effective-field contributions by simply stating the
 corresponding energy as a sympy expression.
 
+Documentation
+=============
+
+The documentation of NeuralMag including a reference to all classes as
+well as several examples can found [here](https://neuralmag.gitlab.io/neuralmag/index.html).
+
+
 Download and Install
 ====================
 
