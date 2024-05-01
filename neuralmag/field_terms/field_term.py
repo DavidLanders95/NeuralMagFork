@@ -29,10 +29,53 @@ __all__ = ["FieldTerm"]
 
 
 class FieldTerm(gen.CodeClass):
+    r"""
+    Super class of all effective field contributions. In simple cases,
+    a subclass is just required to implement the energy functional of a field
+    contribution. The form compiler of NeuralMag is then used to generate
+    efficient code for the computation of both the energy and effefictive field
+    by means of a just-in-time compiler.
+
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :type n_gauss: int
+
+    :Example:
+        .. code-block::
+
+            # Example subclass implementing a uniaxial anisotropy
+            class UniaxialAnisotropyField(FieldTerm):
+                _name = "uaniso"
+
+                @staticmethod
+                def e_expr(m, dim):
+                    K = Variable("material__Ku", "c" * dim)
+                    axis = Variable("material__Ku_axis", "c" * dim, (3,))
+                    return -K * m.dot(axis) ** 2 * dV(dim)
+
+            # Use class to register dynamic attributes in state
+            UniaxialAnisotropyField().register(state)
+
+            # compute field and energy
+            h = state.h_uaniso
+            E = state.E_uaniso
+    """
+
     def __init__(self, n_gauss=None):
         self._n_gauss = n_gauss or config.fem["n_gauss"]
 
     def register(self, state, name=None):
+        r"""
+        Registers dynamic attributes for the computation of the effective field
+        and energy with the given :class:`State` object. By naming convention,
+        these methods are registered as :code:`state.h_{name}` and
+        :code:`state.E_{name}`.
+
+        :param state: The state
+        :type state: :class:`State`
+        :param name: The name used for the registration, falls back to class
+            default
+        :type name: str, optional
+        """
         dim = state.mesh.dim
         if hasattr(self, "e_expr"):
             self.save_and_load_code(self._n_gauss, dim)

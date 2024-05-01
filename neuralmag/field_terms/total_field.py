@@ -26,6 +26,24 @@ __all__ = ["TotalField"]
 
 
 class TotalField(FieldTerm):
+    r"""
+    This class combines multiple field terms into a single total field term by
+    adding up their effective fields and energies.
+
+    :param \*field_names: The names of the effective field contributions
+
+    :Example:
+        .. code-block::
+
+            ExchangeField().register(state, "exchange")
+            DemagField().register(state, "demag")
+            ExternalField(h_ext).register(state, "external")
+            TotalField("exchange", "demag", "external").register(state)
+
+            # Compute total field and energy
+            h = state.h
+            E = state.E
+    """
     _name = ""
 
     def __init__(self, *field_names):

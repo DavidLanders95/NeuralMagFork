@@ -74,6 +74,8 @@ As described in :ref:`nodal_fd`, the magnetization is discretized on the nodes i
 
 Here, we use the :code:`material` namespace within the :code:`state` object.
 
+.. _dynamic attributes:
+
 Dynamic Attributes
 ^^^^^^^^^^^^^^^^^^
 
