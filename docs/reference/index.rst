@@ -3,6 +3,6 @@ Reference
 
 .. toctree::
 
-   state_and_mesh
+   state
    field_terms
    loggers

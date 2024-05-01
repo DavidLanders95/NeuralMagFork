@@ -1,6 +1,6 @@
 .. module:: neuralmag
 
-Mesh, State and Functions
+State, Mesh and Functions
 =========================
 
 The :class:`State` class plays a central role in every NeuralMag simulation. It's main purpose is to keep track of the current simulation state, such as the magentization and the time.
