@@ -131,7 +131,7 @@ class FieldLogger(object):
 
     def last_recorded_step(self):
         """
-        Returns the number of the last step logged and None if no
+        Returns the number of the last step logged and ``None`` if no
         step was yet logged.
 
         :return: Number of the last step recorded

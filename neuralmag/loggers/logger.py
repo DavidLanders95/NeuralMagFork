@@ -48,7 +48,7 @@ class Logger(object):
         .. code-block:: python
 
             # provide key strings with are available in state
-            logger = Logger("data", ["m", "h_demag"], ["m"], fields_every = 100)
+            logger = Logger("data", ["m", "h_demag"], ["m"], fields_every=100)
 
             # Actually log fields
             state = State(mesh)

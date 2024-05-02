@@ -4,7 +4,7 @@
 State, Mesh and Functions
 =========================
 
-The :class:`State` class plays a central role in every NeuralMag simulation. It's main purpose is to keep track of the current simulation state, such as the magentization and the time.
+The :class:`State` class plays a central role in every NeuralMag simulation. It's main purpose is to keep track of the current simulation state, such as the magnetization and the time.
 Moreover, the :code:`state` object holds the mesh along with domain information and helps to connect the different solver modules through dynamic attributes.
 
 Mesh and Functions
@@ -26,8 +26,8 @@ Scalar values such as the time, can be simply set by
 
     state.t = 1e-9
 
-and automatically converted to 0D PyTorch tensors by the :code:`state` object.
-Fields, such as the magnetization, should be set as :class:`Function` objects which contain information on the spatial discretization as well as the actual tensor data.
+and are automatically converted to 0D PyTorch tensors by the :code:`state` object.
+Fields, such as the magnetization, should be set as :class:`Function` objects, which contain information on the spatial discretization as well as the actual tensor data.
 The :class:`Function` objects use type scheme for function spaces as the :class:`Variable` class used in NeuralMag's form compiler.
 In order to initialize a vector function with nodal discretization for the magnetization, the :class:`Function` class is initialized as follows
 
@@ -104,7 +104,7 @@ Dynamic attributes can be arbitrarily chained
 On the first read access of a dynamic attribute, NeuralMag analyses the dependencies considering all involved dynamic attribues and dynamically compiles a Python function that only depends on static attributes of the state.
 This function is cached along with the references to the static tensors that the function depends on, which leads to very fast compute times of the function for subsequent calls, especially if PyTorch's compile feature is enabled.
 
-Internally, NeuralMag uses the feature of dynamic attributes for all numerical computations such as effecitive-field evaluations.
+Internally, NeuralMag uses the feature of dynamic attributes for all numerical computations such as effective-field evaluations.
 Registering an effective-field contribution with a state, effectively creates two dynamical attributes in the state, one for the effective field and one for the energy.
 This architecture leads to a purely functional interface without any loops or conditional depending only on raw  PyTorch tensors which leads to very efficient and differentiable code.
 

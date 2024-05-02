@@ -52,7 +52,7 @@ class State(object):
 
     :param mesh: The mesh for the simulation
     :type mesh: class:`Mesh`
-    :param device: The PyTorch device to me used, defaults to "cpu"
+    :param device: The PyTorch device to be used, defaults to "cpu"
     :type device: str, optional
     """
 
@@ -290,7 +290,7 @@ class State(object):
     @staticmethod
     def wrap_func(f, mapping):
         """
-        Wrappes a given function into another function renaming its arguemnts
+        Wrappes a given function into another function renaming its arguments
         according to the mapping provided.
 
         :param f: The function to be wrapped
@@ -337,8 +337,8 @@ class State(object):
 
                 # initialize magnetization based on coordinate function
                 state.m = VectorFunction(state)
-                state.m.tensor[...,0] = torch.sin(x/20e-9)
-                state.m.tensor[...,1] = torch.cos(x/20e-9)
+                state.m.tensor[..., 0] = torch.sin(x/20e-9)
+                state.m.tensor[..., 1] = torch.cos(x/20e-9)
         """
         if spaces == None:
             spaces = "c" * self.mesh.dim

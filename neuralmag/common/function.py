@@ -31,7 +31,7 @@ class Function(object):
     :param spaces: The function spaces in the principal direction (defaults to
         "nnn" for 3D meshes and "nn" for 2D meshes)
     :type spaces: str
-    :param shape: The shape of the function (either () for scalars or (3,) for
+    :param shape: The shape of the function (either ``()`` for scalars or ``(3,)`` for
         vectors is currently supported)
     :type shape: tuple
     :param tensor: Tensor with discretized function values

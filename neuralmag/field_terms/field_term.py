@@ -30,10 +30,10 @@ __all__ = ["FieldTerm"]
 
 class FieldTerm(gen.CodeClass):
     r"""
-    Super class of all effective field contributions. In simple cases,
+    Base class of all effective field contributions. In simple cases,
     a subclass is just required to implement the energy functional of a field
     contribution. The form compiler of NeuralMag is then used to generate
-    efficient code for the computation of both the energy and effefictive field
+    efficient code for the computation of both the energy and effective field
     by means of a just-in-time compiler.
 
     :param n_gauss: Degree of Gauss quadrature used in the form compiler.
