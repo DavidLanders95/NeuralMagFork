@@ -178,7 +178,7 @@ We use `pytest` for running our tests. Here are a few guidelines to help you con
 - **New Features**: All new features should be accompanied by corresponding tests that validate both the functionality and integration of the new feature.
 
 #### Running Tests
-- **Default Test Run**: To run tests, use the standard `pytest` commands. By default, this will exclude standard problem tests.
+- **Default Test Run**: To run tests, use the standard `pytest` commands. By default, this will exclude tests marked as slow.
 - **Including Slower Tests**: If you want to include slow tests (such as standard problems) in your test run, use the `--run-slow` flag with your `pytest` command.
 
 Make sure to run tests locally and ensure they pass before submitting a pull request. The tests (excluding slow tests) will be also run as part of the CI.
