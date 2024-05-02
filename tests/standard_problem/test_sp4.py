@@ -34,6 +34,7 @@ def s_state():
     return state
 
 
+@pytest.mark.slow
 def test_sp4_field_switch_1(s_state):
     s_state.material.alpha = 0.02
     s_state.h_external = VectorFunction(s_state).fill(
@@ -70,6 +71,7 @@ def test_sp4_field_switch_1(s_state):
         raise
 
 
+@pytest.mark.slow
 def test_sp4_field_switch_2(s_state):
     s_state.material.alpha = 0.02
     s_state.h_external = VectorFunction(s_state).fill(

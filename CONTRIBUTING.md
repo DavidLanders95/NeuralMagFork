@@ -22,6 +22,9 @@ All types of contributions are encouraged and valued. See the [Table of Contents
     - [Cloning the Repository](#cloning-the-repository)
     - [Installing the Development Version](#installing-the-development-version)
     - [Next Steps](#next-steps)
+  - [Testing](#testing)
+    - [Writing Tests](#writing-tests)
+    - [Running Tests](#running-tests)
   - [Improving The Documentation](#improving-the-documentation)
 - [Styleguides](#styleguides)
   - [Pre-commit Guidelines](#pre-commit-guidelines)
@@ -164,6 +167,21 @@ Once installed, you can begin making changes and testing them using the tools pr
 include Setup of env, IDE and typical getting started instructions?
 
 -->
+
+### Testing
+
+We use `pytest` for running our tests. Here are a few guidelines to help you contribute effectively:
+
+#### Writing Tests
+- **Types of Tests**: You are encouraged to write unit tests, integration tests, and system tests (such as well known standard problems).
+- **Naming Conventions**: Follow Python's typical naming conventions for test files (e.g., `test_feature.py`) and use descriptive test function names. Please also place the files in the relevant testing folder.
+- **New Features**: All new features should be accompanied by corresponding tests that validate both the functionality and integration of the new feature.
+
+#### Running Tests
+- **Default Test Run**: To run tests, use the standard `pytest` commands. By default, this will exclude tests marked as slow.
+- **Including Slower Tests**: If you want to include slow tests (such as standard problems) in your test run, use the `--run-slow` flag with your `pytest` command.
+
+Make sure to run tests locally and ensure they pass before submitting a pull request. The tests (excluding slow tests) will be also run as part of the CI.
 
 ### Improving The Documentation
 <!-- TODO
