@@ -127,7 +127,7 @@ class State(object):
 
     def getattr(self, name):
         """
-        Returns the attribute for the given name. Attributes in in namespaces
+        Returns the attribute for the given name. Attributes in namespaces
         can be accessed by using "." as a seperator, e.g. :code:`material.Ms`.
 
         :param name: The name of the attribute
