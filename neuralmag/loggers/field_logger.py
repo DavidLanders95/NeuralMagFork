@@ -40,7 +40,7 @@ class FieldLogger(object):
     :Example:
         .. code-block:: python
 
-            # provide key strings with are available in state
+            # provide key strings which are available in state
             logger = FieldLogger("data/m.pvd", ["m", "h_demag"])
 
             # Actually log fields
