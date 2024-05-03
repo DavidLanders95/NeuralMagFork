@@ -34,6 +34,20 @@ def llg_rhs(h, m, material__alpha):
 
 
 class LLGSolver(nn.Module):
+    """
+    Time integrator using explicit adaptive time-stepping provided by the
+    torchdiffeq library.
+
+    :param state: The state used for the simulation
+    :type state: :class:`State`
+    :param scale_t: Internal scaling of time to improve numerical behavior
+    :type scale_t: float, optional
+    :param parameters: List a attribute names for the adjoint gradient computation
+    :type parameters: list
+    :param solver_options: Solver options passed to torchdiffeq
+    :type solver_options: dict
+    """
+
     def __init__(self, state, scale_t=1e-9, parameters=[], solver_options={}):
         super().__init__()
         self._state = state
@@ -50,6 +64,9 @@ class LLGSolver(nn.Module):
         self.reset()
 
     def reset(self):
+        """
+        Set up the function for the RHS evaluation of the LLG
+        """
         logging.info_green("[LLGSolver] Initialize RHS function")
 
         internal_args = ["t", "m"]
@@ -65,6 +82,13 @@ class LLGSolver(nn.Module):
         return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
 
     def step(self, dt):
+        """
+        Perform single integration step of LLG. Internally an adaptive time step is
+        used.
+
+        :param dt: The size of the time step
+        :type dt: float
+        """
         logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
         t = self._state.tensor(
             [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
@@ -74,6 +98,14 @@ class LLGSolver(nn.Module):
         self._state.m.tensor[:] = m_next[-1]
 
     def solve(self, t):
+        """
+        Solves the LLG for a list of target times. This routine is specifically
+        meant to be used in the context of time-dependent optimization with
+        objective functions depending on multiple mangetization snapshots.
+
+        :param t: List of target times
+        :type t: torch.Tensor
+        """
         return odeint(
             self, self._state.m.tensor, t / self._scale_t, **self._solver_options
         )

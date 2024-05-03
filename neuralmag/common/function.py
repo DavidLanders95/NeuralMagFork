@@ -23,6 +23,23 @@ __all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
 
 
 class Function(object):
+    """
+    This class represents a discretized field on the mesh of a state object.
+
+    :param state: The state that is used to construct the function
+    :type state: :class:`State`
+    :param spaces: The function spaces in the principal direction (defaults to
+        "nnn" for 3D meshes and "nn" for 2D meshes)
+    :type spaces: str
+    :param shape: The shape of the function (either ``()`` for scalars or ``(3,)`` for
+        vectors is currently supported)
+    :type shape: tuple
+    :param tensor: Tensor with discretized function values
+    :type tensor: :class:`torch.Tensor`
+    :param name: Name of the function
+    :type name: str
+    """
+
     def __init__(self, state, spaces=None, shape=(), tensor=None, name=None):
         self._state = state
         if spaces is None:
@@ -53,26 +70,44 @@ class Function(object):
 
     @property
     def name(self):
+        """
+        The name of the function
+        """
         return self._name
 
     @property
     def shape(self):
+        """
+        The shape of the function
+        """
         return self._shape
 
     @property
     def size(self):
+        """
+        The size (shape) of the tensor with the discretized field values
+        """
         return self._size
 
     @property
     def state(self):
+        """
+        The state object used for the construction of the function
+        """
         return self._state
 
     @property
     def spaces(self):
+        """
+        The function spaces of the function
+        """
         return self._spaces
 
     @property
     def tensor(self):
+        """
+        The tensor containing the discretized values of the function
+        """
         if self._tensor is None:
             self._tensor = torch.zeros(
                 self._size, dtype=self._state.dtype, device=self._state.device
@@ -80,6 +115,22 @@ class Function(object):
         return self._tensor
 
     def fill(self, constant, expand=False):
+        """
+        Fills the tensor of the function with a constant value.
+
+        :param constant: The constant to fill the tensor
+        :type constant: int, list
+        :param expand: If True, the tensor is set by expanding the constant
+            to the size of the mesh resulting in minimal storage consumption.
+        :type expand: bool
+        :return: The function itself
+        :rvalue: :class:`Function`
+
+        :Example:
+            .. code-block::
+
+                f = Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
+        """
         if expand:
             return self.fill_expanded(constant)
         if isinstance(constant, (int, float)):
@@ -95,6 +146,15 @@ class Function(object):
         return self
 
     def fill_expanded(self, constant):
+        """
+        Fills the tensor of the function with a constant value by expanding
+        the constant to the full mesh size.
+
+        :param constant: The constant to fill the tensor
+        :type constant: int, list
+        :return: The function itself
+        :rvalue: :class:`Function`
+        """
         if self._tensor is None:
             self._expanded = self.state.tensor(constant)
             if isinstance(constant, (int, float)):
@@ -119,6 +179,12 @@ class Function(object):
         return self
 
     def avg(self):
+        """
+        Returns the componentwise average of the function over the mesh.
+
+        :return: The componentwise average
+        :rtype: :class:`torch.Tensor`
+        """
         # TODO get rid of conditionals?
         # TODO support all function spaces
         if self._spaces == "ccc" or self._spaces == "cc":
