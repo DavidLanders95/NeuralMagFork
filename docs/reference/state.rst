@@ -59,7 +59,7 @@ For instance, a mesh with 100 x 25 x 1 cells as initialized above will result in
     m.tensor.shape
     # torch.Size([101, 26, 2, 3])
 
-In order to initialize a :class:`Function` with a constant value, the :code:`fill` can be used
+In order to initialize a :class:`Function` with a constant value, :code:`fill` can be used
 
 .. code:: python
 
