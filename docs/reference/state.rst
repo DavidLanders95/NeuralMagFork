@@ -15,7 +15,7 @@ As in standard finite-difference codes, the mesh in NeuralMag is a regular cuboi
 
 .. code:: python
 
-    # initialize mesh with 100 x 24 x 1 cells with cell-size 5 x 5 x 3 nm^3
+    # initialize mesh with 100 x 25 x 1 cells with cell-size 5 x 5 x 3 nm^3
     mesh = Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))
     state = State(mesh)
 
