@@ -59,11 +59,11 @@ For instance, a mesh with 100 x 25 x 1 cells as initialized above will result in
     m.tensor.shape
     # torch.Size([101, 26, 2, 3])
 
-In order to initialize a :class:`Function` with a constant value, :code:`fill` can be used
+In order to initialize a :class:`Function` with a constant value, :code:`fill` can be used.
+For example, to initialize magnetization unit-vector field in z-direction
 
 .. code:: python
 
-    # initialize magnetization unit-vector field in z-direction
     state.m = neuralmag.VectorFunction(state).fill([0, 0, 1])
 
 As described in :ref:`nodal_fd`, the magnetization is discretized on the nodes in nodal finite-differences, while the material parameters are discretized with cell functions.
