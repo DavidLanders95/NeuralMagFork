@@ -65,7 +65,7 @@ class Mesh(object):
         """
         The total volume of the mesh
         """
-        return self.n[0] * self.n[1] * self.n[2] * self.cell_volume
+        return self.num_cells * self.cell_volume
 
     @property
     def num_cells(self):
