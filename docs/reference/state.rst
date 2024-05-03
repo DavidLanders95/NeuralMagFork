@@ -16,8 +16,8 @@ As in standard finite-difference codes, the mesh in NeuralMag is a regular cuboi
 .. code:: python
 
     # initialize mesh with 100 x 25 x 1 cells with cell-size 5 x 5 x 3 nm^3
-    mesh = Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))
-    state = State(mesh)
+    mesh = neuralmag.Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))
+    state = neuralmag.State(mesh)
 
 After initializing the :code:`state`, it can be populated with attributes such as the time, material parameters or the magnetization.
 Scalar values such as the time, can be simply set by
@@ -33,23 +33,23 @@ In order to initialize a vector function with nodal discretization for the magne
 
 .. code:: python
 
-    m = Function(state, "nnn", shape = (3,))
+    m = neuralmag.Function(state, "nnn", shape = (3,))
 
 Alternatively, one of the convenience wrappers can be used to initialize :class:`Function` objects with the most common function spaces
 
 .. code:: python
 
     # scalar nodal function
-    f1 = Function(state)
+    f1 = neuralmag.Function(state)
 
     # vector nodal function
-    f2 = VectorFunction(state)
+    f2 = neuralmag.VectorFunction(state)
 
-    # scalar cell function 
-    f3 = CellFunction(state)
+    # scalar cell function
+    f3 = neuralmag.CellFunction(state)
 
     # vector cell function
-    f4 = VectorCellFunction(state)
+    f4 = neuralmag.VectorCellFunction(state)
 
 Based on the :class:`Mesh` object of the :class:`State`, the function objects are initialized with PyTorch tensor of appropriate size.
 For instance, a mesh with 100 x 25 x 1 cells as initialized above will result in a 4D tensor with shape 101 x 26 x 2 x 3 for a nodal vector function.
@@ -64,13 +64,13 @@ In order to initialize a :class:`Function` with a constant value, the :code:`fil
 .. code:: python
 
     # initialize magnetization unit-vector field in z-direction
-    state.m = VectorFunction(state).fill([0, 0, 1])
+    state.m = neuralmag.VectorFunction(state).fill([0, 0, 1])
 
 As described in :ref:`nodal_fd`, the magnetization is discretized on the nodes in nodal finite-differences, while the material parameters are discretized with cell functions.
 
 .. code:: python
 
-   state.material.Ms = CellFunction(state).fill(8e5)
+   state.material.Ms = neuralmag.CellFunction(state).fill(8e5)
 
 Here, we use the :code:`material` namespace within the :code:`state` object.
 
@@ -87,7 +87,7 @@ If the function has arguments, the :class:`State` class does a lookup in it's ow
 For example, we can easily define a dynamic attribute that returns a multiple of another attribute:
 
 .. code:: python
-    
+
     state.a = 1.0
     state.a2 = lambda a: 2*a
     print(state.a2)
@@ -96,7 +96,7 @@ For example, we can easily define a dynamic attribute that returns a multiple of
 Dynamic attributes can be arbitrarily chained
 
 .. code:: python
-    
+
     state.a4 = lambda a2: 2*a2
     print(state.a4)
     # results in "4.0"
