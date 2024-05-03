@@ -111,6 +111,9 @@ This architecture leads to a purely functional interface without any loops or co
 Class-Reference
 ^^^^^^^^^^^^^^^
 
+.. autoclass:: Mesh
+   :members:
+
 .. autoclass:: State
    :members:
 
