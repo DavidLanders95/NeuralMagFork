@@ -11,7 +11,7 @@ Mesh and Functions
 ^^^^^^^^^^^^^^^^^^
 
 The initialization of the :code:`state` requires a :code:`mesh` object.
-As in standard finite-difference codes, the mesh in NeuralMag is a regular cuboid grid and is defined by the number of cells in the principal directions of the coordinate system and the size of the simulation cells.
+As in standard finite-difference codes, the mesh in NeuralMag is a regular cuboid grid and is defined by the number of cells in the principal directions of the coordinate system and the size of the discretization cells.
 
 .. code:: python
 
