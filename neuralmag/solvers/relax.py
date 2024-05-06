@@ -10,7 +10,9 @@ __all__ = ["RelaxSolver"]
 
 def relax_rhs(h, m, material__alpha):
     gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
-    return - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
+    return (
+        -material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
+    )
 
 
 class RelaxSolver(LLGSolver):
@@ -46,17 +48,18 @@ class RelaxSolver(LLGSolver):
         for i, param in enumerate(self._parameters.keys()):
             self._args[2 + i] = self._parameters[param]
 
-
-    def minimize(self, tol):
+    def minimize(self, tol, timestep=1e-10):
         E_current = self._state.E
         logging.info_blue(f"[RelaxSolver] Initial Energy E = {E_current:g} J")
-        dE = 2*tol  # double tolarance to make sure first step occurs
+        dE = 2 * tol  # double tolarance to make sure first step occurs
 
         while dE > tol:
             E_prev = E_current
-            self.step(1e-10, logging=False)
+            self.step(timestep, logging=False)
             E_current = self._state.E
             dE = E_prev - E_current
-            logging.info_blue(f"[RelaxSolver]  dE = {dE:g} J, tol = {tol:g} J, E = {E_current:g} J")
-        
+            logging.info_blue(
+                f"[RelaxSolver]  dE = {dE:g} J, tol = {tol:g} J, E = {E_current:g} J"
+            )
+
         self._state.t = 0
