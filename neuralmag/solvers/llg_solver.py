@@ -134,4 +134,3 @@ class LLGSolver(nn.Module):
         return odeint(
             self, self._state.m.tensor, t / self._scale_t, **self._solver_options
         )
-
