@@ -18,5 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from .llg_solver import *
+from .relax import *
 
 __all__ = llg_solver.__all__
+__all__ = relax.__all__
