@@ -154,7 +154,7 @@ cd neuralmag
 
 Install the development dependencies along with the package in editable mode:
 ```bash
-pip install -e .[dev]
+pip install -e '.[dev]'
 ```
 
 This setup will allow you to make changes to the codebase and test them in real-time.
