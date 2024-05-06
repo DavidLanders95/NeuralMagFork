@@ -105,7 +105,7 @@ class LLGSolver(nn.Module):
     def forward(self, t, m):
         return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
 
-    def step(self, dt):
+    def step(self, dt, logging=True):
         """
         Perform single integration step of LLG. Internally an adaptive time step is
         used.
@@ -113,7 +113,8 @@ class LLGSolver(nn.Module):
         :param dt: The size of the time step
         :type dt: float
         """
-        logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
+        if logging:
+            logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
         t = self._state.tensor(
             [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
         )
@@ -133,3 +134,4 @@ class LLGSolver(nn.Module):
         return odeint(
             self, self._state.m.tensor, t / self._scale_t, **self._solver_options
         )
+

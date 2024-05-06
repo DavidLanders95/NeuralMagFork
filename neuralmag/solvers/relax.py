@@ -3,6 +3,7 @@ import torch.nn as nn
 from torchdiffeq import odeint_adjoint as odeint
 
 from ..common import Function, logging
+from .llg_solver import LLGSolver
 
 __all__ = ["RelaxSolver"]
 
@@ -12,7 +13,7 @@ def relax_rhs(h, m, material__alpha):
     return - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
 
 
-class RelaxSolver(nn.Module):
+class RelaxSolver(LLGSolver):
     """
     Minalise the total energy using a time integrator using explicit adaptive time-stepping provided by the
     torchdiffeq library.
@@ -27,20 +28,8 @@ class RelaxSolver(nn.Module):
     :type solver_options: dict
     """
 
-    def __init__(self, state, scale_t=1e-9, parameters=[], solver_options={}):
-        super().__init__()
-        self._state = state
-        self._scale_t = scale_t
-        self._parameters = {}
-        self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
-        self._solver_options.update(solver_options)
-        for param in parameters:
-            value = state.getattr(param)
-            if isinstance(value, Function):
-                value = value.tensor
-            self._parameters[param] = torch.nn.Parameter(value)
-
-        self.reset()
+    def __init__(self, state, **kwargs):
+        super().__init__(state, **kwargs)
 
     def reset(self):
         """
@@ -57,23 +46,6 @@ class RelaxSolver(nn.Module):
         for i, param in enumerate(self._parameters.keys()):
             self._args[2 + i] = self._parameters[param]
 
-    def forward(self, t, m):
-        return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
-
-    def step(self, dt):
-        """
-        Perform single integration step of relax solver. Internally an adaptive time step is
-        used.
-
-        :param dt: The size of the time step
-        :type dt: float
-        """
-        t = self._state.tensor(
-            [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
-        )
-        m_next = odeint(self, self._state.m.tensor, t, **self._solver_options)
-        self._state.t.fill_(t[-1] * self._scale_t)
-        self._state.m.tensor[:] = m_next[-1]
 
     def minimize(self, tol):
         E_current = self._state.E
@@ -82,9 +54,9 @@ class RelaxSolver(nn.Module):
 
         while dE > tol:
             E_prev = E_current
-            self.step(1e-10)
+            self.step(1e-10, logging=False)
             E_current = self._state.E
             dE = E_prev - E_current
             logging.info_blue(f"[RelaxSolver]  dE = {dE:g} J, tol = {tol:g} J, E = {E_current:g} J")
         
-        self.reset()
+        self._state.t = 0
