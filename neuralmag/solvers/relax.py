@@ -49,6 +49,7 @@ class RelaxSolver(LLGSolver):
             self._args[2 + i] = self._parameters[param]
 
     def minimize(self, tol, timestep=1e-10):
+        t0 = self._state.t
         E_current = self._state.E
         logging.info_blue(f"[RelaxSolver] Initial Energy E = {E_current:g} J")
         dE = 2 * tol  # double tolarance to make sure first step occurs
@@ -62,4 +63,4 @@ class RelaxSolver(LLGSolver):
                 f"[RelaxSolver]  dE = {dE:g} J, tol = {tol:g} J, E = {E_current:g} J"
             )
 
-        self._state.t = 0
+        self._state.t = t0
