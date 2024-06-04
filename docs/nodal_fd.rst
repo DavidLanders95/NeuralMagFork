@@ -94,7 +94,7 @@ The 1D basis function are defined as
 
 
 NeuralMag supports nodal and cell based functions in arbitrary dimensions and even allows the mixing of node and cell based discretization in the different principal directions of the coordinate system.
-For the representation of discretized fields in the symbolic definition of functionals and linear forms, NeuralMag introduces the :class:`Variable` class.
+For the representation of discretized fields in the symbolic definition of functionals and linear forms, NeuralMag introduces the :class:`Variable <neuralmag.generators.pytorch_generator.Variable>` class.
 For instance, a scalar Field with nodal discretization in all 3 dimensions is initialized by
 
 .. code:: python
@@ -114,7 +114,7 @@ A mixed space can be defined by setting different discretization methods in the 
 Define and Evaluate Functionals
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The :class:`Variable` method returns a SymPy expression which can be used to define arbitrary functionals and linear forms.
+The :class:`Variable <neuralmag.generators.pytorch_generator.Variable>` method returns a SymPy expression which can be used to define arbitrary functionals and linear forms.
 The simplest functional just integrates a scalar variable over the mesh and is simply set up in NeuralMag by multiplying the variable with the volume integration measure
 
 .. code:: python
