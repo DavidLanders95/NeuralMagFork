@@ -121,7 +121,8 @@ class Function(object):
         :param constant: The constant to fill the tensor
         :type constant: int, list
         :param expand: If True, the tensor is set by expanding the constant
-            to the size of the mesh resulting in minimal storage consumption.
+            to the size of the mesh using :code:`torch.Tensor.expand`
+            resulting in minimal storage consumption.
         :type expand: bool
         :return: The function itself
         :rvalue: :class:`Function`

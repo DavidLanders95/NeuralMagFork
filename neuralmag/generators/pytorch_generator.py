@@ -164,11 +164,11 @@ class CodeClass(object):
         # generate code
         if not code_file_path.is_file():
             code_file_path.parent.mkdir(parents=True, exist_ok=True)
-            # TODO check if generate_code method exists
+            # TODO check if _generate_code method exists
             logging.info_green(
                 f"[{self.__class__.__name__}] Generate torch core methods"
             )
-            code = str(self.generate_code(*args))
+            code = str(self._generate_code(*args))
             with open(code_file_path, "w") as f:
                 f.write(code)
 

@@ -38,7 +38,7 @@ class Mesh(object):
     :type origin: tuple
 
     :Example:
-        .. code_block::
+        .. code-block::
 
             # 3D with 1 cell thickness, leading to 2 nodes in z-direction
             mesh_3d = Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))

@@ -42,17 +42,21 @@ class FieldTerm(gen.CodeClass):
     :Example:
         .. code-block::
 
+            import neuralmag as nm
+            from ..generators import pytorch_generator as gen
+
             # Example subclass implementing a uniaxial anisotropy
-            class UniaxialAnisotropyField(FieldTerm):
+            class UniaxialAnisotropyField(nm.FieldTerm):
                 _name = "uaniso"
 
                 @staticmethod
                 def e_expr(m, dim):
-                    K = Variable("material__Ku", "c" * dim)
-                    axis = Variable("material__Ku_axis", "c" * dim, (3,))
-                    return -K * m.dot(axis) ** 2 * dV(dim)
+                    K = gen.Variable("material__Ku", "c" * dim)
+                    axis = gen.Variable("material__Ku_axis", "c" * dim, (3,))
+                    return -K * m.dot(axis) ** 2 * gen.dV(dim)
 
-            # Use class to register dynamic attributes in state
+            # Use instance of class to register dynamic attributes in state
+            state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
             UniaxialAnisotropyField().register(state)
 
             # compute field and energy
@@ -72,8 +76,8 @@ class FieldTerm(gen.CodeClass):
 
         :param state: The state
         :type state: :class:`State`
-        :param name: The name used for the registration, falls back to class
-            default
+        :param name: The name used for the registration, falls back to :code:`_name`
+                     attribute of the class.
         :type name: str, optional
         """
         dim = state.mesh.dim
@@ -92,13 +96,22 @@ class FieldTerm(gen.CodeClass):
 
     @classmethod
     def attr_name(cls, attr, name=None):
+        r"""
+        Returns the attribute name for a given attribute, using the :class:`_name` attribute
+        of the class.
+
+        :param attr: The attribute name, e.g. "E" or "h"
+        :type attr: str
+        :param name: The name of the class, defaults to :class:`cls._name`
+        :type attr: str
+        """
         name = name or cls._name
         if name == "":
             return attr
         return f"{attr}_{name}"
 
     @classmethod
-    def generate_code(cls, n_gauss, dim):
+    def _generate_code(cls, n_gauss, dim):
         code = gen.CodeBlock()
         m = gen.Variable("m", "n" * dim, (3,))
 
