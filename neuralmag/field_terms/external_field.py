@@ -37,11 +37,35 @@ class ExternalField(FieldTerm):
     .. math::
 
       E = - \int_\Omega \mu_0 M_s  \vec{m} \cdot \vec{h} \dx
+
+    :param h: The field either given as a :code:`torch.Tensor` or callable
+              in case of a field that depends e.g. on :code:`state.t`.
+              The shape must be either (nx, ny, nz, 3) or (3,) in which case
+              the field expanded to full size.
+    :type h: torch.Tensor
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :type n_gauss: int
+
+    :Required state attributes (if not renamed):
+        * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
+
+    :Example:
+        .. code-block::
+
+            state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+
+            # define constant external field from expanded function
+            h_ext = nm.VectorFunction(state).fill((0, 0, 0), expand=True)
+            external = nm.ExternalField(h_ext)
+
+            # define external field in y-direction linearly increasing with time
+            external = nm.ExternalField(lambda t: t * state.tensor([0, 8e5 / 10e-9, 0]))
+
     """
     _name = "external"
     h = None
 
-    def __init__(self, h, expand=False, **kwargs):
+    def __init__(self, h, **kwargs):
         super().__init__(**kwargs)
         self._h = h
 

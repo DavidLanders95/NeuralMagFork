@@ -72,7 +72,8 @@ class FieldTerm(gen.CodeClass):
         Registers dynamic attributes for the computation of the effective field
         and energy with the given :class:`State` object. By naming convention,
         these methods are registered as :code:`state.h_{name}` and
-        :code:`state.E_{name}`.
+        :code:`state.E_{name}` or :code:`state.h` and :code:`state.E` in case
+        that of :code:`name` being an empty string.
 
         :param state: The state
         :type state: :class:`State`

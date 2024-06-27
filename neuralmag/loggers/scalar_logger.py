@@ -50,7 +50,7 @@ class ScalarLogger(object):
 
             # Actually log a row
             state = State(mesh)
-            logger << state
+            logger.log(state)
     """
 
     def __init__(self, filename, columns, every=1):
@@ -128,9 +128,6 @@ class ScalarLogger(object):
 
         self._write_row(values)
 
-    def __lshift__(self, state):
-        self.log(state)
-
     def _write_header(self, columns):
         headings = []
 
@@ -171,9 +168,8 @@ class ScalarLogger(object):
         logs every 10th step and the first (i = 0) step was already logged,
         the result is 10.
 
-        *Returns*
-            :class:`int`
-                The step number the logger is able to resume from
+        :return: The step number
+        :rtype: int
         """
         if self._file is not None:
             raise RuntimeError(
@@ -191,9 +187,8 @@ class ScalarLogger(object):
         Try to resume existing log file from log step i. The log file
         is truncated accordingly.
 
-        *Arguments*
-            i (:class:`int`)
-                The log step to resume from
+        :param i: The log step to resume from
+        :type i: int
         """
         number = (self.resumable_step() - i) / self._every
 

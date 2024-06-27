@@ -32,10 +32,18 @@ class UniaxialAnisotropyField(FieldTerm):
 
     with the anisotropy constant :math:`K` given in units of :math:`\text{J/m}^3`.
     For higher order anisotropy, use the :class:`UniaxialAnisotropyField2`.
+
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :type n_gauss: int
+
+    :Required state attributes (if not renamed):
+        * **state.material.Ku** (*cell scalar field*) The anisotropy constant in J/m^3
+        * **state.material.Ku_axis** (*cell vector field*) The anisotropy axis as unit vector field
+        * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
     _name = "uaniso"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     @staticmethod

@@ -243,12 +243,22 @@ class DemagField(FieldTerm):
       \Delta u = \nabla \cdot (M_s \vec{m})
 
     with open boundary conditions.
+
+
+    :param p: Distance threshhold at which the demag tensor is approximated
+              by a dipole field given in numbers of cells. Defaults to 20.
+    :type p: int
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :type n_gauss: int
+
+    :Required state attributes (if not renamed):
+        * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
     _name = "demag"
     h = None
 
-    def __init__(self, p=20, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, p=20, **kwargs):
+        super().__init__(**kwargs)
         self._p = p
 
     def register(self, state, name=None):

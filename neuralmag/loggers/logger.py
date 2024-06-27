@@ -35,9 +35,9 @@ class Logger(object):
 
     :param directory: The name of the log file
     :type directory: str
-    :param scalars: List of attribute names of the scalars to be logged
+    :param scalars: List of state-attribute names of the scalars to be logged
     :type scalars: list
-    :param fields: List of attribute names of the fields to be logged
+    :param fields: List of state-attribute names of the fields to be logged
     :type fields: list
     :param scalars_every: Write scalars every nth step
     :type scalars_every: int
@@ -52,7 +52,7 @@ class Logger(object):
 
             # Actually log fields
             state = State(mesh)
-            logger << state
+            logger.log(state)
     """
 
     def __init__(
@@ -80,10 +80,7 @@ class Logger(object):
             self._resume_time = None
             return
         for logger in self.loggers.values():
-            logger << state
-
-    def __lshift__(self, state):
-        self.log(state)
+            logger.log(state)
 
     def resume(self, state):
         """

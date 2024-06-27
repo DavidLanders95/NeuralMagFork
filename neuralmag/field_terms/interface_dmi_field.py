@@ -37,10 +37,18 @@ class InterfaceDMIField(FieldTerm):
          \Big] \dx
 
     with the DMI constant :math:`D` given in units of :math:`\text{J/m}^2`.
+
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :type n_gauss: int
+
+    :Required state attributes (if not renamed):
+        * **state.material.Di** (*cell scalar field*) The DMI constant in J/m^2
+        * **state.material.Di_axis** (*cell vector field*) The DMI surface normal as unit vector field
+        * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
     _name = "idmi"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     @staticmethod

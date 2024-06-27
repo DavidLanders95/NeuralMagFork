@@ -17,6 +17,8 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from functools import reduce
+
 from . import logging
 
 __all__ = ["Mesh"]
@@ -32,7 +34,7 @@ class Mesh(object):
 
     :param n: Number of cells in principal directions
     :type n: tuple
-    :param dx: Cell-size in principal directions
+    :param dx: Cell-size in principal directions in m
     :type dx: tuple
     :param origin: Coordinate of the bottom-left corner of the mesh
     :type origin: tuple
@@ -72,7 +74,7 @@ class Mesh(object):
         """
         The total number of simulation cells
         """
-        return self.n[0] * self.n[1] * self.n[2]
+        return reduce(lambda x, y: x * y, self.n)
 
     @property
     def num_nodes(self):

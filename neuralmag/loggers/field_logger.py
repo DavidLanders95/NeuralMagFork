@@ -27,12 +27,15 @@ __all__ = ["FieldLogger"]
 
 class FieldLogger(object):
     """
-    Logger class for fields
+    Logger class for fields using PVD/VTI files from the visualization
+    toolkit (VTK). The logger creates a single PVD file referencing the
+    VTI snapshots for different simulation times saving spatially
+    resolved field data.
 
     :param filename: The name of the log file
     :type filename: str
     :param fields: The fields to be written to the log file as a list of
-        attribute names.
+                   attribute names of the state class
     :type fields: list
     :param every: Write field to log file every nth call
     :type every: int, optional
@@ -45,7 +48,7 @@ class FieldLogger(object):
 
             # Actually log fields
             state = State(mesh)
-            logger << state
+            logger.log(state)
     """
 
     def __init__(self, filename, fields, every=1):
@@ -107,9 +110,6 @@ class FieldLogger(object):
                 ).toprettyxml(indent="  ")
             )
 
-    def __lshift__(self, state):
-        self.log(state)
-
     def reset(self):
         """
         Reset the internal step counter
@@ -118,7 +118,9 @@ class FieldLogger(object):
 
     def resumable_step(self):
         """
-        Returns the step number from which the logger can resume
+        Returns the last step the logger can resume from, e.g. if the logger
+        logs every 10th step and the first (i = 0) step was already logged,
+        the result is 10.
 
         :return: The step number
         :rtype: int
@@ -135,7 +137,7 @@ class FieldLogger(object):
         step was yet logged.
 
         :return: Number of the last step recorded
-        :rtype: int
+        :rtype: int/None
         """
         result = (self.resumable_step() // self._every - 1) * self._every
         if result < 0:
