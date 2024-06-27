@@ -35,10 +35,12 @@ class TotalField(FieldTerm):
     :Example:
         .. code-block::
 
-            ExchangeField().register(state, "exchange")
-            DemagField().register(state, "demag")
-            ExternalField(h_ext).register(state, "external")
-            TotalField("exchange", "demag", "external").register(state)
+            state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+
+            nm.ExchangeField().register(state, "exchange")
+            nm.DemagField().register(state, "demag")
+            nm.ExternalField(h_ext).register(state, "external")
+            nm.TotalField("exchange", "demag", "external").register(state)
 
             # Compute total field and energy
             h = state.h

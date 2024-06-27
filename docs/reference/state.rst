@@ -132,7 +132,7 @@ Since Python variables are not allowed to include the character "." in the name,
     state.material.Ms = nm.CellFunction(state).fill(8e5)
 
     # create dynamic attributes that computes Ms * m
-    state.M = lambda m, material__Ms: m * material_Ms.unsqueeze(-1)
+    state.M = lambda m, material__Ms: m * material__Ms.unsqueeze(-1)
 
 Class-Reference
 ^^^^^^^^^^^^^^^

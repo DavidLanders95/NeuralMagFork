@@ -130,7 +130,8 @@ class Function(object):
         :Example:
             .. code-block::
 
-                f = Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
+                state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+                f = nm.Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
         """
         if expand:
             return self.fill_expanded(constant)

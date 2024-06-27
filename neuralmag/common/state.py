@@ -318,6 +318,8 @@ class State(object):
         :Example:
             .. code-block::
 
+                state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+
                 def f(a, b):
                    return a + b
 
@@ -349,6 +351,7 @@ class State(object):
         :Example:
             .. code-block::
 
+                state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
                 x, y, z = state.coordinates('nnn')
 
                 # initialize magnetization based on coordinate function
@@ -397,6 +400,8 @@ class State(object):
 
         :Example:
             .. code-block::
+
+                state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
 
                 state.material.Ms = CellFunction(state).fill(8e5)
                 state.m = VectorFunction(state).fill([0, 0, 1])
