@@ -26,6 +26,9 @@ class Function(object):
     """
     This class represents a discretized field on the mesh of a state object.
 
+    If the instance is not intialized with a tensor, the tensor is lazy-
+    initialized with zeros on the first access.
+
     :param state: The state that is used to construct the function
     :type state: :class:`State`
     :param spaces: The function spaces in the principal direction (defaults to

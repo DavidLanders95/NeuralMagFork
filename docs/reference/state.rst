@@ -28,7 +28,7 @@ Scalar values such as the time, can be simply set by
 
 and are automatically converted to 0D PyTorch tensors by the :code:`state` object.
 Fields, such as the magnetization, should be set as :class:`Function` objects, which contain information on the spatial discretization as well as the actual tensor data.
-The :class:`Function` objects use type scheme for function spaces as the :class:`Variable <neuralmag.generators.pytorch_generator.Variable>` class used in NeuralMag's form compiler.
+The :class:`Function` objects use the same type scheme for function spaces as the :class:`Variable <neuralmag.generators.pytorch_generator.Variable>` class used in NeuralMag's form compiler.
 In order to initialize a vector function with nodal discretization for the magnetization, the :class:`Function` class is initialized as follows
 
 .. code:: python
