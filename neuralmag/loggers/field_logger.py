@@ -118,9 +118,9 @@ class FieldLogger(object):
 
     def resumable_step(self):
         """
-        Returns the last step the logger can resume from, e.g. if the logger
-        logs every 10th step and the first (i = 0) step was already logged,
-        the result is 10.
+        Returns the first step that can be written when resuming, e.g. if the
+        logger logs every 10th step and the first (i = 0) step was already
+        logged, the result is 10.
 
         :return: The step number
         :rtype: int
