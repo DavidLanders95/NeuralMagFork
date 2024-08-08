@@ -70,14 +70,16 @@ class ExternalField(FieldTerm):
         self._h = h
 
     def register(self, state, name=None):
-        size = VectorFunction(state).size
+        tensor_shape = VectorFunction(state).tensor_shape
         if callable(self._h):
             func, args = state.get_func(self._h)
             value = func(*args)
             if value.shape == (3,):
                 arg_names = list(inspect.signature(func).parameters.keys())
                 code = f"def h({', '.join(arg_names)}):\n"
-                code += f"    return __h({', '.join(arg_names)}).expand({size})\n"
+                code += (
+                    f"    return __h({', '.join(arg_names)}).expand({tensor_shape})\n"
+                )
                 compiled_code = compile(code, "<string>", "exec")
                 self.h = types.FunctionType(
                     compiled_code.co_consts[0], {f"__h": self._h}, name
@@ -85,10 +87,10 @@ class ExternalField(FieldTerm):
             else:
                 self.h = self._h
         elif isinstance(self._h, torch.Tensor):
-            if self._h.shape == size:
+            if self._h.shape == tensor_shape:
                 self.h = self._h
             elif self._h.shape == (3,):
-                self.h = self._h.expand(size)
+                self.h = self._h.expand(tensor_shape)
             else:
                 raise Exception("Shape not matching")
         elif isinstance(self._h, VectorFunction):

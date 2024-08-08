@@ -51,16 +51,16 @@ class Function(object):
         else:
             self._name = name
 
-        size = []
+        tensor_shape = []
         for i, space in enumerate(spaces):
             if space == "c":
-                size.append(state.mesh.n[i])
+                tensor_shape.append(state.mesh.n[i])
             elif space == "n":
-                size.append(state.mesh.n[i] + 1)
+                tensor_shape.append(state.mesh.n[i] + 1)
             else:
                 raise Exception(f"Function space '{space}' not supported")
 
-        self._size = tuple(size) + shape
+        self._tensor_shape = tuple(tensor_shape) + shape
 
         if tensor is None or isinstance(tensor, torch.Tensor):
             self._tensor = tensor
@@ -83,11 +83,11 @@ class Function(object):
         return self._shape
 
     @property
-    def size(self):
+    def tensor_shape(self):
         """
-        The size (shape) of the tensor with the discretized field values
+        The shape of the tensor with the discretized field values
         """
-        return self._size
+        return self._tensor_shape
 
     @property
     def state(self):
@@ -110,7 +110,7 @@ class Function(object):
         """
         if self._tensor is None:
             self._tensor = torch.zeros(
-                self._size, dtype=self._state.dtype, device=self._state.device
+                self._tensor_shape, dtype=self._state.dtype, device=self._state.device
             )
         return self._tensor
 
@@ -150,7 +150,9 @@ class Function(object):
     def fill_expanded(self, constant):
         """
         Fills the tensor of the function with a constant value by expanding
-        the constant to the full mesh size.
+        the constant to the full mesh size by to use of :code:`torch.Tensor.expand`.
+
+        This reduces the memory consumption of the tensor to a single double value.
 
         :param constant: The constant to fill the tensor
         :type constant: int, list
@@ -163,12 +165,12 @@ class Function(object):
                 assert self.shape == ()
                 self._tensor = self._expanded.reshape(
                     (1,) * self.state.mesh.dim
-                ).expand(self._size)
+                ).expand(self._tensor_shape)
             elif isinstance(constant, (list, tuple)):
                 assert self.shape == (3,)
                 self._tensor = self._expanded.reshape(
                     (1,) * self.state.mesh.dim + (3,)
-                ).expand(self._size)
+                ).expand(self._tensor_shape)
             else:
                 raise NotImplemented("Unsupported shape.")
         elif self._expanded is not None:
