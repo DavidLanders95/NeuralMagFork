@@ -41,7 +41,7 @@ class UniaxialAnisotropyField(FieldTerm):
         * **state.material.Ku_axis** (*cell vector field*) The anisotropy axis as unit vector field
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
-    _name = "uaniso"
+    default_name = "uaniso"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

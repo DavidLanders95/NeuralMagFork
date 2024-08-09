@@ -46,7 +46,7 @@ class InterfaceDMIField(FieldTerm):
         * **state.material.Di_axis** (*cell vector field*) The DMI surface normal as unit vector field
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
-    _name = "idmi"
+    default_name = "idmi"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

@@ -32,7 +32,8 @@ class FieldTerm(gen.CodeClass):
     r"""
     Base class of all effective field contributions. In simple cases,
     a subclass is just required to implement the energy functional of a field
-    contribution. The form compiler of NeuralMag is then used to generate
+    contribution and a default_name which is used when registering the field
+    term with a state. The form compiler of NeuralMag is then used to generate
     efficient code for the computation of both the energy and effective field
     by means of a just-in-time compiler.
 
@@ -47,7 +48,7 @@ class FieldTerm(gen.CodeClass):
 
             # Example subclass implementing a uniaxial anisotropy
             class UniaxialAnisotropyField(nm.FieldTerm):
-                _name = "uaniso"
+                default_name = "uaniso"
 
                 @staticmethod
                 def e_expr(m, dim):
@@ -64,8 +65,17 @@ class FieldTerm(gen.CodeClass):
             E = state.E_uaniso
     """
 
+    default_name = None
+
     def __init__(self, n_gauss=None):
         self._n_gauss = n_gauss or config.fem["n_gauss"]
+
+    def __init_subclass__(cls, **kwargs):
+        if getattr(cls, "default_name") is None:
+            raise TypeError(
+                f"Can't instantiate abstract class {cls.__name__} without 'default_name' attribute defined"
+            )
+        return super().__init_subclass__(**kwargs)
 
     def register(self, state, name=None):
         r"""
@@ -77,7 +87,7 @@ class FieldTerm(gen.CodeClass):
 
         :param state: The state
         :type state: :class:`State`
-        :param name: The name used for the registration, falls back to :code:`_name`
+        :param name: The name used for the registration, falls back to :code:`default_name`
                      attribute of the class.
         :type name: str, optional
         """
@@ -98,15 +108,15 @@ class FieldTerm(gen.CodeClass):
     @classmethod
     def attr_name(cls, attr, name=None):
         r"""
-        Returns the attribute name for a given attribute, using the :class:`_name` attribute
+        Returns the attribute name for a given attribute, using the :class:`default_name` attribute
         of the class.
 
         :param attr: The attribute name, e.g. "E" or "h"
         :type attr: str
-        :param name: The name of the class, defaults to :class:`cls._name`
+        :param name: The name of the class, defaults to :class:`cls.default_name`
         :type attr: str
         """
-        name = name or cls._name
+        name = name or cls.default_name
         if name == "":
             return attr
         return f"{attr}_{name}"

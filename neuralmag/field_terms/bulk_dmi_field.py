@@ -42,7 +42,7 @@ class BulkDMIField(FieldTerm):
         * **state.material.Db** (*cell scalar field*) The DMI constant in J/m^2
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
-    _name = "bdmi"
+    default_name = "bdmi"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

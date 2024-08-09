@@ -62,7 +62,7 @@ class ExternalField(FieldTerm):
             external = nm.ExternalField(lambda t: t * state.tensor([0, 8e5 / 10e-9, 0]))
 
     """
-    _name = "external"
+    default_name = "external"
     h = None
 
     def __init__(self, h, **kwargs):

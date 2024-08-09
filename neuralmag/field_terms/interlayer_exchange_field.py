@@ -64,7 +64,7 @@ class InterlayerExchangeField(FieldTerm):
         * **state.material.iA** (*CCN scalar field*) Interface coupling constant in J/m^2
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
-    _name = "iexchange"
+    default_name = "iexchange"
 
     def __init__(self, idx1, idx2, **kwargs):
         super().__init__(**kwargs)

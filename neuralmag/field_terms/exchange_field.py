@@ -40,7 +40,7 @@ class ExchangeField(FieldTerm):
         * **state.material.A** (*cell scalar field*) The exchange constant in J/m
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
-    _name = "exchange"
+    default_name = "exchange"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
