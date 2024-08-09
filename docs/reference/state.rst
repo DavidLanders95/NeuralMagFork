@@ -122,7 +122,7 @@ The Material Namespace
 
 In order to help the user to structure the attributes according to their role in the simulation, NeuralMag introduces a material namespace.
 This namespace behaves exactly as the :class:`State` class itself with regard to the setting and getting of normal/dynamic attributes.
-However, care has to taken, when using members of the material namespace as arguments of dynamic attributes.
+However, care has to be taken, when using members of the material namespace as arguments of dynamic attributes.
 Since Python variables are not allowed to include the character "." in the name, NeuralMag expects the character sequence "__" instead as demonstrated in the following example.
 
 .. code:: python

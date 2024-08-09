@@ -72,7 +72,9 @@ class ScalarLogger(object):
 
     def add_column(self, column):
         """
-        Add column to log file. This method is automatically called for all
+        Add column to log file.
+
+        This method is automatically called for all
         columns on initialization of the logger.
         The column can be provided either as attribute name or as a Callable
         that takes the state as the only argument.
