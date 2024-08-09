@@ -121,7 +121,9 @@ class State(object):
     @property
     def material(self):
         """
-        The material namespace. The namespace supports the same functionality
+        The material namespace.
+
+        The namespace supports the same functionality
         as the :class:`State` class to set and get regular and dynamic attributes.
 
         :Example:

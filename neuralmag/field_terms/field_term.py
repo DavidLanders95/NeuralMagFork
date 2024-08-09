@@ -44,7 +44,7 @@ class FieldTerm(gen.CodeClass):
         .. code-block::
 
             import neuralmag as nm
-            from ..generators import pytorch_generator as gen
+            from neuralmag.generators import pytorch_generator as gen
 
             # Example subclass implementing a uniaxial anisotropy
             class UniaxialAnisotropyField(nm.FieldTerm):

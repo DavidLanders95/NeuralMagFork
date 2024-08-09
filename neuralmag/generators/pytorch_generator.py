@@ -57,7 +57,7 @@ def dV(dim=3, region="rho", **kwargs):
 
     :param dim: Dimension of the mesh to integrate over.
     :type dim: int
-    :param region: name of the cell function that acts as a region indecator
+    :param region: name of the cell function that acts as a region indicator
     :type region: str
     :param \**kwargs: Additional meta information
     :return: The integration measure
@@ -73,7 +73,7 @@ def dA(dim=3, normal=2, region="rhoxy", idx=":", **kwargs):
 
     :param dim: Dimension of the mesh to integrate over.
     :type dim: int
-    :param region: name of the cell function that acts as a region indecator
+    :param region: name of the cell function that acts as a region indicator
     :type region: str
     :param \**kwargs: Additional meta information
     :return: The integration measure
