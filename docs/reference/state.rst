@@ -45,15 +45,23 @@ Alternatively, one of the convenience wrappers can be used to initialize :class:
 
     # scalar nodal function
     f1 = nm.Function(state)
+    print(f1.spaces, f1.shape)
+    # results in "nnn ()"
 
     # vector nodal function
     f2 = nm.VectorFunction(state)
+    print(f1.spaces, f1.shape)
+    # results in "nnn (3,)"
 
     # scalar cell function
     f3 = nm.CellFunction(state)
+    print(f1.spaces, f1.shape)
+    # results in "ccc ()"
 
     # vector cell function
     f4 = nm.VectorCellFunction(state)
+    print(f1.spaces, f1.shape)
+    # results in "ccc (3,)"
 
 Based on the :class:`Mesh` object of the :class:`State`, the function objects are initialized with PyTorch tensor of appropriate size.
 For instance, a mesh with 100 x 25 x 1 cells as initialized above will result in a 4D tensor with shape 101 x 26 x 2 x 3 for a nodal vector function.
@@ -144,4 +152,13 @@ Class-Reference
    :members:
 
 .. autoclass:: Function
+   :members:
+
+.. autoclass:: VectorFunction
+   :members:
+
+.. autoclass:: CellFunction
+   :members:
+
+.. autoclass:: VectorCellFunction
    :members:

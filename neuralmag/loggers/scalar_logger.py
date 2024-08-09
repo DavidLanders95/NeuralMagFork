@@ -79,6 +79,9 @@ class ScalarLogger(object):
         If the column is a :class:`Function`, the functional is averaged over
         the whole mesh before logging.
 
+        .. note::
+          This method can only be called before the first line is logged
+
         :param column: The column to be logged
         :type column: str, Callable
         """

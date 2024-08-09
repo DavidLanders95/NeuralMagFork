@@ -225,6 +225,21 @@ class Function(object):
 
 
 class CellFunction(Function):
+    """
+    Subclass of :class:`Function` with the function space set to cellwise in each dimension.
+
+    :param state: The state that is used to construct the function
+    :type state: :class:`State`
+    :type spaces: str
+    :param shape: The shape of the function (either ``()`` for scalars or ``(3,)`` for
+        vectors is currently supported)
+    :type shape: tuple
+    :param tensor: Tensor with discretized function values
+    :type tensor: :class:`torch.Tensor`
+    :param name: Name of the function
+    :type name: str
+    """
+
     def __init__(self, state, **kwargs):
         assert "spaces" not in kwargs
         kwargs["spaces"] = "c" * state.mesh.dim
@@ -232,6 +247,20 @@ class CellFunction(Function):
 
 
 class VectorFunction(Function):
+    """
+    Subclass of :class:`Function` with the shape set to (3,).
+
+    :param state: The state that is used to construct the function
+    :type state: :class:`State`
+    :param spaces: The function spaces in the principal direction (defaults to
+        "nnn" for 3D meshes and "nn" for 2D meshes)
+    :type spaces: str
+    :param tensor: Tensor with discretized function values
+    :type tensor: :class:`torch.Tensor`
+    :param name: Name of the function
+    :type name: str
+    """
+
     def __init__(self, state, **kwargs):
         assert "shape" not in kwargs
         kwargs["shape"] = (3,)
@@ -239,6 +268,18 @@ class VectorFunction(Function):
 
 
 class VectorCellFunction(Function):
+    """
+    Subclass of :class:`Function` with the shape set to (3,) and the
+    function space set to cellwise in each dimension.
+
+    :param state: The state that is used to construct the function
+    :type state: :class:`State`
+    :param tensor: Tensor with discretized function values
+    :type tensor: :class:`torch.Tensor`
+    :param name: Name of the function
+    :type name: str
+    """
+
     def __init__(self, state, **kwargs):
         assert "spaces" not in kwargs
         assert "shape" not in kwargs

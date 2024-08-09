@@ -84,10 +84,11 @@ class Logger(object):
 
     def resume(self, state):
         """
-        Tries to resume from existing log files. If resume is possible
+        Tries to resume from existing log files. If resume is possible,
+        i.e. if at least one magnetization field has been logged before,
         the state object is updated with latest possible values of t
         and m and the different log files are aligned and resumed.
-        If resume is not possible the state is not modiefied and the
+        If resume is not possible the state is not modified and the
         simulations starts from the beginning.
 
         :param state: The state to be resumed from

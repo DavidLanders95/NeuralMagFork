@@ -131,9 +131,10 @@ class State(object):
                  state = nm.State(mesh)
 
                  # Set saturation magnetization Ms according to Bloch's law
+                 Ms0 = 8e5
                  Tc = 400.0
                  state.T = 200.0
-                 state.material.Ms = lambda T: Ms * (1 - T/Tc)**1.5
+                 state.material.Ms = lambda T: Ms0 * (1 - T/Tc)**1.5
         """
         return self._material
 
