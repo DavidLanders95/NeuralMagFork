@@ -128,7 +128,11 @@ class FieldTerm(gen.CodeClass):
 
         if not hasattr(cls, "h"):
             # generate linear-form cmds
-            field_expr = gen.gateaux_derivative(cls.e_expr(m, dim), m)
+            if hasattr(cls, "dedm_expr"):
+                field_expr = cls.dedm_expr(m, dim)
+            else:
+                field_expr = gen.gateaux_derivative(cls.e_expr(m, dim), m)
+
             cmds1, vars1 = gen.linear_form_cmds(field_expr, n_gauss)
 
             # generate lumped mass cmds

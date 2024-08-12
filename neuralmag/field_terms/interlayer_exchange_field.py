@@ -83,3 +83,12 @@ class InterlayerExchangeField(FieldTerm):
         im_other = Variable("im_other", "nnn", (3,))
 
         return -0.5 * iA * m.dot(im_other) * dA(dim, idx="iidx")
+
+    @staticmethod
+    def dedm_expr(m, dim):
+        assert dim == 3
+        v = Variable("v", "nnn", (3,))
+        iA = Variable("material__iA", "ccn")
+        im_other = Variable("im_other", "nnn", (3,))
+
+        return -iA * v.dot(im_other) * dA(dim, idx="iidx")
