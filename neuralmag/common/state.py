@@ -83,19 +83,7 @@ class State(object):
             self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
 
         self._attr_values["eps"] = torch.finfo(self.dtype).eps
-
         logging.info_green(f"[State] Running on device: {self._device}")
-        if mesh.dim == 2:
-            logging.info_green(
-                "[Mesh] 2D, %dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx)
-            )
-        elif mesh.dim == 3:
-            logging.info_green(
-                "[Mesh] 3D, %dx%dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx)
-            )
-        else:
-            # TODO support 1D meshes
-            raise RuntimeError(f"Mesh dimension must be 2 or 3")
 
     @property
     def device(self):

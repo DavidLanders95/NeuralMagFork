@@ -301,7 +301,7 @@ def compile_functional(expr, n_gauss=3):
                 sidx.append(str(idx[-1]))
 
             # contract leading sequence of ":,: to ...
-            arr_idx = re.sub(r"^(:,)+:($|,)", r"...\2", ",".join(sidx))
+            arr_idx = re.sub(r"^(:,)*:($|,)", r"...\2", ",".join(sidx))
             cmd = cmd.replace(symb.name, f"{name}[{arr_idx}]")
 
         args["cmd"] = re.sub(r"_(dx\[\d\])_", r"\1", cmd)
