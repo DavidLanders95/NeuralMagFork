@@ -20,18 +20,25 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import torch
 import torch.nn as nn
 from torchdiffeq import odeint_adjoint as odeint
+from torchdiffeq import odeint_event
 
 from ..common import Function, logging
 
 __all__ = ["LLGSolver"]
 
+def torque(h, m):
+    return torch.linalg.cross(m, torch.linalg.cross(m, h))
+
+def relax_rhs(h, m, material__alpha):
+    gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
+    return - material__alpha * gamma_prime * torque(h, m)
 
 def llg_rhs(h, m, material__alpha):
     gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
     return -gamma_prime * torch.linalg.cross(
         m, h
-    ) - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
-
+    ) + relax_rhs(h, m, material__alpha)
+    
 
 class LLGSolver(nn.Module):
     """
@@ -98,6 +105,10 @@ class LLGSolver(nn.Module):
             internal_args.append(param)
 
         self._func, self._args = self._state.get_func(llg_rhs, internal_args)
+        self._relax_func, self._relax_args = self._state.get_func(relax_rhs, internal_args)
+        self._func_torque, self._args_torque = self._state.get_func(
+            torque, internal_args
+        )
 
         for i, param in enumerate(self._parameters.keys()):
             self._args[2 + i] = self._parameters[param]
@@ -105,7 +116,7 @@ class LLGSolver(nn.Module):
     def forward(self, t, m):
         return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
 
-    def step(self, dt, logging=True):
+    def step(self, dt):
         """
         Perform single integration step of LLG. Internally an adaptive time step is
         used.
@@ -113,8 +124,7 @@ class LLGSolver(nn.Module):
         :param dt: The size of the time step
         :type dt: float
         """
-        if logging:
-            logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
+        logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
         t = self._state.tensor(
             [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
         )
@@ -134,3 +144,26 @@ class LLGSolver(nn.Module):
         return odeint(
             self, self._state.m.tensor, t / self._scale_t, **self._solver_options
         )
+        
+    def relax(self, tol):
+        self.tol = tol
+        t0 = self._state.t
+        logging.info_blue(f"[RelaxSolver] Initial Energy E = {self._state.E:g} J")
+        _, m_next = odeint_event(
+            self,
+            self._state.m.tensor,
+            self._state.t,
+            event_fn=self._event_fn,
+            odeint_interface=odeint,
+            **self._solver_options,
+        )
+        self._state.m.tensor[:] = m_next[-1]
+        logging.info_blue(f"[RelaxSolver] Final Energy E = {self._state.E:g} J")
+        self._state.t = t0
+
+    def _event_fn(self, t, m):
+        torque = self._func_torque(t * self._scale_t, m, *self._args_torque[2:])
+        if torque.abs().max() > self.tol:
+            return torch.ones_like(t)
+        else:
+            return torch.zeros_like(t)
