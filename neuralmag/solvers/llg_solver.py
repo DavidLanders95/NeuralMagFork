@@ -104,7 +104,7 @@ class LLGSolver(nn.Module):
         for param in self._parameters.keys():
             internal_args.append(param)
 
-        self._func, self._args = self._state.get_func(llg_rhs, internal_args)
+        self._llg_func, self._llg_args = self._state.get_func(llg_rhs, internal_args)
         self._relax_func, self._relax_args = self._state.get_func(relax_rhs, internal_args)
         self._func_torque, self._args_torque = self._state.get_func(
             torque, internal_args
@@ -124,6 +124,7 @@ class LLGSolver(nn.Module):
         :param dt: The size of the time step
         :type dt: float
         """
+        self._func, self._args = self._llg_func, self._llg_args
         logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
         t = self._state.tensor(
             [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
@@ -146,6 +147,7 @@ class LLGSolver(nn.Module):
         )
         
     def relax(self, tol):
+        self._func, self._args = self._relax_func, self._relax_args
         self.tol = tol
         t0 = self._state.t
         logging.info_blue(f"[RelaxSolver] Initial Energy E = {self._state.E:g} J")
