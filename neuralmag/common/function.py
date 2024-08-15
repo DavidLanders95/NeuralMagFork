@@ -19,10 +19,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import torch
 
+from ..generators import pytorch_generator as gen
+
 __all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
 
 
-class Function(object):
+class Function(gen.CodeClass):
     """
     This class represents a discretized field on the mesh of a state object.
 
@@ -70,6 +72,8 @@ class Function(object):
         else:
             raise NotImplemented("Unsupported tensor type.")
         self._expanded = False
+
+        self.save_and_load_code(spaces, shape)
 
     @property
     def name(self):
@@ -192,36 +196,31 @@ class Function(object):
         :return: The componentwise average
         :rtype: :class:`torch.Tensor`
         """
-        # TODO get rid of conditionals?
-        # TODO support all function spaces
-        if self._spaces == "ccc" or self._spaces == "cc":
-            return self.tensor.mean(dim=tuple(range(self._state.mesh.dim)))
-        if self._spaces == "nn":
-            return (
-                (
-                    self.tensor[1:, 1:, ...]
-                    + self.tensor[:-1, 1:, ...]
-                    + self.tensor[1:, :-1, ...]
-                    + self.tensor[:-1, :-1, ...]
-                )
-                / 4.0
-            ).mean(dim=(0, 1))
-        elif self._spaces == "nnn":
-            return (
-                (
-                    self.tensor[1:, 1:, 1:, ...]
-                    + self.tensor[:-1, 1:, 1:, ...]
-                    + self.tensor[1:, :-1, 1:, ...]
-                    + self.tensor[:-1, :-1, 1:, ...]
-                    + self.tensor[1:, 1:, :-1, ...]
-                    + self.tensor[:-1, 1:, :-1, ...]
-                    + self.tensor[1:, :-1, :-1, ...]
-                    + self.tensor[:-1, :-1, :-1, ...]
-                )
-                / 8.0
-            ).mean(dim=(0, 1, 2))
-        else:
-            raise Exception(f"Function space '{self._spaces}' not supported by mean.")
+        return self._code.avg(self._state.rho.tensor, self._state.dx, self.tensor)
+
+    @classmethod
+    def _generate_code(cls, spaces, shape):
+        code = gen.CodeBlock()
+        dim = len(spaces)
+
+        # generate avg method
+        f = gen.Variable("f", spaces, shape)
+        with code.add_function("avg", ["rho", "dx", "f"]) as func:
+            terms, _ = gen.compile_functional(1 * gen.dV(dim))
+            func.assign_sum("vol", *[term["cmd"] for term in terms])
+
+            if shape == ():
+                terms, variables = gen.compile_functional(f * gen.dV(dim))
+                func.assign_sum("fint", *[term["cmd"] for term in terms])
+            elif shape == (3,):
+                func.zeros_like("fint", "f", (3,))
+                for i in range(3):
+                    terms, _ = gen.compile_functional(f.dot(gen.cs_e[i]) * gen.dV(dim))
+                    func.assign_sum(f"fint[{i}]", *[term["cmd"] for term in terms])
+
+            func.retrn("fint / vol")
+
+        return code
 
 
 class CellFunction(Function):

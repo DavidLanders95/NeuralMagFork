@@ -17,9 +17,11 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import hashlib
 import importlib
 import json
 import pathlib
+import pickle
 import re
 from functools import reduce
 from itertools import product
@@ -112,11 +114,18 @@ class CodeFunction(object):
         self._block.add("\n")
         return True
 
+    @staticmethod
+    def sum(*terms):
+        return " + ".join([f"({term}).sum()" for term in terms])
+
     def add_line(self, code):
         self._code += f"    {code}\n"
 
     def assign(self, lhs, rhs):
         self.add_line(f"{lhs} = {rhs}")
+
+    def assign_sum(self, lhs, *terms):
+        self.assign(lhs, self.sum(*terms))
 
     def zeros_like(self, var, src, shape=None):
         if shape is None:
@@ -134,8 +143,7 @@ class CodeFunction(object):
         self.add_line(f"return {code}")
 
     def retrn_sum(self, *terms):
-        retval = " + ".join([f"({term}).sum()" for term in terms])
-        self.add_line(f"return {retval}")
+        self.add_line(f"return {self.sum(*terms)}")
 
 
 class CodeBlock(object):
@@ -158,7 +166,7 @@ class CodeClass(object):
         code_file_path = (
             this_module.parent
             / "code"
-            / f"{this_module.stem}_{hash(frozenset(args))}.py"
+            / f"{this_module.stem}_{hashlib.md5(pickle.dumps(args)).hexdigest()}.py"
         )
 
         # generate code

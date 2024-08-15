@@ -35,6 +35,11 @@ def test_vector_function_with_mixed_state(state):
     assert f.tensor.shape == (3, 2, 3, 3)
 
 
+def test_avg(state):
+    f = Function(state).fill(2.0)
+    assert f.avg().cpu() == pytest.approx(2.0)
+
+
 def test_fill(state):
     f = Function(state).fill(2.0)
     assert f.avg().cpu() == pytest.approx(2.0)

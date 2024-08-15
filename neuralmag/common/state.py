@@ -25,7 +25,7 @@ import numpy as np
 import pyvista as pv
 import torch
 
-from . import Function, logging
+from . import CellFunction, Function, logging
 
 __all__ = ["State"]
 
@@ -76,7 +76,7 @@ class State(object):
         self.t = 0.0
 
         # initialize density fields for volume and facet measure with 1
-        self.rho = 1.0
+        self.rho = CellFunction(self).fill(1.0, expand=True)
         if mesh.dim == 3:
             self.rhoxy = Function(self, "ccn").fill(1.0, expand=True)
             self.rhoxz = Function(self, "cnc").fill(1.0, expand=True)
