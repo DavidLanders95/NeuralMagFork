@@ -20,6 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import hashlib
 import importlib
 import json
+import os
 import pathlib
 import pickle
 import re
@@ -162,12 +163,15 @@ class CodeBlock(object):
 
 class CodeClass(object):
     def save_and_load_code(self, *args):
+        # setup cache file name
         this_module = pathlib.Path(importlib.import_module(self.__module__).__file__)
-        code_file_path = (
-            this_module.parent
-            / "code"
-            / f"{this_module.stem}_{hashlib.md5(pickle.dumps(args)).hexdigest()}.py"
+        i = this_module.parent.parts[::-1].index("neuralmag")
+        prefix = "_".join(this_module.parent.parts[-i:] + (this_module.stem,))
+        cache_file = f"{prefix}_{hashlib.md5(pickle.dumps(args)).hexdigest()}.py"
+        cache_dir = os.getenv(
+            "NEURALMAG_CACHE", pathlib.Path.home() / ".cache" / "neuralmag"
         )
+        code_file_path = cache_dir / cache_file
 
         # generate code
         if not code_file_path.is_file():
