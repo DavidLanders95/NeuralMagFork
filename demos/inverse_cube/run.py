@@ -1,13 +1,21 @@
+###############################################################################
+###
+### Simple dynamic inverse example to find the optimum field angle in order
+### achieve a given magnetization tilting of a single-domain particle after
+### 0.5 ns.
+###
+###############################################################################
+
 import numpy as np
 import torch
 from scipy import constants
 
-from neuralmag import *
+import neuralmag as nm
 
-config.fem["n_gauss"] = 1
+nm.config.fem["n_gauss"] = 1
 
-mesh = Mesh((2, 2, 2), (5e-9, 5e-9, 5e-9))
-state = State(mesh)
+mesh = nm.Mesh((2, 2, 2), (5e-9, 5e-9, 5e-9))
+state = nm.State(mesh)
 
 # setup material and m0
 state.material.Ms = 8e5
@@ -16,7 +24,7 @@ state.material.Ku = 1e5
 state.material.Ku_axis = [0, 0, 1]
 state.material.alpha = 0.1
 
-state.m = VectorFunction(state).fill((0, 0, 1))
+state.m = nm.VectorFunction(state).fill((0, 0, 1))
 
 # setup external field depending on phi and theta
 Hc = 2 * 1e5 / (constants.mu_0 * 8e5)
@@ -31,19 +39,19 @@ h_ext = lambda phi, theta: torch.stack(
 )
 
 # register effective field
-ExchangeField().register(state, "exchange")
-UniaxialAnisotropyField().register(state, "aniso")
-ExternalField(h_ext).register(state, "external")
-TotalField("exchange", "aniso", "external").register(state)
+nm.ExchangeField().register(state, "exchange")
+nm.UniaxialAnisotropyField().register(state, "aniso")
+nm.ExternalField(h_ext).register(state, "external")
+nm.TotalField("exchange", "aniso", "external").register(state)
 
 # set up solver, loss function, etc
-llg = LLGSolver(state, parameters=["phi", "theta"])
+llg = nm.LLGSolver(state, parameters=["phi", "theta"])
 optimizer = torch.optim.Adam(llg.parameters(), lr=0.05)
 my_loss = torch.nn.L1Loss()
 
-m_target = VectorFunction(state).fill((np.sqrt(0.5), 0, np.sqrt(0.5))).tensor
+m_target = nm.VectorFunction(state).fill((np.sqrt(0.5), 0, np.sqrt(0.5))).tensor
 
-logger = ScalarLogger("log.dat", ["epoch", "phi", "theta", "loss"])
+logger = nm.ScalarLogger("log.dat", ["epoch", "phi", "theta", "loss"])
 for epoch in range(100):
     print(f"epoch: {epoch}")
     state.epoch = epoch

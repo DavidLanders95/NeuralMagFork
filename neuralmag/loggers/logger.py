@@ -35,9 +35,9 @@ class Logger(object):
 
     :param directory: The name of the log file
     :type directory: str
-    :param scalars: List of attribute names of the scalars to be logged
+    :param scalars: List of state-attribute names of the scalars to be logged
     :type scalars: list
-    :param fields: List of attribute names of the fields to be logged
+    :param fields: List of state-attribute names of the fields to be logged
     :type fields: list
     :param scalars_every: Write scalars every nth step
     :type scalars_every: int
@@ -52,7 +52,7 @@ class Logger(object):
 
             # Actually log fields
             state = State(mesh)
-            logger << state
+            logger.log(state)
     """
 
     def __init__(
@@ -80,17 +80,15 @@ class Logger(object):
             self._resume_time = None
             return
         for logger in self.loggers.values():
-            logger << state
-
-    def __lshift__(self, state):
-        self.log(state)
+            logger.log(state)
 
     def resume(self, state):
         """
-        Tries to resume from existing log files. If resume is possible
+        Tries to resume from existing log files. If resume is possible,
+        i.e. if at least one magnetization field has been logged before,
         the state object is updated with latest possible values of t
         and m and the different log files are aligned and resumed.
-        If resume is not possible the state is not modiefied and the
+        If resume is not possible the state is not modified and the
         simulations starts from the beginning.
 
         :param state: The state to be resumed from

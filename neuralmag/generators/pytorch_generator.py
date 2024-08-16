@@ -17,9 +17,12 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import hashlib
 import importlib
 import json
+import os
 import pathlib
+import pickle
 import re
 from functools import reduce
 from itertools import product
@@ -40,16 +43,45 @@ cs_e = [N.i, N.j, N.k]
 
 
 def dX(**kwargs):
+    r"""
+    Generic integration measure
+
+    :param \**kwargs: Arbitrary meta information
+    :return: The integration measure
+    :rtype: sympy.Expr
+    """
     # TODO implement singleton
     return sp.Symbol(f"_dX:{json.dumps(kwargs)}_")
 
 
 def dV(dim=3, region="rho", **kwargs):
+    r"""
+    Volume integral measure
+
+    :param dim: Dimension of the mesh to integrate over.
+    :type dim: int
+    :param region: name of the cell function that acts as a region indicator
+    :type region: str
+    :param \**kwargs: Additional meta information
+    :return: The integration measure
+    :rtype: sympy.Expr
+    """
     rho = Variable(region, "c" * dim)
     return rho * dX(dims=[None, None, None], **kwargs)
 
 
 def dA(dim=3, normal=2, region="rhoxy", idx=":", **kwargs):
+    r"""
+    Volume integral measure
+
+    :param dim: Dimension of the mesh to integrate over.
+    :type dim: int
+    :param region: name of the cell function that acts as a region indicator
+    :type region: str
+    :param \**kwargs: Additional meta information
+    :return: The integration measure
+    :type: sympy.Expr
+    """
     assert dim == 3
     spaces = ["c"] * 3
     spaces[normal] = "n"
@@ -83,11 +115,18 @@ class CodeFunction(object):
         self._block.add("\n")
         return True
 
+    @staticmethod
+    def sum(*terms):
+        return " + ".join([f"({term}).sum()" for term in terms])
+
     def add_line(self, code):
         self._code += f"    {code}\n"
 
     def assign(self, lhs, rhs):
         self.add_line(f"{lhs} = {rhs}")
+
+    def assign_sum(self, lhs, *terms):
+        self.assign(lhs, self.sum(*terms))
 
     def zeros_like(self, var, src, shape=None):
         if shape is None:
@@ -105,8 +144,7 @@ class CodeFunction(object):
         self.add_line(f"return {code}")
 
     def retrn_sum(self, *terms):
-        retval = " + ".join([f"({term}).sum()" for term in terms])
-        self.add_line(f"return {retval}")
+        self.add_line(f"return {self.sum(*terms)}")
 
 
 class CodeBlock(object):
@@ -125,21 +163,24 @@ class CodeBlock(object):
 
 class CodeClass(object):
     def save_and_load_code(self, *args):
+        # setup cache file name
         this_module = pathlib.Path(importlib.import_module(self.__module__).__file__)
-        code_file_path = (
-            this_module.parent
-            / "code"
-            / f"{this_module.stem}_{hash(frozenset(args))}.py"
+        i = this_module.parent.parts[::-1].index("neuralmag")
+        prefix = "_".join(this_module.parent.parts[-i:] + (this_module.stem,))
+        cache_file = f"{prefix}_{hashlib.md5(pickle.dumps(args)).hexdigest()}.py"
+        cache_dir = os.getenv(
+            "NEURALMAG_CACHE", pathlib.Path.home() / ".cache" / "neuralmag"
         )
+        code_file_path = cache_dir / cache_file
 
         # generate code
         if not code_file_path.is_file():
             code_file_path.parent.mkdir(parents=True, exist_ok=True)
-            # TODO check if generate_code method exists
+            # TODO check if _generate_code method exists
             logging.info_green(
                 f"[{self.__class__.__name__}] Generate torch core methods"
             )
-            code = str(self.generate_code(*args))
+            code = str(self._generate_code(*args))
             with open(code_file_path, "w") as f:
                 f.write(code)
 
@@ -150,6 +191,21 @@ class CodeClass(object):
 
 
 def Variable(name, spaces, shape=()):
+    r"""
+    Symbolic representation of a field given as SymPy expression.
+
+    :param name: The name of the field
+    :type name: str
+    :param spaces: The function spaces of the field in the principal coordinate
+                   directions given as string with 'c' representing a cell-based
+                   discretization and 'n' representing a node-based discretization.
+    :type spaces: str
+    :param shape: The shape (dimension) of the field, e.g. () for a scalar field and
+                  (3,) for a vector field
+    :type shape: tuple
+    :return: The variable
+    :rtype: sympy.Expr
+    """
     result = []
     for idx in product(*[{"n": [0, 1], "c": [None]}[s] for s in spaces]):
         phi = 1.0
@@ -257,7 +313,7 @@ def compile_functional(expr, n_gauss=3):
                 sidx.append(str(idx[-1]))
 
             # contract leading sequence of ":,: to ...
-            arr_idx = re.sub(r"^(:,)+:($|,)", r"...\2", ",".join(sidx))
+            arr_idx = re.sub(r"^(:,)*:($|,)", r"...\2", ",".join(sidx))
             cmd = cmd.replace(symb.name, f"{name}[{arr_idx}]")
 
         args["cmd"] = re.sub(r"_(dx\[\d\])_", r"\1", cmd)
@@ -313,6 +369,17 @@ def linear_form_cmds(expr, n_gauss=3):
 
 
 def gateaux_derivative(expr, var):
+    r"""
+    Compute the Gateaux derivative (variation) of a functional with respect to
+    a given variable.
+
+    :param expr: Functional to be derived
+    :type expr: sympy.Expr
+    :param var: The variable used for the derivative
+    :type var: :class:`Variable`
+    :return: The resulting linear form
+    :rtype: sympy.Expr
+    """
     result = []
     for symb in var.free_symbols:
         if not hasattr(symb, "name") or not re.match(r"^_(.*:.*:.*:.*)_$", symb.name):
@@ -323,6 +390,16 @@ def gateaux_derivative(expr, var):
 
 
 def linear_form_code(form, n_gauss=3):
+    r"""
+    Generate PyTorch function for the evaluation of a given linear form.
+
+    :param form: The linear form
+    :type form: sympy.Expr
+    :param n_gauss: Degree of Gauss integration
+    :type n_gauss: int
+    :return: The Python code of the PyTorch function
+    :rtype: str
+    """
     cmds, variables = linear_form_cmds(form, n_gauss)
     code = CodeBlock()
     with code.add_function("L", ["result"] + sorted(list(variables))) as f:
@@ -333,6 +410,16 @@ def linear_form_code(form, n_gauss=3):
 
 
 def functional_code(form, n_gauss=3):
+    r"""
+    Generate PyTorch function for the evaluation of a given functional form.
+
+    :param form: The functional
+    :type form: sympy.Expr
+    :param n_gauss: Degree of Gauss integration
+    :type n_gauss: int
+    :return: The Python code of the PyTorch function
+    :rtype: str
+    """
     terms, variables = compile_functional(form, n_gauss)
     code = CodeBlock()
     with code.add_function("M", sorted(list(variables))) as f:

@@ -22,8 +22,8 @@ def test_h():
 
     InterlayerExchangeField(2, 3).register(state)
     assert state.h_iexchange.tensor[:, :, 3, :].mean(dim=(0, 1)).cpu() == pytest.approx(
-        [0.005 / 1e-9, 0, 0]
+        [2 * 0.005 / 1e-9, 0, 0]
     )
     assert state.h_iexchange.tensor[:, :, 2, :].mean(dim=(0, 1)).cpu() == pytest.approx(
-        [0, 0.005 / 1e-9, 0]
+        [0, 2 * 0.005 / 1e-9, 0]
     )

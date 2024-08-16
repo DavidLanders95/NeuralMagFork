@@ -50,7 +50,7 @@ class ScalarLogger(object):
 
             # Actually log a row
             state = State(mesh)
-            logger << state
+            logger.log(state)
     """
 
     def __init__(self, filename, columns, every=1):
@@ -72,12 +72,17 @@ class ScalarLogger(object):
 
     def add_column(self, column):
         """
-        Add column to log file. This method is automatically called for all
+        Add column to log file.
+
+        This method is automatically called for all
         columns on initialization of the logger.
         The column can be provided either as attribute name or as a Callable
         that takes the state as the only argument.
         If the column is a :class:`Function`, the functional is averaged over
         the whole mesh before logging.
+
+        .. note::
+          This method can only be called before the first line is logged
 
         :param column: The column to be logged
         :type column: str, Callable
@@ -128,9 +133,6 @@ class ScalarLogger(object):
 
         self._write_row(values)
 
-    def __lshift__(self, state):
-        self.log(state)
-
     def _write_header(self, columns):
         headings = []
 
@@ -167,13 +169,12 @@ class ScalarLogger(object):
 
     def resumable_step(self):
         """
-        Returns the last step the logger can resume from, e.g. if the logger
-        logs every 10th step and the first (i = 0) step was already logged,
-        the result is 10.
+        Returns the first step that can be written when resuming, e.g. if the
+        logger logs every 10th step and the first (i = 0) step was already
+        logged, the result is 10.
 
-        *Returns*
-            :class:`int`
-                The step number the logger is able to resume from
+        :return: The step number
+        :rtype: int
         """
         if self._file is not None:
             raise RuntimeError(
@@ -191,9 +192,8 @@ class ScalarLogger(object):
         Try to resume existing log file from log step i. The log file
         is truncated accordingly.
 
-        *Arguments*
-            i (:class:`int`)
-                The log step to resume from
+        :param i: The log step to resume from
+        :type i: int
         """
         number = (self.resumable_step() - i) / self._every
 

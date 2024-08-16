@@ -26,19 +26,15 @@ Predefined Field Terms
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. autoclass:: BulkDMIField
-   :members:
 
 .. autoclass:: DemagField
-   :members:
 
 .. autoclass:: ExchangeField
-   :members:
+
+.. autoclass:: ExternalField
 
 .. autoclass:: InterfaceDMIField
-   :members:
 
 .. autoclass:: InterlayerExchangeField
-   :members:
 
 .. autoclass:: UniaxialAnisotropyField
-   :members:

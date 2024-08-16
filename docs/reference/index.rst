@@ -7,3 +7,4 @@ Reference
    field_terms
    llg_solver
    loggers
+   generator

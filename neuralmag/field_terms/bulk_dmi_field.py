@@ -34,10 +34,17 @@ class BulkDMIField(FieldTerm):
       E = \int_\Omega D \vec{m} \cdot (\nabla \times \vec{m}) \dx
 
     with the DMI constant :math:`D` given in units of :math:`\text{J/m}^2`.
-    """
-    _name = "bdmi"
 
-    def __init__(self, *args, **kwargs):
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :type n_gauss: int
+
+    :Required state attributes (if not renamed):
+        * **state.material.Db** (*cell scalar field*) The DMI constant in J/m^2
+        * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
+    """
+    default_name = "bdmi"
+
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     @staticmethod

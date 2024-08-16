@@ -32,10 +32,17 @@ class ExchangeField(FieldTerm):
       E = \int_\Omega A \big( \nabla m_x^2 + \nabla m_y^2 + \nabla m_z^2 \big) \dx
 
     with the exchange constant :math:`A` given in units of :math:`\text{J/m}`.
-    """
-    _name = "exchange"
 
-    def __init__(self, *args, **kwargs):
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :type n_gauss: int
+
+    :Required state attributes (if not renamed):
+        * **state.material.A** (*cell scalar field*) The exchange constant in J/m
+        * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
+    """
+    default_name = "exchange"
+
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
     @staticmethod

@@ -37,23 +37,49 @@ class ExternalField(FieldTerm):
     .. math::
 
       E = - \int_\Omega \mu_0 M_s  \vec{m} \cdot \vec{h} \dx
+
+    :param h: The field either given as a :code:`torch.Tensor` or callable
+              in case of a field that depends e.g. on :code:`state.t`.
+              The shape must be either (nx, ny, nz, 3) or (3,) in which case
+              the field expanded to full size.
+    :type h: torch.Tensor
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :type n_gauss: int
+
+    :Required state attributes (if not renamed):
+        * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
+
+    :Example:
+        .. code-block::
+
+            state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+
+            # define constant external field from expanded function
+            h_ext = nm.VectorFunction(state).fill((0, 0, 0), expand=True)
+            external = nm.ExternalField(h_ext)
+
+            # define external field in y-direction linearly increasing with time
+            external = nm.ExternalField(lambda t: t * state.tensor([0, 8e5 / 10e-9, 0]))
+
     """
-    _name = "external"
+    default_name = "external"
     h = None
 
-    def __init__(self, h, expand=False, **kwargs):
+    def __init__(self, h, **kwargs):
         super().__init__(**kwargs)
         self._h = h
 
     def register(self, state, name=None):
-        size = VectorFunction(state).size
+        tensor_shape = VectorFunction(state).tensor_shape
         if callable(self._h):
             func, args = state.get_func(self._h)
             value = func(*args)
             if value.shape == (3,):
                 arg_names = list(inspect.signature(func).parameters.keys())
                 code = f"def h({', '.join(arg_names)}):\n"
-                code += f"    return __h({', '.join(arg_names)}).expand({size})\n"
+                code += (
+                    f"    return __h({', '.join(arg_names)}).expand({tensor_shape})\n"
+                )
                 compiled_code = compile(code, "<string>", "exec")
                 self.h = types.FunctionType(
                     compiled_code.co_consts[0], {f"__h": self._h}, name
@@ -61,10 +87,10 @@ class ExternalField(FieldTerm):
             else:
                 self.h = self._h
         elif isinstance(self._h, torch.Tensor):
-            if self._h.shape == size:
+            if self._h.shape == tensor_shape:
                 self.h = self._h
             elif self._h.shape == (3,):
-                self.h = self._h.expand(size)
+                self.h = self._h.expand(tensor_shape)
             else:
                 raise Exception("Shape not matching")
         elif isinstance(self._h, VectorFunction):

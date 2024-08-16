@@ -36,26 +36,50 @@ def llg_rhs(h, m, material__alpha):
 class LLGSolver(nn.Module):
     """
     Time integrator using explicit adaptive time-stepping provided by the
-    torchdiffeq library.
+    torchdiffeq library (https://github.com/rtqichen/torchdiffeq).
 
     :param state: The state used for the simulation
     :type state: :class:`State`
     :param scale_t: Internal scaling of time to improve numerical behavior
     :type scale_t: float, optional
-    :param parameters: List a attribute names for the adjoint gradient computation
+    :param parameters: List a attribute names for the adjoint gradient computation.
+                       Only required for optimization problems.
     :type parameters: list
     :param solver_options: Solver options passed to torchdiffeq
     :type solver_options: dict
+
+    :Required state attributes:
+        * **state.t** (*scalar*) The time in s
+        * **state.h** (*nodal vector field*) The effective field in A/m
+        * **state.m** (*nodal vector field*) The magnetization
+
+    :Example:
+        .. code-block::
+
+            # create state with time and magnetization
+            state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+            state.t = 0.0
+            state.m = nm.VectorFunction(state).fill((1, 0, 0))
+
+            # register constant Zeeman field as state.h
+            nm.ExternalField(torch.Tensor((0, 0, 8e5))).register(state, "")
+
+            # initiali LLGSolver
+            llg = LLGSolver(state)
+
+            # perform integration step
+            llg.step(1e-12)
+
     """
 
-    def __init__(self, state, scale_t=1e-9, parameters=[], solver_options={}):
+    def __init__(self, state, scale_t=1e-9, parameters=None, solver_options=None):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
         self._parameters = {}
         self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
-        self._solver_options.update(solver_options)
-        for param in parameters:
+        self._solver_options.update(solver_options or {})
+        for param in parameters or []:
             value = state.getattr(param)
             if isinstance(value, Function):
                 value = value.tensor

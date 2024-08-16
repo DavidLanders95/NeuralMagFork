@@ -25,7 +25,7 @@ import numpy as np
 import pyvista as pv
 import torch
 
-from . import Function, logging
+from . import CellFunction, Function, logging
 
 __all__ = ["State"]
 
@@ -76,26 +76,14 @@ class State(object):
         self.t = 0.0
 
         # initialize density fields for volume and facet measure with 1
-        self.rho = 1.0
+        self.rho = CellFunction(self).fill(1.0, expand=True)
         if mesh.dim == 3:
             self.rhoxy = Function(self, "ccn").fill(1.0, expand=True)
             self.rhoxz = Function(self, "cnc").fill(1.0, expand=True)
             self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
 
         self._attr_values["eps"] = torch.finfo(self.dtype).eps
-
         logging.info_green(f"[State] Running on device: {self._device}")
-        if mesh.dim == 2:
-            logging.info_green(
-                "[Mesh] 2D, %dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx)
-            )
-        elif mesh.dim == 3:
-            logging.info_green(
-                "[Mesh] 3D, %dx%dx%d (size = %g x %g x %g)" % (mesh.n + mesh.dx)
-            )
-        else:
-            # TODO support 1D meshes
-            raise RuntimeError(f"Mesh dimension must be 2 or 3")
 
     @property
     def device(self):
@@ -121,7 +109,22 @@ class State(object):
     @property
     def material(self):
         """
-        The material namespace
+        The material namespace.
+
+        The namespace supports the same functionality
+        as the :class:`State` class to set and get regular and dynamic attributes.
+
+        :Example:
+            .. code-block::
+
+                 mesh = nm.Mesh((10, 10, 1), (5e-9, 5e-9, 3e-9))
+                 state = nm.State(mesh)
+
+                 # Set saturation magnetization Ms according to Bloch's law
+                 Ms0 = 8e5
+                 Tc = 400.0
+                 state.T = 200.0
+                 state.material.Ms = lambda T: Ms0 * (1 - T/Tc)**1.5
         """
         return self._material
 
@@ -237,19 +240,22 @@ class State(object):
 
         return func_names, args
 
-    def get_func(self, f, add_args=[]):
+    def get_func(self, f, add_args=None):
         """
         Analyse arguments of supplied function and create Python function that
         depends solely on static state attributes of the state.
 
         :param f: The function to by analyzed
         :type f: Callable
-        :param add_args: Additional arguments to be added
+        :param add_args: Additional arguments to be added. Arguments provided
+                         here are always used as the first arguments in the
+                         signature.
         :type add_args: list, optional
         :return: New function that only depends on static state attributes and
                  list of references to the static attributes.
         :rtype: tuple
         """
+        add_args = add_args or []
         func_names, args = self._collect_func_deps(f)
         args = list(set(args) - set(add_args))
         name = f.__name__
@@ -303,6 +309,8 @@ class State(object):
         :Example:
             .. code-block::
 
+                state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+
                 def f(a, b):
                    return a + b
 
@@ -329,10 +337,12 @@ class State(object):
         :param spaces: function spaces, e.g. "ccc", "nnn"
         :type spaces: str
         :return: The coordinates
+        :rtype: torch.Tensor
 
         :Example:
             .. code-block::
 
+                state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
                 x, y, z = state.coordinates('nnn')
 
                 # initialize magnetization based on coordinate function
@@ -381,6 +391,8 @@ class State(object):
 
         :Example:
             .. code-block::
+
+                state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
 
                 state.material.Ms = CellFunction(state).fill(8e5)
                 state.m = VectorFunction(state).fill([0, 0, 1])

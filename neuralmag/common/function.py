@@ -19,12 +19,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import torch
 
+from ..generators import pytorch_generator as gen
+
 __all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
 
 
-class Function(object):
+class Function(gen.CodeClass):
     """
     This class represents a discretized field on the mesh of a state object.
+
+    If the instance is not intialized with a tensor, the tensor is lazy-
+    initialized with zeros on the first access.
 
     :param state: The state that is used to construct the function
     :type state: :class:`State`
@@ -51,22 +56,24 @@ class Function(object):
         else:
             self._name = name
 
-        size = []
+        tensor_shape = []
         for i, space in enumerate(spaces):
             if space == "c":
-                size.append(state.mesh.n[i])
+                tensor_shape.append(state.mesh.n[i])
             elif space == "n":
-                size.append(state.mesh.n[i] + 1)
+                tensor_shape.append(state.mesh.n[i] + 1)
             else:
                 raise Exception(f"Function space '{space}' not supported")
 
-        self._size = tuple(size) + shape
+        self._tensor_shape = tuple(tensor_shape) + shape
 
         if tensor is None or isinstance(tensor, torch.Tensor):
             self._tensor = tensor
         else:
             raise NotImplemented("Unsupported tensor type.")
         self._expanded = False
+
+        self.save_and_load_code(spaces, shape)
 
     @property
     def name(self):
@@ -83,11 +90,11 @@ class Function(object):
         return self._shape
 
     @property
-    def size(self):
+    def tensor_shape(self):
         """
-        The size (shape) of the tensor with the discretized field values
+        The shape of the tensor with the discretized field values
         """
-        return self._size
+        return self._tensor_shape
 
     @property
     def state(self):
@@ -110,7 +117,7 @@ class Function(object):
         """
         if self._tensor is None:
             self._tensor = torch.zeros(
-                self._size, dtype=self._state.dtype, device=self._state.device
+                self._tensor_shape, dtype=self._state.dtype, device=self._state.device
             )
         return self._tensor
 
@@ -121,7 +128,8 @@ class Function(object):
         :param constant: The constant to fill the tensor
         :type constant: int, list
         :param expand: If True, the tensor is set by expanding the constant
-            to the size of the mesh resulting in minimal storage consumption.
+            to the size of the mesh using :code:`torch.Tensor.expand`
+            resulting in minimal storage consumption.
         :type expand: bool
         :return: The function itself
         :rvalue: :class:`Function`
@@ -129,7 +137,8 @@ class Function(object):
         :Example:
             .. code-block::
 
-                f = Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
+                state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+                f = nm.Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
         """
         if expand:
             return self.fill_expanded(constant)
@@ -148,7 +157,9 @@ class Function(object):
     def fill_expanded(self, constant):
         """
         Fills the tensor of the function with a constant value by expanding
-        the constant to the full mesh size.
+        the constant to the full mesh size by to use of :code:`torch.Tensor.expand`.
+
+        This reduces the memory consumption of the tensor to a single double value.
 
         :param constant: The constant to fill the tensor
         :type constant: int, list
@@ -161,12 +172,12 @@ class Function(object):
                 assert self.shape == ()
                 self._tensor = self._expanded.reshape(
                     (1,) * self.state.mesh.dim
-                ).expand(self._size)
+                ).expand(self._tensor_shape)
             elif isinstance(constant, (list, tuple)):
                 assert self.shape == (3,)
                 self._tensor = self._expanded.reshape(
                     (1,) * self.state.mesh.dim + (3,)
-                ).expand(self._size)
+                ).expand(self._tensor_shape)
             else:
                 raise NotImplemented("Unsupported shape.")
         elif self._expanded is not None:
@@ -185,39 +196,49 @@ class Function(object):
         :return: The componentwise average
         :rtype: :class:`torch.Tensor`
         """
-        # TODO get rid of conditionals?
-        # TODO support all function spaces
-        if self._spaces == "ccc" or self._spaces == "cc":
-            return self.tensor.mean(dim=tuple(range(self._state.mesh.dim)))
-        if self._spaces == "nn":
-            return (
-                (
-                    self.tensor[1:, 1:, ...]
-                    + self.tensor[:-1, 1:, ...]
-                    + self.tensor[1:, :-1, ...]
-                    + self.tensor[:-1, :-1, ...]
-                )
-                / 4.0
-            ).mean(dim=(0, 1))
-        elif self._spaces == "nnn":
-            return (
-                (
-                    self.tensor[1:, 1:, 1:, ...]
-                    + self.tensor[:-1, 1:, 1:, ...]
-                    + self.tensor[1:, :-1, 1:, ...]
-                    + self.tensor[:-1, :-1, 1:, ...]
-                    + self.tensor[1:, 1:, :-1, ...]
-                    + self.tensor[:-1, 1:, :-1, ...]
-                    + self.tensor[1:, :-1, :-1, ...]
-                    + self.tensor[:-1, :-1, :-1, ...]
-                )
-                / 8.0
-            ).mean(dim=(0, 1, 2))
-        else:
-            raise Exception(f"Function space '{self._spaces}' not supported by mean.")
+        return self._code.avg(self._state.rho.tensor, self._state.dx, self.tensor)
+
+    @classmethod
+    def _generate_code(cls, spaces, shape):
+        code = gen.CodeBlock()
+        dim = len(spaces)
+
+        # generate avg method
+        f = gen.Variable("f", spaces, shape)
+        with code.add_function("avg", ["rho", "dx", "f"]) as func:
+            terms, _ = gen.compile_functional(1 * gen.dV(dim))
+            func.assign_sum("vol", *[term["cmd"] for term in terms])
+
+            if shape == ():
+                terms, variables = gen.compile_functional(f * gen.dV(dim))
+                func.assign_sum("fint", *[term["cmd"] for term in terms])
+            elif shape == (3,):
+                func.zeros_like("fint", "f", (3,))
+                for i in range(3):
+                    terms, _ = gen.compile_functional(f.dot(gen.cs_e[i]) * gen.dV(dim))
+                    func.assign_sum(f"fint[{i}]", *[term["cmd"] for term in terms])
+
+            func.retrn("fint / vol")
+
+        return code
 
 
 class CellFunction(Function):
+    """
+    Subclass of :class:`Function` with the function space set to cellwise in each dimension.
+
+    :param state: The state that is used to construct the function
+    :type state: :class:`State`
+    :type spaces: str
+    :param shape: The shape of the function (either ``()`` for scalars or ``(3,)`` for
+        vectors is currently supported)
+    :type shape: tuple
+    :param tensor: Tensor with discretized function values
+    :type tensor: :class:`torch.Tensor`
+    :param name: Name of the function
+    :type name: str
+    """
+
     def __init__(self, state, **kwargs):
         assert "spaces" not in kwargs
         kwargs["spaces"] = "c" * state.mesh.dim
@@ -225,6 +246,20 @@ class CellFunction(Function):
 
 
 class VectorFunction(Function):
+    """
+    Subclass of :class:`Function` with the shape set to (3,).
+
+    :param state: The state that is used to construct the function
+    :type state: :class:`State`
+    :param spaces: The function spaces in the principal direction (defaults to
+        "nnn" for 3D meshes and "nn" for 2D meshes)
+    :type spaces: str
+    :param tensor: Tensor with discretized function values
+    :type tensor: :class:`torch.Tensor`
+    :param name: Name of the function
+    :type name: str
+    """
+
     def __init__(self, state, **kwargs):
         assert "shape" not in kwargs
         kwargs["shape"] = (3,)
@@ -232,6 +267,18 @@ class VectorFunction(Function):
 
 
 class VectorCellFunction(Function):
+    """
+    Subclass of :class:`Function` with the shape set to (3,) and the
+    function space set to cellwise in each dimension.
+
+    :param state: The state that is used to construct the function
+    :type state: :class:`State`
+    :param tensor: Tensor with discretized function values
+    :type tensor: :class:`torch.Tensor`
+    :param name: Name of the function
+    :type name: str
+    """
+
     def __init__(self, state, **kwargs):
         assert "spaces" not in kwargs
         assert "shape" not in kwargs
