@@ -1,3 +1,13 @@
+###############################################################################
+###
+### MuMag Standard Problem #4 as introduced in
+### https://www.ctcms.nist.gov/~rdm/std4/spec4.html
+###
+### This example is explained in details in the getting started section
+### of the magnum.fe manual.
+###
+###############################################################################
+
 import neuralmag as nm
 
 # setup mesh and state

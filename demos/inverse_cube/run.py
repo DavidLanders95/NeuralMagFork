@@ -1,3 +1,11 @@
+###############################################################################
+###
+### Simple dynamic inverse example to find the optimum field angle in order
+### achieve a given magnetization tilting of a single-domain particle after
+### 0.5 ns.
+###
+###############################################################################
+
 import numpy as np
 import torch
 from scipy import constants

@@ -1,3 +1,9 @@
+###############################################################################
+###
+### Stabilization of a DMI stabilized Skyrmion in a thin disk
+###
+###############################################################################
+
 import torch
 from scipy import constants
 

@@ -1,3 +1,10 @@
+###############################################################################
+###
+### Hard-axis loop of a cubic single-domain particle subject to a crystalline
+### uniaxial anisotropy.
+###
+###############################################################################
+
 from scipy import constants
 
 import neuralmag as nm

@@ -1,3 +1,13 @@
+###############################################################################
+###
+### MuMag Standard Problem #4 using a 2D mesh as introduced in
+### https://www.ctcms.nist.gov/~rdm/std4/spec4.html
+###
+### This example is explained in details in the getting started section
+### of the magnum.fe manual.
+###
+###############################################################################
+
 import numpy as np
 
 import neuralmag as nm
