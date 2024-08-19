@@ -31,7 +31,7 @@ nm.TotalField("exchange", "demag", "external").register(state)
 
 # relax to s-state
 llg = nm.LLGSolver(state)
-llg.step(1e-9)
+llg.relax()
 
 state.write_vti("m", "sstate.vti")
 

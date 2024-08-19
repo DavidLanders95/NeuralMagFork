@@ -26,19 +26,20 @@ from ..common import Function, logging
 
 __all__ = ["LLGSolver"]
 
-def torque(h, m):
-    return torch.linalg.cross(m, torch.linalg.cross(m, h))
-
-def relax_rhs(h, m, material__alpha):
-    gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
-    return - material__alpha * gamma_prime * torque(h, m)
 
 def llg_rhs(h, m, material__alpha):
     gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
     return -gamma_prime * torch.linalg.cross(
         m, h
-    ) + relax_rhs(h, m, material__alpha)
-    
+    ) - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
+
+
+def llg_no_precess_rhs(h, m, material__alpha):
+    gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
+    return (
+        -material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
+    )
+
 
 class LLGSolver(nn.Module):
     """
@@ -104,17 +105,45 @@ class LLGSolver(nn.Module):
         for param in self._parameters.keys():
             internal_args.append(param)
 
-        self._llg_func, self._llg_args = self._state.get_func(llg_rhs, internal_args)
-        self._relax_func, self._relax_args = self._state.get_func(relax_rhs, internal_args)
-        self._func_torque, self._args_torque = self._state.get_func(
-            torque, internal_args
-        )
+        self._func, self._args = self._state.get_func(llg_rhs, internal_args)
 
         for i, param in enumerate(self._parameters.keys()):
             self._args[2 + i] = self._parameters[param]
 
     def forward(self, t, m):
         return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
+
+    # TODO test using step instead of event_fn for better performance
+    # TODO check/fix behavior in inverse problems
+    def relax(self, tol=2e7 * torch.pi):
+        """
+        Use time integration of the damping term to relax the magnetization into an
+        energetic equilibrium. The convergence criterion is defined in terms of
+        the maximum norm of dm/dt in rad/s.
+
+        :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
+        :type tol: float
+        """
+        func, args = self._state.get_func(llg_no_precess_rhs, ["t", "m"])
+        logging.info_blue(
+            f"[LLGSolver] Start relaxation, initial energy E = {self._state.E:g} J"
+        )
+        _, m_next = odeint_event(
+            lambda t, m: self._scale_t * func(t * self._scale_t, m, *args[2:]),
+            self._state.m.tensor,
+            self._state.t,
+            event_fn=lambda t, m: func(t * self._scale_t, m, *args[2:])
+            .norm(dim=-1)
+            .max()
+            - tol,
+            odeint_interface=odeint,
+            adjoint_params=[],
+            **self._solver_options,
+        )
+        self._state.m.tensor[:] = m_next[-1]
+        logging.info_blue(
+            f"[LLGSolver] Relaxation finished, final energy E = {self._state.E:g} J"
+        )
 
     def step(self, dt):
         """
@@ -124,7 +153,6 @@ class LLGSolver(nn.Module):
         :param dt: The size of the time step
         :type dt: float
         """
-        self._func, self._args = self._llg_func, self._llg_args
         logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
         t = self._state.tensor(
             [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
@@ -145,27 +173,3 @@ class LLGSolver(nn.Module):
         return odeint(
             self, self._state.m.tensor, t / self._scale_t, **self._solver_options
         )
-        
-    def relax(self, tol):
-        self._func, self._args = self._relax_func, self._relax_args
-        self.tol = tol
-        t0 = self._state.t
-        logging.info_blue(f"[RelaxSolver] Initial Energy E = {self._state.E:g} J")
-        _, m_next = odeint_event(
-            self,
-            self._state.m.tensor,
-            self._state.t,
-            event_fn=self._event_fn,
-            odeint_interface=odeint,
-            **self._solver_options,
-        )
-        self._state.m.tensor[:] = m_next[-1]
-        logging.info_blue(f"[RelaxSolver] Final Energy E = {self._state.E:g} J")
-        self._state.t = t0
-
-    def _event_fn(self, t, m):
-        torque = self._func_torque(t * self._scale_t, m, *self._args_torque[2:])
-        if torque.abs().max() > self.tol:
-            return torch.ones_like(t)
-        else:
-            return torch.zeros_like(t)

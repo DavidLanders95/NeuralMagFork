@@ -32,7 +32,7 @@ nm.TotalField("exchange", "demag", "external").register(state)
 
 # relax to s-state
 llg = nm.LLGSolver(state)
-llg.step(1e-9)
+llg.relax()
 
 # set external field and perform switch
 h_ext.fill([-19576.0, 3421.0, 0.0], expand=True)
