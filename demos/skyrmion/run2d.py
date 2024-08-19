@@ -32,5 +32,5 @@ TotalField("exchange", "demag", "dmi", "aniso").register(state)
 
 # relax to skyrmion
 llg = LLGSolver(state)
-llg.step(1e-9)
+llg.relax()
 state.write_vti(["m", "rho"], "skyrmion.vti")
