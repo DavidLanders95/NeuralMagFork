@@ -128,6 +128,7 @@ docs:
 
 build-package:
   stage: deploy
+  image: *cpu-runner-image
   before_script:
     - python -m pip install --upgrade twine
     - python -m pip install --upgrade build
