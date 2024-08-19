@@ -25,3 +25,5 @@ from .loggers import *
 from .solvers import *
 
 __all__ = common.__all__ + field_terms.__all__ + loggers.__all__ + solvers.__all__
+
+info_green("NeuralMag %s" % VERSION)
