@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import torch
 
+from neuralmag.common import config
 from neuralmag.common import engine as en
 from neuralmag.common.code_class import CodeClass
 
@@ -201,7 +202,7 @@ class Function(CodeClass):
 
     @classmethod
     def _generate_code(cls, spaces, shape):
-        code = en.CodeBlock()
+        code = config.backend.CodeBlock()
         dim = len(spaces)
 
         # generate avg method
