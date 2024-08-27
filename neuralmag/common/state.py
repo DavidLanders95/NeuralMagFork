@@ -25,7 +25,7 @@ import numpy as np
 import pyvista as pv
 import torch
 
-from . import CellFunction, Function, logging
+from neuralmag.common import CellFunction, Function, logging
 
 __all__ = ["State"]
 

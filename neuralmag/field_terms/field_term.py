@@ -22,13 +22,14 @@ import sys
 
 from scipy import constants
 
-from ..common import Function, VectorFunction, config, logging
-from ..generators import pytorch_generator as gen
+from neuralmag.common import CodeClass, Function, VectorFunction, config
+from neuralmag.common import engine as en
+from neuralmag.common import logging
 
 __all__ = ["FieldTerm"]
 
 
-class FieldTerm(gen.CodeClass):
+class FieldTerm(CodeClass):
     r"""
     Base class of all effective field contributions. In simple cases,
     a subclass is just required to implement the energy functional of a field
@@ -52,9 +53,9 @@ class FieldTerm(gen.CodeClass):
 
                 @staticmethod
                 def e_expr(m, dim):
-                    K = gen.Variable("material__Ku", "c" * dim)
-                    axis = gen.Variable("material__Ku_axis", "c" * dim, (3,))
-                    return -K * m.dot(axis) ** 2 * gen.dV(dim)
+                    K = en.Variable("material__Ku", "c" * dim)
+                    axis = en.Variable("material__Ku_axis", "c" * dim, (3,))
+                    return -K * m.dot(axis) ** 2 * en.dV(dim)
 
             # Use instance of class to register dynamic attributes in state
             state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
@@ -95,9 +96,9 @@ class FieldTerm(gen.CodeClass):
         if hasattr(self, "e_expr"):
             self.save_and_load_code(self._n_gauss, dim)
         if not hasattr(self, "h"):
-            self.h = gen.compile(self._code.h)
+            self.h = config.backend.compile(self._code.h)
         if not hasattr(self, "E"):
-            self.E = gen.compile(self._code.E)
+            self.E = config.backend.compile(self._code.E)
         logging.info_green(
             f"[{self.__class__.__name__}] Register state methods (field:"
             f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}')"
@@ -123,22 +124,22 @@ class FieldTerm(gen.CodeClass):
 
     @classmethod
     def _generate_code(cls, n_gauss, dim):
-        code = gen.CodeBlock()
-        m = gen.Variable("m", "n" * dim, (3,))
+        code = config.backend.CodeBlock()
+        m = en.Variable("m", "n" * dim, (3,))
 
         if not hasattr(cls, "h"):
             # generate linear-form cmds
             if hasattr(cls, "dedm_expr"):
                 field_expr = cls.dedm_expr(m, dim)
             else:
-                field_expr = gen.gateaux_derivative(cls.e_expr(m, dim), m)
+                field_expr = en.gateaux_derivative(cls.e_expr(m, dim), m)
 
-            cmds1, vars1 = gen.linear_form_cmds(field_expr, n_gauss)
+            cmds1, vars1 = en.linear_form_cmds(field_expr, n_gauss)
 
             # generate lumped mass cmds
-            v = gen.Variable("v", "n" * dim)
-            Ms = gen.Variable("material__Ms", "c" * dim)
-            cmds2, vars2 = gen.linear_form_cmds(-constants.mu_0 * Ms * v * gen.dV(dim))
+            v = en.Variable("v", "n" * dim)
+            Ms = en.Variable("material__Ms", "c" * dim)
+            cmds2, vars2 = en.linear_form_cmds(-constants.mu_0 * Ms * v * en.dV(dim))
 
             with code.add_function("h", sorted(list(vars1 | vars2 | {"m"}))) as f:
                 f.zeros_like("h", "m")
@@ -152,7 +153,7 @@ class FieldTerm(gen.CodeClass):
                 f.retrn("h / mass.unsqueeze(-1)")  # TODO more abstraction?
 
         if not hasattr(cls, "E"):
-            terms, variables = gen.compile_functional(cls.e_expr(m, dim), n_gauss)
+            terms, variables = en.compile_functional(cls.e_expr(m, dim), n_gauss)
             with code.add_function("E", variables) as f:
                 f.retrn_sum(*[term["cmd"] for term in terms])
 

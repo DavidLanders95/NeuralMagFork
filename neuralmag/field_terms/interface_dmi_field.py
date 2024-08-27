@@ -19,8 +19,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from sympy.vector import divergence, gradient
 
-from ..generators.pytorch_generator import N, Variable, dV
-from .field_term import FieldTerm
+from neuralmag.common.engine import N, Variable, dV
+from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["InterfaceDMIField"]
 

@@ -19,12 +19,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import torch
 
-from ..generators import pytorch_generator as gen
+from neuralmag.common import engine as en
+from neuralmag.common.code_class import CodeClass
 
 __all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
 
 
-class Function(gen.CodeClass):
+class Function(CodeClass):
     """
     This class represents a discretized field on the mesh of a state object.
 
@@ -200,22 +201,22 @@ class Function(gen.CodeClass):
 
     @classmethod
     def _generate_code(cls, spaces, shape):
-        code = gen.CodeBlock()
+        code = en.CodeBlock()
         dim = len(spaces)
 
         # generate avg method
-        f = gen.Variable("f", spaces, shape)
+        f = en.Variable("f", spaces, shape)
         with code.add_function("avg", ["rho", "dx", "f"]) as func:
-            terms, _ = gen.compile_functional(1 * gen.dV(dim))
+            terms, _ = en.compile_functional(1 * en.dV(dim))
             func.assign_sum("vol", *[term["cmd"] for term in terms])
 
             if shape == ():
-                terms, variables = gen.compile_functional(f * gen.dV(dim))
+                terms, variables = en.compile_functional(f * en.dV(dim))
                 func.assign_sum("fint", *[term["cmd"] for term in terms])
             elif shape == (3,):
                 func.zeros_like("fint", "f", (3,))
                 for i in range(3):
-                    terms, _ = gen.compile_functional(f.dot(gen.cs_e[i]) * gen.dV(dim))
+                    terms, _ = en.compile_functional(f.dot(en.cs_e[i]) * en.dV(dim))
                     func.assign_sum(f"fint[{i}]", *[term["cmd"] for term in terms])
 
             func.retrn("fint / vol")

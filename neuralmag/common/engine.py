@@ -17,24 +17,15 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import hashlib
-import importlib
 import json
-import os
-import pathlib
-import pickle
 import re
 from functools import reduce
 from itertools import product
 
 import sympy as sp
 import sympy.vector as sv
-import torch
-from scipy import constants
 from scipy.special import p_roots
 from tqdm import tqdm
-
-from ..common import config, logging
 
 N = sv.CoordSys3D("N")
 cs_dx = sp.symbols("_dx[0]_ _dx[1]_ _dx[2]_", real=True, positive=True)
@@ -89,105 +80,6 @@ def dA(dim=3, normal=2, region="rhoxy", idx=":", **kwargs):
     dims = [None, None, None]
     dims[normal] = idx
     return rho * dX(dims=dims, **kwargs)
-
-
-def compile(func):
-    if config.torch["compile"]:
-        return torch.compile(func)
-    else:
-        return func
-
-
-class CodeFunction(object):
-    def __init__(self, block, name, variables):
-        self._block = block
-        self._name = name
-        self._variables = variables
-
-    def __enter__(self):
-        self._code = f"def {self._name}({', '.join(self._variables)}):\n"
-        return self
-
-    def __exit__(self, type, value, traceback):
-        if type is not None:
-            return False
-        self._block.add(self._code)
-        self._block.add("\n")
-        return True
-
-    @staticmethod
-    def sum(*terms):
-        return " + ".join([f"({term}).sum()" for term in terms])
-
-    def add_line(self, code):
-        self._code += f"    {code}\n"
-
-    def assign(self, lhs, rhs):
-        self.add_line(f"{lhs} = {rhs}")
-
-    def assign_sum(self, lhs, *terms):
-        self.assign(lhs, self.sum(*terms))
-
-    def zeros_like(self, var, src, shape=None):
-        if shape is None:
-            self.add_line(f"{var} = torch.zeros_like({src})")
-        else:
-            self.add_line(
-                f"{var} = torch.zeros({shape}, dtype = {src}.dtype, device ="
-                f" {src}.device)"
-            )
-
-    def add_to(self, var, idx, rhs):
-        self.add_line(f"{var}[{idx}] += {rhs}")
-
-    def retrn(self, code):
-        self.add_line(f"return {code}")
-
-    def retrn_sum(self, *terms):
-        self.add_line(f"return {self.sum(*terms)}")
-
-
-class CodeBlock(object):
-    def __init__(self):
-        self._code = "import torch\n\n"
-
-    def add_function(self, name, variables):
-        return CodeFunction(self, name, variables)
-
-    def add(self, code):
-        self._code += code
-
-    def __str__(self):
-        return self._code
-
-
-class CodeClass(object):
-    def save_and_load_code(self, *args):
-        # setup cache file name
-        this_module = pathlib.Path(importlib.import_module(self.__module__).__file__)
-        i = this_module.parent.parts[::-1].index("neuralmag")
-        prefix = "_".join(this_module.parent.parts[-i:] + (this_module.stem,))
-        cache_file = f"{prefix}_{hashlib.md5(pickle.dumps(args)).hexdigest()}.py"
-        cache_dir = os.getenv(
-            "NEURALMAG_CACHE", pathlib.Path.home() / ".cache" / "neuralmag"
-        )
-        code_file_path = cache_dir / cache_file
-
-        # generate code
-        if not code_file_path.is_file():
-            code_file_path.parent.mkdir(parents=True, exist_ok=True)
-            # TODO check if _generate_code method exists
-            logging.info_green(
-                f"[{self.__class__.__name__}] Generate torch core methods"
-            )
-            code = str(self._generate_code(*args))
-            with open(code_file_path, "w") as f:
-                f.write(code)
-
-        # import code
-        module_spec = importlib.util.spec_from_file_location("code", code_file_path)
-        self._code = importlib.util.module_from_spec(module_spec)
-        module_spec.loader.exec_module(self._code)
 
 
 def Variable(name, spaces, shape=()):
@@ -387,42 +279,3 @@ def gateaux_derivative(expr, var):
         v = sp.Symbol(re.sub(r"^_.*:(.*:.*:.*_)$", r"_v:\1", symb.name))
         result.append(v * expr.diff(symb))
     return reduce(lambda x, y: x + y, result)
-
-
-def linear_form_code(form, n_gauss=3):
-    r"""
-    Generate PyTorch function for the evaluation of a given linear form.
-
-    :param form: The linear form
-    :type form: sympy.Expr
-    :param n_gauss: Degree of Gauss integration
-    :type n_gauss: int
-    :return: The Python code of the PyTorch function
-    :rtype: str
-    """
-    cmds, variables = linear_form_cmds(form, n_gauss)
-    code = CodeBlock()
-    with code.add_function("L", ["result"] + sorted(list(variables))) as f:
-        for cmd in cmds:
-            f.add_to("result", cmd[0], cmd[1])
-
-    return code
-
-
-def functional_code(form, n_gauss=3):
-    r"""
-    Generate PyTorch function for the evaluation of a given functional form.
-
-    :param form: The functional
-    :type form: sympy.Expr
-    :param n_gauss: Degree of Gauss integration
-    :type n_gauss: int
-    :return: The Python code of the PyTorch function
-    :rtype: str
-    """
-    terms, variables = compile_functional(form, n_gauss)
-    code = CodeBlock()
-    with code.add_function("M", sorted(list(variables))) as f:
-        f.retrn_sum(*[term["cmd"] for term in terms])
-
-    return code

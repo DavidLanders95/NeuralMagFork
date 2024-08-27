@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from functools import reduce
 
-from . import logging
+from neuralmag.common import logging
 
 __all__ = ["Mesh"]
 

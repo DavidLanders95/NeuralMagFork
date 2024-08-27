@@ -23,9 +23,9 @@ import types
 import torch
 from scipy import constants
 
-from ..common import VectorFunction
-from ..generators.pytorch_generator import Variable, dV
-from .field_term import FieldTerm
+from neuralmag.common import VectorFunction
+from neuralmag.common.engine import Variable, dV
+from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["ExternalField"]
 

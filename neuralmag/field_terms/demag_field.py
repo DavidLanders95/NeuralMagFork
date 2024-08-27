@@ -26,9 +26,9 @@ import torch.fft
 from scipy import constants
 from torch import abs, asinh, atan, log, sqrt
 
-from ..common import CellFunction, Function, VectorFunction, logging
-from ..generators.pytorch_generator import Variable, dV
-from .field_term import FieldTerm
+from neuralmag.common import CellFunction, Function, VectorFunction, logging
+from neuralmag.common.engine import Variable, dV
+from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["DemagField"]
 
