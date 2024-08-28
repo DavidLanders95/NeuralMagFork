@@ -33,3 +33,16 @@ def state2d():
     state.m.tensor[2, :, 0] = 1
 
     return state
+
+
+@pytest.fixture
+def state1d():
+    mesh = Mesh((2,), (1e-9, 1e-9, 1e-9))
+    state = State(mesh)
+
+    state.m = VectorFunction(state)
+    state.m.tensor[0, 0] = -1
+    state.m.tensor[1, 1] = 1
+    state.m.tensor[2, 0] = 1
+
+    return state

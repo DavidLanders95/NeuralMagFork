@@ -17,8 +17,6 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import torch
-
 from neuralmag.common import config
 from neuralmag.common import engine as en
 from neuralmag.common.code_class import CodeClass
@@ -69,7 +67,7 @@ class Function(CodeClass):
 
         self._tensor_shape = tuple(tensor_shape) + shape
 
-        if tensor is None or isinstance(tensor, torch.Tensor):
+        if tensor is None or isinstance(tensor, config.backend.Tensor):
             self._tensor = tensor
         else:
             raise NotImplemented("Unsupported tensor type.")
@@ -118,7 +116,7 @@ class Function(CodeClass):
         The tensor containing the discretized values of the function
         """
         if self._tensor is None:
-            self._tensor = torch.zeros(
+            self._tensor = config.backend.zeros(
                 self._tensor_shape, dtype=self._state.dtype, device=self._state.device
             )
         return self._tensor
@@ -172,17 +170,13 @@ class Function(CodeClass):
             self._expanded = self.state.tensor(constant)
             if isinstance(constant, (int, float)):
                 assert self.shape == ()
-                self._tensor = self._expanded.reshape(
-                    (1,) * self.state.mesh.dim
-                ).expand(self._tensor_shape)
-            elif isinstance(constant, (list, tuple)):
+            if isinstance(constant, (list, tuple)):
                 assert self.shape == (3,)
-                self._tensor = self._expanded.reshape(
-                    (1,) * self.state.mesh.dim + (3,)
-                ).expand(self._tensor_shape)
-            else:
-                raise NotImplemented("Unsupported shape.")
+            self._tensor = config.backend.broadcast_to(
+                self._expanded, self._tensor_shape
+            )
         elif self._expanded is not None:
+            # TODO inplace operations will crash with JAX
             self._expanded[:] = self.state.tensor(constant)
         else:
             raise Exception(

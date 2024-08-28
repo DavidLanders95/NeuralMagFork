@@ -43,3 +43,5 @@ data = np.zeros((state.m.tensor.shape[0], 4))
 data[:, 0] = np.arange(data.shape[0]) * 1e-9
 data[:, (1, 2, 3)] = state.m.tensor[:, :]
 np.savetxt("log.dat", data)
+
+state.write_vti(["m"], "m.vti")
