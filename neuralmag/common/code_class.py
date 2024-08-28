@@ -23,7 +23,7 @@ import os
 import pathlib
 import pickle
 
-from neuralmag.common import logging
+from neuralmag.common import config, logging
 
 
 class CodeClass(object):
@@ -31,7 +31,9 @@ class CodeClass(object):
         # setup cache file name
         this_module = pathlib.Path(importlib.import_module(self.__module__).__file__)
         i = this_module.parent.parts[::-1].index("neuralmag")
-        prefix = "_".join(this_module.parent.parts[-i:] + (this_module.stem,))
+        prefix = "_".join(
+            (config.backend.name,) + this_module.parent.parts[-i:] + (this_module.stem,)
+        )
         cache_file = f"{prefix}_{hashlib.md5(pickle.dumps(args)).hexdigest()}.py"
         cache_dir = os.getenv(
             "NEURALMAG_CACHE", pathlib.Path.home() / ".cache" / "neuralmag"

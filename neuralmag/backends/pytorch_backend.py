@@ -23,6 +23,8 @@ import torch
 
 from neuralmag.common import config
 
+name = "torch"
+
 
 def linear_form_code(form, n_gauss=3):
     r"""

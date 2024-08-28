@@ -25,26 +25,21 @@ __all__ = ["config"]
 class Config:
     def __init__(self):
         self._backend = None
-        self._backend_name = None
 
         # public config keys
         self.torch = {"compile": True}
         self.fem = {"n_gauss": 3}
 
     @property
-    def backend_name(self):
-        return self._backend_name
-
-    @property
     def backend(self):
         if self._backend is None:
             # default to pytorch
             self.backend = "torch"
-            # raise RuntimeError("Backend is not set. Please configure `config.backend` first.")
         return self._backend
 
     @backend.setter
     def backend(self, backend_name):
+        # TODO raise error if backend is already set?
         if backend_name not in ["torch", "jax"]:
             raise ValueError(f"Unsupported backend: {backend_name}")
 
@@ -54,8 +49,6 @@ class Config:
             )
         elif backend_name == "jax":
             self._backend = importlib.import_module("neuralmag.backends.jax_backend")
-
-        self._backend_name = backend_name
 
 
 config = Config()
