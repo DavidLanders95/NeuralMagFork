@@ -23,7 +23,8 @@ import os
 import pathlib
 import pickle
 
-from neuralmag.common import config, logging
+from neuralmag.common import logging
+from neuralmag.common.config import config
 
 
 class CodeClass(object):
