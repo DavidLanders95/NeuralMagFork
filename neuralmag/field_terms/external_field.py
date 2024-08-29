@@ -20,10 +20,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import inspect
 import types
 
-import torch
 from scipy import constants
 
-from neuralmag.common import VectorFunction
+from neuralmag.common import VectorFunction, config
 from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
@@ -38,11 +37,11 @@ class ExternalField(FieldTerm):
 
       E = - \int_\Omega \mu_0 M_s  \vec{m} \cdot \vec{h} \dx
 
-    :param h: The field either given as a :code:`torch.Tensor` or callable
+    :param h: The field either given as a :code:`config.backend.Tensor` or callable
               in case of a field that depends e.g. on :code:`state.t`.
               The shape must be either (nx, ny, nz, 3) or (3,) in which case
               the field expanded to full size.
-    :type h: torch.Tensor
+    :type h: config.backend.Tensor
     :param n_gauss: Degree of Gauss quadrature used in the form compiler.
     :type n_gauss: int
 
@@ -86,7 +85,7 @@ class ExternalField(FieldTerm):
                 )
             else:
                 self.h = self._h
-        elif isinstance(self._h, torch.Tensor):
+        elif isinstance(self._h, config.backend.Tensor):
             if self._h.shape == tensor_shape:
                 self.h = self._h
             elif self._h.shape == (3,):
