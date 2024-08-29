@@ -150,7 +150,7 @@ class FieldTerm(CodeClass):
                 for cmd in cmds2:
                     f.add_to("mass", cmd[0], cmd[1])
 
-                f.retrn("h / mass.unsqueeze(-1)")  # TODO more abstraction?
+                f.retrn("h / mass.reshape(mass.shape + (1,))")  # unsqueeze(-1)")
 
         if not hasattr(cls, "E"):
             terms, variables = en.compile_functional(cls.e_expr(m, dim), n_gauss)

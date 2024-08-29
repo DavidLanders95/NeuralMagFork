@@ -192,9 +192,6 @@ class State(object):
             return
 
         if isinstance(value, (int, float)):
-            if name in self._attr_values:
-                self._attr_values[name].fill_(value)
-                return
             value = self.tensor(value)
 
         if isinstance(value, tuple) and len(value) == 3:

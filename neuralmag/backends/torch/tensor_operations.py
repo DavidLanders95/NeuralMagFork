@@ -58,3 +58,7 @@ def to_numpy(array):
 
 def broadcast_to(array, shape):
     return array.expand(shape)
+
+
+def tile(array, shape):
+    return torch.tile(array, shape)

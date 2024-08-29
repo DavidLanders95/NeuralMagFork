@@ -140,49 +140,18 @@ class Function(CodeClass):
                 state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
                 f = nm.Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
         """
+        tensor = self.state.tensor(constant)
+        if self.shape == ():
+            shape = self._tensor_shape
+        elif self.shape == (3,):
+            shape = self._tensor_shape[:-1] + (1,)
+        else:
+            raise
+
         if expand:
-            return self.fill_expanded(constant)
-        if isinstance(constant, (int, float)):
-            assert self.shape == ()
-            self.tensor[...] = constant
-        elif isinstance(constant, (list, tuple)):
-            assert self.shape == (3,)
-            for i in range(3):
-                self.tensor[..., i] = constant[i]
+            self._tensor = config.backend.broadcast_to(tensor, shape)
         else:
-            raise NotImplemented("Unsupported shape.")
-
-        return self
-
-    def fill_expanded(self, constant):
-        """
-        Fills the tensor of the function with a constant value by expanding
-        the constant to the full mesh size by to use of :code:`torch.Tensor.expand`.
-
-        This reduces the memory consumption of the tensor to a single double value.
-
-        :param constant: The constant to fill the tensor
-        :type constant: int, list
-        :return: The function itself
-        :rvalue: :class:`Function`
-        """
-        if self._tensor is None:
-            self._expanded = self.state.tensor(constant)
-            if isinstance(constant, (int, float)):
-                assert self.shape == ()
-            if isinstance(constant, (list, tuple)):
-                assert self.shape == (3,)
-            self._tensor = config.backend.broadcast_to(
-                self._expanded, self._tensor_shape
-            )
-        elif self._expanded is not None:
-            # TODO inplace operations will crash with JAX
-            self._expanded[:] = self.state.tensor(constant)
-        else:
-            raise Exception(
-                "Cannot transform a regular Function to an expanded Function"
-            )
-
+            self._tensor = config.backend.tile(tensor, shape)
         return self
 
     def avg(self):
@@ -212,7 +181,7 @@ class Function(CodeClass):
                 func.zeros_like("fint", "f", (3,))
                 for i in range(3):
                     terms, _ = en.compile_functional(f.dot(en.cs_e[i]) * en.dV(dim))
-                    func.assign_sum(f"fint[{i}]", *[term["cmd"] for term in terms])
+                    func.assign_sum(f"fint", *[term["cmd"] for term in terms], index=i)
 
             func.retrn("fint / vol")
 

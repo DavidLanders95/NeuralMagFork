@@ -90,11 +90,14 @@ class CodeFunction(object):
     def add_line(self, code):
         self._code += f"    {code}\n"
 
-    def assign(self, lhs, rhs):
-        self.add_line(f"{lhs} = {rhs}")
+    def assign(self, lhs, rhs, index=None):
+        if index is None:
+            self.add_line(f"{lhs} = {rhs}")
+        else:
+            self.add_line(f"{lhs}[{index}] = {rhs}")
 
-    def assign_sum(self, lhs, *terms):
-        self.assign(lhs, self.sum(*terms))
+    def assign_sum(self, lhs, *terms, index=None):
+        self.assign(lhs, self.sum(*terms), index)
 
     def zeros_like(self, var, src, shape=None):
         if shape is None:
