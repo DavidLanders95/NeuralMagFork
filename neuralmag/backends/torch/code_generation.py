@@ -17,13 +17,7 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import os
-
-import torch
-
 from neuralmag.common import config
-
-name = "torch"
 
 
 def linear_form_code(form, n_gauss=3):
@@ -133,44 +127,3 @@ class CodeBlock(object):
 
     def __str__(self):
         return self._code
-
-
-def device(device):
-    return torch.device(f"cuda:{device}" if torch.cuda.is_available() else "cpu")
-
-
-def eps(dtype):
-    return torch.finfo(dtype).eps
-
-
-float64 = torch.float64
-Tensor = torch.Tensor
-
-
-def tensor(value, *, device=None, dtype=None, requires_grad=False):
-    if isinstance(value, torch.Tensor):
-        if value.device != device:
-            return value.to(device)
-        else:
-            return value
-    return torch.tensor(value, device=device, dtype=dtype, requires_grad=requires_grad)
-
-
-def zeros(shape, *, device=None, dtype=None, **kwargs):
-    return torch.zeros(shape, device=device, dtype=dtype, **kwargs)
-
-
-def arange(*args, device=None, dtype=None, **kwargs):
-    return torch.arange(*args, device=device, dtype=dtype, **kwargs)
-
-
-def meshgrid(*ranges, indexing="ij"):
-    return torch.meshgrid(*ranges, indexing="ij")
-
-
-def to_numpy(array):
-    return array.detach().cpu().numpy()
-
-
-def broadcast_to(array, shape):
-    return array.expand(shape)

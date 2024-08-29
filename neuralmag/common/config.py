@@ -44,11 +44,9 @@ class Config:
             raise ValueError(f"Unsupported backend: {backend_name}")
 
         if backend_name == "torch":
-            self._backend = importlib.import_module(
-                "neuralmag.backends.pytorch_backend"
-            )
+            self._backend = importlib.import_module("neuralmag.backends.torch")
         elif backend_name == "jax":
-            self._backend = importlib.import_module("neuralmag.backends.jax_backend")
+            self._backend = importlib.import_module("neuralmag.backends.jax")
 
 
 config = Config()

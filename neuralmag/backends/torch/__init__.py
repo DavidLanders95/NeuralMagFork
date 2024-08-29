@@ -17,11 +17,7 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-VERSION = "0.9.0"
+name = "torch"
 
-from neuralmag.common import *
-from neuralmag.field_terms import *
-from neuralmag.loggers import *
-from neuralmag.solvers import *
-
-__all__ = common.__all__ + field_terms.__all__ + loggers.__all__ + solvers.__all__
+from neuralmag.backends.torch.code_generation import *
+from neuralmag.backends.torch.tensor_operations import *
