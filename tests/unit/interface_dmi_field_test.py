@@ -12,4 +12,4 @@ def test_h(state):
     state.material.Ms = CellFunction(state).fill(8e5)
 
     InterfaceDMIField().register(state)
-    assert be.to_numpy(state.h_idmi.tensor.sum()) == pytest.approx(17904931.088091202)
+    assert be.to_numpy(state.h_idmi.tensor.sum()) == pytest.approx(19010173.74784992)

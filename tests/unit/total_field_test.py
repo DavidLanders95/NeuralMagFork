@@ -16,4 +16,4 @@ def test_h(state):
     ExchangeField().register(state)
     InterfaceDMIField().register(state)
     TotalField("exchange", "idmi").register(state)
-    assert be.to_numpy(state.h.tensor.sum()) == pytest.approx(447623277.2022799)
+    assert be.to_numpy(state.h.tensor.sum()) == pytest.approx(448728519.86203885)

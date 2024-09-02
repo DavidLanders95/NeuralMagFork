@@ -12,4 +12,4 @@ def test_h(state):
     state.material.Ms = CellFunction(state).fill(8e5)
 
     UniaxialAnisotropyField().register(state)
-    assert be.to_numpy(state.h_uaniso.tensor.sum()) == pytest.approx(23873241.450788274)
+    assert be.to_numpy(state.h_uaniso.tensor.sum()) == pytest.approx(22031170.351190414)

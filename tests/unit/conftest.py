@@ -4,7 +4,7 @@ from scipy import constants
 
 from neuralmag import *
 
-config.backend = "jax"
+# config.backend = "jax"
 config.torch["compile"] = False
 
 
@@ -17,6 +17,8 @@ def state():
     m_data[0, :, :, 0] = -1
     m_data[1, :, :, 1] = 1
     m_data[2, :, :, 0] = 1
+    m_data[1, 0, 0, :] = 0
+    m_data[1, 0, 0, 0] = 1
 
     state.m = VectorFunction(state, tensor=state.tensor(m_data))
 
