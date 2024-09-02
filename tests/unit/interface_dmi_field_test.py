@@ -3,6 +3,8 @@ import pytest
 
 from neuralmag import *
 
+be = config.backend
+
 
 def test_h(state):
     state.material.Di = CellFunction(state).fill(1e-3)
@@ -10,4 +12,4 @@ def test_h(state):
     state.material.Ms = CellFunction(state).fill(8e5)
 
     InterfaceDMIField().register(state)
-    assert state.h_idmi.tensor.sum().cpu() == pytest.approx(17904931.088091202)
+    assert be.to_numpy(state.h_idmi.tensor.sum()) == pytest.approx(17904931.088091202)

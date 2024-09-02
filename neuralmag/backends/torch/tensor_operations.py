@@ -22,6 +22,8 @@ import torch
 float64 = torch.float64
 Tensor = torch.Tensor
 
+libs = {"torch": torch}
+
 
 def device(device):
     return torch.device(f"cuda:{device}" if torch.cuda.is_available() else "cpu")

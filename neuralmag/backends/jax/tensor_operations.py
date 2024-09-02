@@ -25,6 +25,7 @@ float64 = jnp.float64
 float32 = jnp.float32
 Tensor = jax.Array
 
+libs = {"jnp": jnp}
 
 # XXX
 def device(device):

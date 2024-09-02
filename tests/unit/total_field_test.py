@@ -4,6 +4,8 @@ import torch
 
 from neuralmag import *
 
+be = config.backend
+
 
 def test_h(state):
     state.material.A = CellFunction(state).fill(1.2e-11)
@@ -14,4 +16,4 @@ def test_h(state):
     ExchangeField().register(state)
     InterfaceDMIField().register(state)
     TotalField("exchange", "idmi").register(state)
-    assert state.h.tensor.sum().cpu() == pytest.approx(447623277.2022799)
+    assert be.to_numpy(state.h.tensor.sum()) == pytest.approx(447623277.2022799)

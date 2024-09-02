@@ -3,6 +3,8 @@ import pytest
 
 from neuralmag import *
 
+be = config.backend
+
 
 def test_h(state):
     state.material.Ku = CellFunction(state).fill(1e6)
@@ -10,4 +12,4 @@ def test_h(state):
     state.material.Ms = CellFunction(state).fill(8e5)
 
     UniaxialAnisotropyField().register(state)
-    assert state.h_uaniso.tensor.sum().cpu() == pytest.approx(23873241.450788274)
+    assert be.to_numpy(state.h_uaniso.tensor.sum()) == pytest.approx(23873241.450788274)

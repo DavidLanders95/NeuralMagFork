@@ -112,10 +112,16 @@ class CodeFunction(object):
     def retrn_sum(self, *terms):
         self.add_line(f"return {self.sum(*terms)}")
 
+    def retrn_expanded(self, code, shape):
+        self.add_line(f"return jnp.broadcast_to({code}, {shape})")
+
 
 class CodeBlock(object):
-    def __init__(self):
-        self._code = "import jax.numpy as jnp\n\n"
+    def __init__(self, plain=False):
+        if plain:
+            self._code = ""
+        else:
+            self._code = "import jax.numpy as jnp\n\n"
 
     def add_function(self, name, variables):
         return CodeFunction(self, name, variables)
