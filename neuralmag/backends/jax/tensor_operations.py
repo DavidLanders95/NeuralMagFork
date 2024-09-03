@@ -23,6 +23,7 @@ import numpy as np
 
 float64 = jnp.float64
 float32 = jnp.float32
+integer = jnp.int32
 Tensor = jax.Array
 
 libs = {"jnp": jnp}
@@ -50,6 +51,10 @@ def zeros(shape, *, device=None, dtype=None, **kwargs):
     return jnp.zeros(shape, dtype=dtype, **kwargs)
 
 
+def zeros_like(tensor):
+    return jnp.zeros_like(tensor)
+
+
 def arange(*args, device=None, dtype=None, **kwargs):
     return jnp.arange(*args, dtype=dtype, **kwargs)
 
@@ -68,3 +73,7 @@ def broadcast_to(array, shape):
 
 def tile(array, shape):
     return jnp.tile(array, shape)
+
+
+def assign(target, source, idx):
+    return target.at[idx].set(source)

@@ -20,6 +20,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import torch
 
 float64 = torch.float64
+float32 = torch.float32
+integer = torch.int
 Tensor = torch.Tensor
 
 libs = {"torch": torch}
@@ -46,6 +48,10 @@ def zeros(shape, *, device=None, dtype=None, **kwargs):
     return torch.zeros(shape, device=device, dtype=dtype, **kwargs)
 
 
+def zeros_like(tensor):
+    return torch.zeros_like(tensor)
+
+
 def arange(*args, device=None, dtype=None, **kwargs):
     return torch.arange(*args, device=device, dtype=dtype, **kwargs)
 
@@ -64,3 +70,8 @@ def broadcast_to(array, shape):
 
 def tile(array, shape):
     return torch.tile(array, shape)
+
+
+def assign(target, source, idx):
+    target[idx] = source
+    return target
