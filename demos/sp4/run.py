@@ -10,6 +10,8 @@
 
 import neuralmag as nm
 
+nm.config.backend = "jax"
+
 # setup mesh and state
 mesh = nm.Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))
 state = nm.State(mesh)
@@ -21,24 +23,24 @@ state.material.alpha = 1.0
 
 # initialize nodal vector functions for magneization and external field
 state.m = nm.VectorFunction(state).fill((0.5**0.5, 0.5**0.5, 0))
-h_ext = nm.VectorFunction(state).fill((0, 0, 0), expand=True)
+h_ext = nm.VectorFunction(state).fill([-19576.0, 3421.0, 0.0], expand=True)
 
 # register effective field contributions
 nm.ExchangeField().register(state, "exchange")
 nm.DemagField().register(state, "demag")
 nm.ExternalField(h_ext).register(state, "external")
-nm.TotalField("exchange", "demag", "external").register(state)
+nm.TotalField("exchange", "demag").register(state)
 
 # relax to s-state
-llg = nm.LLGSolver(state)
+llg = nm.LLGSolverJAX(state)
 llg.step(1e-9)
-
 state.write_vti("m", "sstate.vti")
 
 # set external field and damping to perform switch
-h_ext.fill([-19576.0, 3421.0, 0.0], expand=True)
+nm.TotalField("exchange", "demag", "external").register(state)
 state.material.alpha = 0.02
 state.t = 0.0
+llg.reset()
 
 logger = nm.Logger("data", ["t", "m"], ["m"])
 while state.t < 1e-9:

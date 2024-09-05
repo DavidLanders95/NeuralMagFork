@@ -21,9 +21,7 @@ import os
 from collections.abc import Iterable
 from functools import reduce
 
-import torch
-
-from ..common import Function, logging
+from ..common import Function, logging, config
 
 __all__ = ["ScalarLogger"]
 
@@ -121,8 +119,8 @@ class ScalarLogger(object):
 
             if isinstance(raw_value, Function):
                 value = raw_value.avg().tolist()
-            elif isinstance(raw_value, torch.Tensor):
-                value = raw_value.tolist()
+            elif isinstance(raw_value, config.backend.Tensor):
+                value = config.backend.to_numpy(raw_value).tolist()
             else:
                 value = raw_value
             values.append((name, value))
