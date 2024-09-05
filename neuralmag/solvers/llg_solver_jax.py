@@ -98,7 +98,7 @@ class LLGSolverJAX(object): #nn.Module):
 #            internal_args.append(param)
 
         self._func, self._args = self._state.get_func(llg_rhs, internal_args)
-
+        self._rhs = jax.jit(lambda t, m, args: self._scale_t * self._func(t * self._scale_t, m, *self._args[2:]))
 #        for i, param in enumerate(self._parameters.keys()):
 #            self._args[2 + i] = self._parameters[param]
 
@@ -118,8 +118,7 @@ class LLGSolverJAX(object): #nn.Module):
             [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
         )
         dt0 = 1e-14 / self._scale_t
-        rhs = jax.jit(lambda t, m, args: self._scale_t * self._func(t * self._scale_t, m, *self._args[2:]))
-        term = ODETerm(rhs)
+        term = ODETerm(self._rhs)
         solver = Dopri5()
         saveat = SaveAt(ts=[t[-1]])
         stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
