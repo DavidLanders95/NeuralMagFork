@@ -141,12 +141,9 @@ class Function(CodeClass):
                 f = nm.Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
         """
         tensor = self.state.tensor(constant)
-        if self.shape == ():
-            shape = self._tensor_shape
-        elif self.shape == (3,):
+        shape = self._tensor_shape
+        if self.shape == (3,) and expand == False:
             shape = self._tensor_shape[:-1] + (1,)
-        else:
-            raise
 
         if expand:
             self._tensor = config.backend.broadcast_to(tensor, shape)

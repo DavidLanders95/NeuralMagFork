@@ -52,21 +52,16 @@ def test_fill_with_vector(state):
     assert be.to_numpy(f.avg()) == pytest.approx([1.0, 2.0, 3.0])
 
 
-# XXX cannot be checked with jax
-# def test_fill_expanded(state):
-#    f = Function(state).fill(2.0, expand=True)
-#    assert be.to_numpy(f.avg()) == pytest.approx(2.0)
-#    assert f.tensor.shape == f.tensor_shape
-#    f.tensor[0, 0, 0] = 3.0
-#    assert be.to_numpy(f.avg()) == pytest.approx(3.0)
-#
-#
-# def test_fill_expanded_with_vector(state):
-#    f = VectorFunction(state).fill([1.0, 2.0, 3.0], expand=True)
-#    assert be.to_numpy(f.avg()) == pytest.approx([1.0, 2.0, 3.0])
-#    assert f.tensor.size() == f.tensor_shape
-#    f.tensor[0, 0, 0, :] = torch.tensor([4.0, 5.0, 6.0])
-#    assert be.to_numpy(f.avg()) == pytest.approx([4.0, 5.0, 6.0])
+def test_fill_expanded(state):
+    f = Function(state).fill(2.0, expand=True)
+    assert be.to_numpy(f.avg()) == pytest.approx(2.0)
+    assert f.tensor.shape == f.tensor_shape
+
+
+def test_fill_expanded_with_vector(state):
+    f = VectorFunction(state).fill([1.0, 2.0, 3.0], expand=True)
+    assert be.to_numpy(f.avg()) == pytest.approx([1.0, 2.0, 3.0])
+    assert f.tensor.shape == f.tensor_shape
 
 
 def test_set_name(state):
