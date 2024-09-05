@@ -79,7 +79,7 @@ class State(object):
             self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
 
         self._attr_values["eps"] = config.backend.eps(self.dtype)
-        logging.info_green(f"[State] Running on device: {self._device}")
+        logging.info_green(f"[State] Running on device: {self.dx.device} (dtype = {self.dx.dtype}, backend = {config.backend_name})")
 
     @property
     def device(self):
@@ -93,7 +93,8 @@ class State(object):
         """
         The PyTorch dtype used for all tensors.
         """
-        return config.backend.float64
+        #return config.backend.float64
+        return config.backend.float32
 
     @property
     def mesh(self):
