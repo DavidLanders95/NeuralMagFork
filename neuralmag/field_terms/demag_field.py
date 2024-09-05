@@ -20,6 +20,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 from time import time
 
+from scipy import constants
+
 from neuralmag.common import config
 from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm

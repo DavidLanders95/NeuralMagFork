@@ -11,7 +11,6 @@ from jax.numpy import arcsinh as asinh
 from jax.numpy import arctan as atan
 from jax.numpy import log, pi, sqrt
 from magnumnp.common import logging
-from scipy import constants
 
 from neuralmag.common import logging
 from neuralmag.common.engine import Variable, dV
