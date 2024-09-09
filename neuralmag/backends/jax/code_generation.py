@@ -17,6 +17,7 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import jax
 from neuralmag.common import config
 
 
@@ -60,8 +61,7 @@ def functional_code(form, n_gauss=3):
 
 
 def compile(func):
-    # TODO use jax's jit here
-    return func
+    return jax.jit(func)
 
 
 class CodeFunction(object):

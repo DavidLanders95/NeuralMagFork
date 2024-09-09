@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import jax
+import equinox as eqx
 import jax.numpy as jnp
 from diffrax import diffeqsolve, Dopri5, ODETerm, SaveAt, PIDController
 
@@ -31,6 +32,12 @@ def llg_rhs(h, m, material__alpha):
     return -gamma_prime * jnp.cross(
         m, h
     ) - material__alpha * gamma_prime * jnp.cross(m, jnp.cross(m, h))
+
+#@jax.jit
+@eqx.filter_jit
+def solve(term, solver, t, dt0, y0, saveat, stepsize_controller):
+    sol = diffeqsolve(term, solver, t0=t[0], t1=t[-1], dt0=dt0, y0=y0, saveat=saveat, stepsize_controller=stepsize_controller)
+    return sol
 
 
 class LLGSolverJAX(object): #nn.Module):
@@ -98,7 +105,8 @@ class LLGSolverJAX(object): #nn.Module):
 #            internal_args.append(param)
 
         self._func, self._args = self._state.get_func(llg_rhs, internal_args)
-        self._rhs = jax.jit(lambda t, m, args: self._scale_t * self._func(t * self._scale_t, m, *self._args[2:]))
+        rhs = lambda t, m, args: self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
+        self._rhs = jax.jit(rhs)
 #        for i, param in enumerate(self._parameters.keys()):
 #            self._args[2 + i] = self._parameters[param]
 
@@ -123,7 +131,8 @@ class LLGSolverJAX(object): #nn.Module):
         saveat = SaveAt(ts=[t[-1]])
         stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
 
-        sol = diffeqsolve(term, solver, t0=t[0], t1=t[-1], dt0=dt0, y0=self._state.m.tensor, saveat=saveat, stepsize_controller=stepsize_controller)
+        sol = solve(term, solver, t, dt0, self._state.m.tensor, saveat, stepsize_controller)
+        #sol = diffeqsolve(term, solver, t0=t[0], t1=t[-1], dt0=dt0, y0=self._state.m.tensor, saveat=saveat, stepsize_controller=stepsize_controller)
         self._state.t = sol.ts[-1] * self._scale_t
         self._state.m._tensor = sol.ys[-1]
         return sol
