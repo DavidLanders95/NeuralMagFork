@@ -51,20 +51,27 @@ class State(object):
 
     :param mesh: The mesh for the simulation
     :type mesh: class:`Mesh`
-    :param device: The PyTorch device to be used, defaults to "cpu"
+    :param device: The device to be used, defaults to "cpu" (torch backend only)
     :type device: str, optional
+    :param dtype: The dtype to be used, defaults to "float64" (torch backend only)
+    :type dtype: str, optional
     """
 
-    def __init__(self, mesh, device=None):
+    def __init__(self, mesh, device=None, dtype=None):
         self._attr_values = {}
         self._attr_types = {}
         self._attr_funcs = {}
         self._attr_args = {}
 
         if device == None:
-            self._device = config.backend.device(os.environ.get("CUDA_DEVICE", "0"))
+            self._device = config.device
         else:
-            self._device = device
+            self._device = config.backend.device_for_state(device)
+
+        if dtype == None:
+            self._dtype = config.dtype
+        else:
+            self._dtype = config.backend.dtype_for_state(dtype)
 
         self._material = Material(self)
         self._mesh = mesh
@@ -95,8 +102,7 @@ class State(object):
         """
         The PyTorch dtype used for all tensors.
         """
-        # return config.backend.float64
-        return config.backend.float32
+        return self._dtype
 
     @property
     def mesh(self):

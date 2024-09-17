@@ -138,9 +138,9 @@ def h_cell(N_demag, mcell, material__Ms, rho):
     dim = [i for i in range(3) if mcell.shape[i] > 1]
     s = [mcell.shape[i] * 2 for i in dim]
 
-    hx = jnp.zeros(N_demag[0][0].shape, dtype=jnp.complex128)
-    hy = jnp.zeros(N_demag[0][0].shape, dtype=jnp.complex128)
-    hz = jnp.zeros(N_demag[0][0].shape, dtype=jnp.complex128)
+    hx = jnp.zeros(N_demag[0][0].shape, dtype=complex_dtype[mcell.dtype])
+    hy = jnp.zeros(N_demag[0][0].shape, dtype=complex_dtype[mcell.dtype])
+    hz = jnp.zeros(N_demag[0][0].shape, dtype=complex_dtype[mcell.dtype])
 
     for ax in range(3):
         m_pad_fft1D = jnp.fft.rfftn(
@@ -262,11 +262,12 @@ def init_N_component(state, perm, func, p):
 def init_N(state, p):
     logging.info_green(f"[DemagField]: Set up demag tensor")
 
-    Nxx = init_N_component(state, [0, 1, 2], demag_f, p).astype(state.dtype)
-    Nxy = init_N_component(state, [0, 1, 2], demag_g, p).astype(state.dtype)
-    Nxz = init_N_component(state, [0, 2, 1], demag_g, p).astype(state.dtype)
-    Nyy = init_N_component(state, [1, 2, 0], demag_f, p).astype(state.dtype)
-    Nyz = init_N_component(state, [1, 2, 0], demag_g, p).astype(state.dtype)
-    Nzz = init_N_component(state, [2, 0, 1], demag_f, p).astype(state.dtype)
+    with jax.experimental.enable_x64():
+        Nxx = init_N_component(state, [0, 1, 2], demag_f, p).astype(state.dtype)
+        Nxy = init_N_component(state, [0, 1, 2], demag_g, p).astype(state.dtype)
+        Nxz = init_N_component(state, [0, 2, 1], demag_g, p).astype(state.dtype)
+        Nyy = init_N_component(state, [1, 2, 0], demag_f, p).astype(state.dtype)
+        Nyz = init_N_component(state, [1, 2, 0], demag_g, p).astype(state.dtype)
+        Nzz = init_N_component(state, [2, 0, 1], demag_f, p).astype(state.dtype)
 
     state.N_demag = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]

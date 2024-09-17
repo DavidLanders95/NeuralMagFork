@@ -21,6 +21,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+from neuralmag.common import config, logging
+
 float64 = jnp.float64
 float32 = jnp.float32
 integer = jnp.int32
@@ -28,10 +30,38 @@ Tensor = jax.Array
 
 libs = {"jnp": jnp}
 
-# XXX
-def device(device):
+
+def device_from_str(device):
     return None
-    # return torch.device(f"cuda:{device}" if torch.cuda.is_available() else "cpu")
+
+
+def device_for_state(device):
+    logging.warning(
+        f"[NeuralMag] JAX backend doesn't support setting device per State. Falling back to default device."
+    )
+    return None
+
+
+def default_device_str():
+    return jax.devices()[0]
+
+
+def dtype_from_str(dtype):
+    if dtype == "float64":
+        jax.config.update("jax_enable_x64", True)
+
+    return {"float64": float64, "float32": float32}[dtype]
+
+
+def dtype_for_state(dtype):
+    logging.warning(
+        f"[NeuralMag] JAX backend doesn't support setting dtype per State. Falling back to default dtype."
+    )
+    return config.dtype
+
+
+def default_dtype_str():
+    return "float32"
 
 
 def eps(dtype):

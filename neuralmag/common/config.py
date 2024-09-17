@@ -20,12 +20,16 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import importlib
 import os
 
+from neuralmag.common import logging
+
 __all__ = ["config"]
 
 
 class Config:
     def __init__(self):
         self._backend = None
+        self._device = None
+        self._dtype = None
 
         # public config keys
         self.torch = {"compile": True}
@@ -36,7 +40,7 @@ class Config:
     def backend(self):
         if self._backend is None:
             try:  # check environment variable first
-                self.backend = os.environ["BACKEND"]
+                self.backend = os.environ["NM_BACKEND"]
             except:
                 try:  # then try torch by default
                     import torch
@@ -65,6 +69,30 @@ class Config:
             self._backend = importlib.import_module("neuralmag.backends.torch")
         elif backend_name == "jax":
             self._backend = importlib.import_module("neuralmag.backends.jax")
+
+        logging.info_green(f"[NeuralMag] Backend set to '{backend_name}'.")
+
+    @property
+    def device(self):
+        if self._device is None:
+            self.device = self.backend.default_device_str()
+        return self._device
+
+    @device.setter
+    def device(self, device):
+        logging.info_green(f"[NeuralMag] Set default device to '{device}'.")
+        self._device = self.backend.device_from_str(device)
+
+    @property
+    def dtype(self):
+        if self._dtype is None:
+            self.dtype = self.backend.default_dtype_str()
+        return self._dtype
+
+    @dtype.setter
+    def dtype(self, dtype):
+        logging.info_green(f"[NeuralMag] Set default dtype to '{dtype}'.")
+        self._dtype = self.backend.dtype_from_str(dtype)
 
 
 config = Config()

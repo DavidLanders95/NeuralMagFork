@@ -17,7 +17,11 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import os
+
 import torch
+
+from neuralmag.common import logging
 
 float64 = torch.float64
 float32 = torch.float32
@@ -27,8 +31,32 @@ Tensor = torch.Tensor
 libs = {"torch": torch}
 
 
-def device(device):
-    return torch.device(f"cuda:{device}" if torch.cuda.is_available() else "cpu")
+def device_from_str(device):
+    return torch.device(device)
+
+
+def device_for_state(device):
+    return device_from_str(device)
+
+
+def default_device_str():
+    return (
+        f"cuda:{os.environ.get('CUDA_DEVICE', '0')}"
+        if torch.cuda.is_available()
+        else "cpu"
+    )
+
+
+def dtype_from_str(dtype):
+    return {"float64": float64, "float32": float32}[dtype]
+
+
+def dtype_for_state(dtype):
+    return dtype_from_str(dtype)
+
+
+def default_dtype_str():
+    return "float32"
 
 
 def eps(dtype):
