@@ -101,6 +101,7 @@ docs:
   artifacts:
     paths:
       - docs/_build
+    when: on_success
 
 pages:
   # Take compiled html, and make available on gitlab pages
