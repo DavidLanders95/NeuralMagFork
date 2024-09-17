@@ -4,7 +4,6 @@ from scipy import constants
 
 from neuralmag import *
 
-# config.backend = "jax"
 config.torch["compile"] = False
 
 
