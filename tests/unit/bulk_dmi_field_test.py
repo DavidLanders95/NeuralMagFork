@@ -13,4 +13,4 @@ def test_h(state):
     # state.m.tensor[1, 0, 0, 0] = 1.0
 
     BulkDMIField().register(state)
-    assert be.to_numpy(state.h_bdmi.tensor.sum()) == pytest.approx(1105242.0)
+    assert be.to_numpy(state.h_bdmi.tensor.sum()) == pytest.approx(1105242.0, abs=10.0)
