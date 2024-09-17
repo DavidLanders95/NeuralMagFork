@@ -1,109 +1,38 @@
 # Dot in front of the job will hide it from the CI
-.setup_gpu:
-  gpu_runner_image: &gpu-runner-image
-    image: mambaorg/micromamba:jammy-cuda-12.3.1
-    tags:
-      - saas-linux-medium-amd64-gpu-standard
-  before_script_gpu: &gpu-before-script
+.test_template:
+  stage: test
+  artifacts:
+    paths:
+      - tests/test_artifacts/  # Or the directory where plots are saved
+    expire_in: 1 week  # Optional: set an expiration time for artifacts
+    when: on_failure  # Save artifacts only on failure
+  script: python -m pytest --verbose
+
+.cpu_template:
+  extends: .test_template
+  image: mambaorg/micromamba:jammy
+  before_script:
+    - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION"
+    - python --version  # For debugging
+    - pip install .[dev]
+
+.gpu_template:
+  extends: .test_template
+  image: mambaorg/micromamba:jammy-cuda-12.3.1
+  before_script:
+    - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION"
     - python --version  # For debugging
     - nvidia-smi  # Nvidia GPU information
     - pip install .[dev]
     # make sure PyTorch us using the GPUs
     - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
+  tags:
+    - saas-linux-medium-amd64-gpu-standard
 
-.setup_cpu:
-  image: &cpu-runner-image mambaorg/micromamba:jammy
-  before_script: &cpu-before-script
-    - python --version  # For debugging
-    - pip install .[dev]
-
-.setup_test_artifacts: &setup-artifacts
-  paths:
-    - tests/test_artifacts/  # Or the directory where plots are saved
-  expire_in: 1 week  # Optional: set an expiration time for artifacts
-  when: on_failure  # Save artifacts only on failure
-
-test_py3_11_gpu:
-  stage: test
-  <<: *gpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.11'
-    - *gpu-before-script
-  script: python -m pytest --verbose
-  artifacts: *setup-artifacts
-
-test_py3_11_cpu:
-  stage: test
-  image: *cpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.11'
-    - *cpu-before-script
-  script: python -m pytest --verbose
-  artifacts: *setup-artifacts
-
-test_py3_10_gpu:
-  when: manual
-  stage: test
-  <<: *gpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.10'
-    - *gpu-before-script
-  script: python -m pytest --verbose
-  artifacts: *setup-artifacts
-
-test_py3_10_cpu:
-  when: manual
-  stage: test
-  image: *cpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.10'
-    - *cpu-before-script
-  script: python -m pytest --verbose
-  artifacts: *setup-artifacts
-
-test_py3_9_gpu:
-  when: manual
-  stage: test
-  <<: *gpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.9'
-    - *gpu-before-script
-  script: python -m pytest --verbose
-  artifacts: *setup-artifacts
-
-test_py3_9_cpu:
-  when: manual
-  stage: test
-  image: *cpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.9'
-    - *cpu-before-script
-  script: python -m pytest --verbose
-  artifacts: *setup-artifacts
-
-test_py3_8_gpu:
-  when: manual
-  stage: test
-  <<: *gpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.8'
-    - *gpu-before-script
-  script: python -m pytest --verbose
-  artifacts: *setup-artifacts
-
-test_py3_8_cpu:
-  when: manual
-  stage: test
-  image: *cpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.8'
-    - *cpu-before-script
-  script: python -m pytest --verbose
-  artifacts: *setup-artifacts
 
 test_code_formatting:
   stage: test
-  image: *cpu-runner-image
+  image: !reference [.cpu_template, image]
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.11' git
     - git --version # make sure git in installed
@@ -113,19 +42,67 @@ test_code_formatting:
   script:
     - pre-commit run --all-files
 
+
+test_py3_11_gpu:
+  extends: .gpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
+
+test_py3_11_cpu:
+  extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
+
+test_py3_10_gpu:
+  extends: .gpu_template
+  variables:
+    PYTHON_VERSION: "3.10"
+  when: manual
+
+test_py3_10_cpu:
+  extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.10"
+  when: manual
+
+test_py3_9_gpu:
+  extends: .gpu_template
+  variables:
+    PYTHON_VERSION: "3.9"
+  when: manual
+
+test_py3_9_cpu:
+  extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.9"
+  when: manual
+
+test_py3_8_gpu:
+  extends: .gpu_template
+  variables:
+    PYTHON_VERSION: "3.8"
+  when: manual
+
+test_py3_8_cpu:
+  extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.8"
+  when: manual
+
+
 docs:
-  stage: test
-  image: *cpu-runner-image
-  before_script:
-    - micromamba install -y -n base -c conda-forge 'python=3.11' make pandoc
-    - *cpu-before-script
+  extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
   script:
+    - micromamba install -y -n base -c conda-forge make pandoc
     - cd docs
     - make html
   artifacts:
     paths:
       - docs/_build
-  
+    when: on_success
+
 pages:
   # Take compiled html, and make available on gitlab pages
   # at neuralmag.gitlab.io/neuralmag
@@ -145,10 +122,11 @@ pages:
     # a pages deploy.
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
 
+
 # Defining workflow rules is required to avoid duplicated pipelines
 # (https://docs.gitlab.com/ee/ci/jobs/job_rules.html#avoid-duplicate-pipelines).
 # With the following rules, we only run the CI on the main branch,
-# for open merge requests (but not for commits on different branches when no 
+# for open merge requests (but not for commits on different branches when no
 # MR has been opened yet), when pushing tags, or when manually running a pipeline
 # in the web interface.
 workflow:

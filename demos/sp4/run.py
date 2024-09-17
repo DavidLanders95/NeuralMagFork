@@ -32,8 +32,9 @@ nm.ExternalField(h_ext).register(state, "external")
 nm.TotalField("exchange", "demag").register(state)
 
 # relax to s-state
-llg = nm.LLGSolverJAX(state)
-llg.step(1e-9)
+llg = nm.LLGSolver(state)
+llg.relax()
+
 state.write_vti("m", "sstate.vti")
 
 # set external field and damping to perform switch

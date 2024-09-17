@@ -20,6 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import torch
 import torch.nn as nn
 from torchdiffeq import odeint_adjoint as odeint
+from torchdiffeq import odeint_event
 
 from ..common import Function, logging
 
@@ -31,6 +32,13 @@ def llg_rhs(h, m, material__alpha):
     return -gamma_prime * torch.linalg.cross(
         m, h
     ) - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
+
+
+def llg_no_precess_rhs(h, m, material__alpha):
+    gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
+    return (
+        -material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
+    )
 
 
 class LLGSolver(nn.Module):
@@ -104,6 +112,38 @@ class LLGSolver(nn.Module):
 
     def forward(self, t, m):
         return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
+
+    # TODO test using step instead of event_fn for better performance
+    # TODO check/fix behavior in inverse problems
+    def relax(self, tol=2e7 * torch.pi):
+        """
+        Use time integration of the damping term to relax the magnetization into an
+        energetic equilibrium. The convergence criterion is defined in terms of
+        the maximum norm of dm/dt in rad/s.
+
+        :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
+        :type tol: float
+        """
+        func, args = self._state.get_func(llg_no_precess_rhs, ["t", "m"])
+        logging.info_blue(
+            f"[LLGSolver] Start relaxation, initial energy E = {self._state.E:g} J"
+        )
+        _, m_next = odeint_event(
+            lambda t, m: self._scale_t * func(t * self._scale_t, m, *args[2:]),
+            self._state.m.tensor,
+            self._state.t,
+            event_fn=lambda t, m: func(t * self._scale_t, m, *args[2:])
+            .norm(dim=-1)
+            .max()
+            - tol,
+            odeint_interface=odeint,
+            adjoint_params=[],
+            **self._solver_options,
+        )
+        self._state.m.tensor[:] = m_next[-1]
+        logging.info_blue(
+            f"[LLGSolver] Relaxation finished, final energy E = {self._state.E:g} J"
+        )
 
     def step(self, dt):
         """

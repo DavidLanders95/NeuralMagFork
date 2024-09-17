@@ -32,7 +32,7 @@ nm.TotalField("exchange", "demag").register(state)
 
 # relax to s-state
 llg = nm.LLGSolver(state)
-llg.step(1e-9)
+llg.relax()
 
 # set external field and perform switch
 state.material.alpha = 0.02
