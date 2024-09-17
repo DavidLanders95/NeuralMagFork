@@ -99,7 +99,7 @@ class LLGSolverTorch(nn.Module):
         """
         Set up the function for the RHS evaluation of the LLG
         """
-        logging.info_green("[LLGSolver] Initialize RHS function")
+        logging.info_green("[LLGSolverTorch] Initialize RHS function")
 
         internal_args = ["t", "m"]
         for param in self._parameters.keys():
@@ -126,7 +126,7 @@ class LLGSolverTorch(nn.Module):
         """
         func, args = self._state.get_func(llg_no_precess_rhs, ["t", "m"])
         logging.info_blue(
-            f"[LLGSolver] Start relaxation, initial energy E = {self._state.E:g} J"
+            f"[LLGSolverTorch] Start relaxation, initial energy E = {self._state.E:g} J"
         )
         _, m_next = odeint_event(
             lambda t, m: self._scale_t * func(t * self._scale_t, m, *args[2:]),
@@ -142,7 +142,7 @@ class LLGSolverTorch(nn.Module):
         )
         self._state.m.tensor[:] = m_next[-1]
         logging.info_blue(
-            f"[LLGSolver] Relaxation finished, final energy E = {self._state.E:g} J"
+            f"[LLGSolverTorch] Relaxation finished, final energy E = {self._state.E:g} J"
         )
 
     def step(self, dt):
@@ -153,7 +153,9 @@ class LLGSolverTorch(nn.Module):
         :param dt: The size of the time step
         :type dt: float
         """
-        logging.info_blue(f"[LLGSolver] Step: dt = {dt:g}s, t = {self._state.t:g}s")
+        logging.info_blue(
+            f"[LLGSolverTorch] Step: dt = {dt:g}s, t = {self._state.t:g}s"
+        )
         t = self._state.tensor(
             [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
         )
