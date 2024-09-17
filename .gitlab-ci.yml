@@ -53,6 +53,18 @@ test_py3_11_cpu:
   variables:
     PYTHON_VERSION: "3.11"
 
+test_py3_11_gpu_jax:
+  extends: .gpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
+    BACKEND: "jax"
+
+test_py3_11_cpu_jax:
+  extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
+    BACKEND: "jax"
+
 test_py3_10_gpu:
   extends: .gpu_template
   variables:
