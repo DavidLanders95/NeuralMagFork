@@ -1,16 +1,18 @@
-from neuralmag import *
-import neuralmag
-from scipy import constants
-import torch
 import argparse
 import time
+
+import torch
 from diffrax import Dopri5
+from scipy import constants
+
+import neuralmag
+from neuralmag import *
 
 solver = Dopri5()
-evals_per_step = solver.tableau.num_stages-solver.tableau.fsal*1
+evals_per_step = solver.tableau.num_stages - solver.tableau.fsal * 1
 
 parser = argparse.ArgumentParser()
-parser.add_argument('e', type=int)
+parser.add_argument("e", type=int)
 args = parser.parse_args()
 
 N = 2**args.e
@@ -29,8 +31,8 @@ state.material.A = 13e-12
 state.material.alpha = 0.01
 
 # initialize nodal vector functions for magneization and external field
-state.m = VectorFunction(state).fill((1,0,0))
-h_ext = VectorFunction(state).fill((0, 0.01/constants.mu_0, 0), expand=True)
+state.m = VectorFunction(state).fill((1, 0, 0))
+h_ext = VectorFunction(state).fill((0, 0.01 / constants.mu_0, 0), expand=True)
 
 # register effective field contributions
 ExchangeField().register(state, "exchange")
@@ -51,6 +53,15 @@ sol = llg.step(1e-10)
 t_total = time.perf_counter() - start
 n_eval = int(sol.stats["num_steps"]) * evals_per_step
 
-#n_eval = Timer._timers['###measure###LLGSolver.step###DemagField.h']['calls']
+# n_eval = Timer._timers['###measure###LLGSolver.step###DemagField.h']['calls']
 
-print("NN=", N*N, "n_eval=", n_eval, "t_total=", t_total, "throuhput=", N*N*n_eval/t_total)
+print(
+    "NN=",
+    N * N,
+    "n_eval=",
+    n_eval,
+    "t_total=",
+    t_total,
+    "throuhput=",
+    N * N * n_eval / t_total,
+)
