@@ -18,7 +18,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from .llg_solver import *
-from .llg_solver_jax import *
 
-__all__ = llg_solver.__all__ + \
-          llg_solver_jax.__all__
+__all__ = llg_solver.__all__

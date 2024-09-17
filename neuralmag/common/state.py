@@ -95,8 +95,8 @@ class State(object):
         """
         The PyTorch dtype used for all tensors.
         """
-        # return config.backend.float64
-        return config.backend.float32
+        return config.backend.float64
+        # return config.backend.float32
 
     @property
     def mesh(self):
