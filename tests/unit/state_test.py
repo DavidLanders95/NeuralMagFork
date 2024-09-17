@@ -87,7 +87,7 @@ def test_wrap_func(state):
     assert be.to_numpy(state.g.sum()) == pytest.approx(5.0)
 
 
-def test_coordinates(state):
+def test_coordinates():
     mesh = Mesh((10, 5, 1), (1e-9, 2e-9, 3e-9), (1e-9, 2e-9, 3e-9))
     state = State(mesh)
 

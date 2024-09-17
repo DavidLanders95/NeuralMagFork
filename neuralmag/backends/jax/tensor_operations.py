@@ -59,6 +59,10 @@ def arange(*args, device=None, dtype=None, **kwargs):
     return jnp.arange(*args, dtype=dtype, **kwargs)
 
 
+def linspace(*args, device=None, dtype=None, **kwargs):
+    return jnp.linspace(*args, dtype=dtype, **kwargs)
+
+
 def meshgrid(*ranges, indexing="ij"):
     return jnp.meshgrid(*ranges, indexing="ij")
 

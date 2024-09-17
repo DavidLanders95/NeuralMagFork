@@ -79,7 +79,9 @@ class State(object):
             self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
 
         self._attr_values["eps"] = config.backend.eps(self.dtype)
-        logging.info_green(f"[State] Running on device: {self.dx.device} (dtype = {self.dx.dtype}, backend = {config.backend_name})")
+        logging.info_green(
+            f"[State] Running on device: {self.dx.device} (dtype = {self.dx.dtype}, backend = {config.backend_name})"
+        )
 
     @property
     def device(self):
@@ -93,7 +95,7 @@ class State(object):
         """
         The PyTorch dtype used for all tensors.
         """
-        #return config.backend.float64
+        # return config.backend.float64
         return config.backend.float32
 
     @property
@@ -346,20 +348,22 @@ class State(object):
         for i, space in enumerate(spaces):
             if space == "c":
                 ranges.append(
-                    config.backend.arange(
+                    config.backend.linspace(
                         self.dx[i] / 2.0 + self.mesh.origin[i],
-                        self.dx[i] * self.mesh.n[i] + self.mesh.origin[i],
-                        self.dx[i],
+                        self.dx[i] / 2.0
+                        + self.mesh.origin[i]
+                        + self.dx[i] * (self.mesh.n[i] - 1.0),
+                        self.mesh.n[i],
                         device=self.device,
                         dtype=self.dtype,
                     )
                 )
             elif space == "n":
                 ranges.append(
-                    config.backend.arange(
+                    config.backend.linspace(
                         self.mesh.origin[i],
-                        self.dx[i] * self.mesh.n[i] + self.mesh.origin[i] + self.eps,
-                        self.dx[i],
+                        self.mesh.origin[i] + self.dx[i] * self.mesh.n[i],
+                        self.mesh.n[i] + 1,
                         device=self.device,
                         dtype=self.dtype,
                     )

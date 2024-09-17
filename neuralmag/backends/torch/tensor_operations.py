@@ -56,6 +56,10 @@ def arange(*args, device=None, dtype=None, **kwargs):
     return torch.arange(*args, device=device, dtype=dtype, **kwargs)
 
 
+def linspace(*args, device=None, dtype=None, **kwargs):
+    return torch.linspace(*args, device=device, dtype=dtype, **kwargs)
+
+
 def meshgrid(*ranges, indexing="ij"):
     return torch.meshgrid(*ranges, indexing="ij")
 
