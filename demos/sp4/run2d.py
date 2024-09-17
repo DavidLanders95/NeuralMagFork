@@ -13,11 +13,9 @@ import numpy as np
 import neuralmag as nm
 
 nm.config.backend = "jax"
-# nm.config.jax["jit"] = False
 
 # setup state
 mesh = nm.Mesh((100, 25), (5e-9, 5e-9, 3e-9))
-# nm.config.dtype = "float64"
 state = nm.State(mesh)
 
 # setup material and m0
