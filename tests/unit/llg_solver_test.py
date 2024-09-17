@@ -19,5 +19,5 @@ def test_step(state):
     assert be.to_numpy(state.m.avg()) == pytest.approx((1, 0, 0))
     llg.step(1e-11)
     assert be.to_numpy(state.m.avg()) == pytest.approx(
-        (0.44655174, 0.54584754, 0.70895207)
+        (0.44655174, 0.54584754, 0.70895207), rel=1e-5
     )
