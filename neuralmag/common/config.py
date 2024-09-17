@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import importlib
+import os
 
 __all__ = ["config"]
 
@@ -33,8 +34,23 @@ class Config:
     @property
     def backend(self):
         if self._backend is None:
-            # default to pytorch
-            self.backend = "torch"
+            try:  # check environment variable first
+                self.backend = os.environ["BACKEND"]
+            except:
+                try:  # then try torch by default
+                    import torch
+
+                    self.backend = "torch"
+                except ImportError:
+                    try:  # finally try jax
+                        import jax
+
+                        self.backend = "jax"
+                    except ImportError:
+                        pass
+
+        if self._backend is None:
+            raise ImportError("Neither 'jax' nor 'torch' seems to be available")
         return self._backend
 
     @backend.setter
