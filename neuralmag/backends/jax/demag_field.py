@@ -138,9 +138,9 @@ def h_cell(N_demag, mcell, material__Ms, rho):
     dim = [i for i in range(3) if mcell.shape[i] > 1]
     s = [mcell.shape[i] * 2 for i in dim]
 
-    hx = jnp.zeros(N_demag[0][0].shape, dtype=complex_dtype[mcell.dtype])
-    hy = jnp.zeros(N_demag[0][0].shape, dtype=complex_dtype[mcell.dtype])
-    hz = jnp.zeros(N_demag[0][0].shape, dtype=complex_dtype[mcell.dtype])
+    hx = jnp.zeros(N_demag[0][0].shape, dtype=jnp.complex128)
+    hy = jnp.zeros(N_demag[0][0].shape, dtype=jnp.complex128)
+    hz = jnp.zeros(N_demag[0][0].shape, dtype=jnp.complex128)
 
     for ax in range(3):
         m_pad_fft1D = jnp.fft.rfftn(
@@ -239,7 +239,7 @@ def init_N_component(state, perm, func, p):
     dx /= dx.min()  # rescale dx to avoid NaNs when using single precision
 
     shape = [i * 2 if i > 1 else i for i in n]
-    ij = [jfft.fftfreq(n, 1 / n) for n in shape]
+    ij = [jfft.fftfreq(n, 1 / n, dtype=jnp.float64) for n in shape]
     ij = jnp.meshgrid(*ij, indexing="ij")
     x, y, z = [ij[ind] * dx[ind] for ind in perm]
     Lx = [n[ind] * dx[ind] for ind in perm]
@@ -262,11 +262,11 @@ def init_N_component(state, perm, func, p):
 def init_N(state, p):
     logging.info_green(f"[DemagField]: Set up demag tensor")
 
-    Nxx = init_N_component(state, [0, 1, 2], demag_f, p)
-    Nxy = init_N_component(state, [0, 1, 2], demag_g, p)
-    Nxz = init_N_component(state, [0, 2, 1], demag_g, p)
-    Nyy = init_N_component(state, [1, 2, 0], demag_f, p)
-    Nyz = init_N_component(state, [1, 2, 0], demag_g, p)
-    Nzz = init_N_component(state, [2, 0, 1], demag_f, p)
+    Nxx = init_N_component(state, [0, 1, 2], demag_f, p).astype(state.dtype)
+    Nxy = init_N_component(state, [0, 1, 2], demag_g, p).astype(state.dtype)
+    Nxz = init_N_component(state, [0, 2, 1], demag_g, p).astype(state.dtype)
+    Nyy = init_N_component(state, [1, 2, 0], demag_f, p).astype(state.dtype)
+    Nyz = init_N_component(state, [1, 2, 0], demag_g, p).astype(state.dtype)
+    Nzz = init_N_component(state, [2, 0, 1], demag_f, p).astype(state.dtype)
 
     state.N_demag = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]

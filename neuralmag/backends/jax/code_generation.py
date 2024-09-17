@@ -62,7 +62,10 @@ def functional_code(form, n_gauss=3):
 
 
 def compile(func):
-    return jax.jit(func)
+    if config.jax["jit"]:
+        return jax.jit(func)
+    else:
+        return func
 
 
 class CodeFunction(object):

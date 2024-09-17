@@ -28,6 +28,7 @@ class Config:
 
         # public config keys
         self.torch = {"compile": True}
+        self.jax = {"jit": True}
         self.fem = {"n_gauss": 3}
 
     @property
