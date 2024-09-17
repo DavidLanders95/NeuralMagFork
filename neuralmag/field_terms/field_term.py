@@ -117,7 +117,8 @@ class FieldTerm(CodeClass):
         :param name: The name of the class, defaults to :class:`cls.default_name`
         :type attr: str
         """
-        name = name or cls.default_name
+        if name is None:
+            name = cls.default_name
         if name == "":
             return attr
         return f"{attr}_{name}"

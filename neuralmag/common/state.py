@@ -253,7 +253,7 @@ class State(object):
         name = "lmda" if f.__name__ == "<lambda>" else name
 
         # setup function with all dependencies
-        if func_names:
+        if func_names or add_args:
             code = f"def {name}({', '.join(add_args + sorted(args))}):\n"
             func_pointers = {}
             for func_name in reversed(func_names):
