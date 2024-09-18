@@ -11,10 +11,12 @@ requires-python = ">=3.8, <3.12"
 
 authors = [{ name = "Claas Abert", email = "claas.abert@univie.ac.at" }]
 
-dependencies = ["numpy", "sympy", "pyvista", "scipy", "torch", "torchdiffeq", "tqdm", "jax[cuda]", "diffrax"]
+dependencies = ["numpy", "sympy", "pyvista", "scipy", "tqdm"]
 
 [project.optional-dependencies]
 dev = ["pytest", "pre-commit", "nbsphinx", "pydata-sphinx-theme", "jupyterlab"]
+torch = ["torch", "torchdiffeq"]
+jax = ["jax[cuda]", "diffrax"]
 
 [tool.setuptools.packages.find]
 include = ["neuralmag*"]

@@ -20,8 +20,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 from collections.abc import Iterable
 
-import torch
-
 from ..common import logging
 from .field_logger import FieldLogger
 from .scalar_logger import ScalarLogger
