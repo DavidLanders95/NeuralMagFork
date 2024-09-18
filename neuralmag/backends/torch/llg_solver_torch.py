@@ -34,11 +34,9 @@ def llg_rhs(h, m, material__alpha):
     ) - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
 
 
-def llg_no_precess_rhs(h, m, material__alpha):
-    gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
-    return (
-        -material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
-    )
+def llg_relax_rhs(h, m):
+    gamma_prime = 221276.14725379366 / 2.0
+    return -gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
 
 
 class LLGSolverTorch(nn.Module):
@@ -124,15 +122,16 @@ class LLGSolverTorch(nn.Module):
         :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
         :type tol: float
         """
-        func, args = self._state.get_func(llg_no_precess_rhs, ["t", "m"])
+        func, args = self._state.get_func(llg_relax_rhs, ["t", "m"])
         logging.info_blue(
             f"[LLGSolverTorch] Start relaxation, initial energy E = {self._state.E:g} J"
         )
         _, m_next = odeint_event(
-            lambda t, m: self._scale_t * func(t * self._scale_t, m, *args[2:]),
+            lambda t, m: self._scale_t
+            * func(self._state.t * self._scale_t, m, *args[2:]),
             self._state.m.tensor,
             self._state.t,
-            event_fn=lambda t, m: func(t * self._scale_t, m, *args[2:])
+            event_fn=lambda t, m: func(self._state.t * self._scale_t, m, *args[2:])
             .norm(dim=-1)
             .max()
             - tol,

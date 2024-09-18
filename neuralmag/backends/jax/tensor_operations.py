@@ -28,6 +28,7 @@ float32 = jnp.float32
 integer = jnp.int32
 Tensor = jax.Array
 
+np = jnp
 libs = {"jnp": jnp}
 
 

@@ -28,6 +28,7 @@ float32 = torch.float32
 integer = torch.int
 Tensor = torch.Tensor
 
+np = torch
 libs = {"torch": torch}
 
 

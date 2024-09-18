@@ -121,6 +121,10 @@ class Function(CodeClass):
             )
         return self._tensor
 
+    @tensor.setter
+    def tensor(self, tensor):
+        self._tensor = tensor
+
     def fill(self, constant, expand=False):
         """
         Fills the tensor of the function with a constant value.

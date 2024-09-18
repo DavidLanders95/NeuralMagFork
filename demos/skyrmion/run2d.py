@@ -4,7 +4,6 @@
 ###
 ###############################################################################
 
-import torch
 from scipy import constants
 
 import neuralmag as nm
@@ -22,9 +21,11 @@ state.material.Ku_axis = [0, 0, 1]
 state.material.alpha = 0.1
 
 # set circular geometry
-state.rho = nm.CellFunction(state).fill(state.eps)
+state.rho = nm.CellFunction(state)
 x, y = state.coordinates()
-state.rho.tensor[x**2.0 + y**2.0 < 50e-9**2.0] = 1.0
+state.rho.tensor = nm.config.backend.np.where(
+    x**2.0 + y**2.0 < 50e-9**2.0, 1.0, state.eps
+)
 
 # initial magnetization
 state.m = nm.VectorFunction(state).fill((0, 0, 1))
@@ -38,5 +39,5 @@ nm.TotalField("exchange", "demag", "dmi", "aniso").register(state)
 
 # relax to skyrmion
 llg = nm.LLGSolver(state)
-llg.relax()
+llg.step(1e-9)
 state.write_vti(["m", "rho"], "skyrmion.vti")

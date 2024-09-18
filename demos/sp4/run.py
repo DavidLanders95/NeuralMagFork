@@ -10,6 +10,8 @@
 
 import neuralmag as nm
 
+nm.config.backend = "jax"
+
 # setup mesh and state
 mesh = nm.Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))
 state = nm.State(mesh)
@@ -17,7 +19,7 @@ state = nm.State(mesh)
 # setup material and m0
 state.material.Ms = 8e5
 state.material.A = 1.3e-11
-state.material.alpha = 1.0
+state.material.alpha = 0.02
 
 # initialize nodal vector functions for magneization and external field
 state.m = nm.VectorFunction(state).fill((0.5**0.5, 0.5**0.5, 0))
@@ -37,8 +39,6 @@ state.write_vti("m", "sstate.vti")
 
 # set external field and damping to perform switch
 nm.TotalField("exchange", "demag", "external").register(state)
-state.material.alpha = 0.02
-state.t = 0.0
 llg.reset()
 
 logger = nm.Logger("data", ["t", "m"], ["m"])

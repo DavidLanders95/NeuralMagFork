@@ -20,7 +20,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import equinox as eqx
 import jax
 import jax.numpy as jnp
-from diffrax import Dopri5, ODETerm, PIDController, SaveAt, diffeqsolve
+from diffrax import Dopri5, Event, ODETerm, PIDController, SaveAt, diffeqsolve
 
 from neuralmag.common import Function, logging
 
@@ -34,20 +34,9 @@ def llg_rhs(h, m, material__alpha):
     )
 
 
-# @jax.jit
-@eqx.filter_jit
-def solve(term, solver, t, dt0, y0, saveat, stepsize_controller):
-    sol = diffeqsolve(
-        term,
-        solver,
-        t0=t[0],
-        t1=t[-1],
-        dt0=dt0,
-        y0=y0,
-        saveat=saveat,
-        stepsize_controller=stepsize_controller,
-    )
-    return sol
+def llg_relax_rhs(h, m):
+    gamma_prime = 221276.14725379366 / 2.0
+    return -gamma_prime * jnp.cross(m, jnp.cross(m, h))
 
 
 class LLGSolverJAX(object):
@@ -73,15 +62,15 @@ class LLGSolverJAX(object):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
-        #        self._parameters = {}
-        #        self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
-        #        self._solver_options.update(solver_options or {})
-        #        for param in parameters or []:
-        #            value = state.getattr(param)
-        #            if isinstance(value, Function):
-        #                value = value.tensor
-        #            self._parameters[param] = torch.nn.Parameter(value)
-        #
+        self._parameters = [] if parameters is None else parameters
+        self._dt0 = 1e-14
+
+        # TODO Solver options
+        # self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
+        self._solver = Dopri5()
+        self._stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
+        self._saveat_step = SaveAt(t1=True)
+
         self.reset()
 
     def reset(self):
@@ -90,48 +79,78 @@ class LLGSolverJAX(object):
         """
         logging.info_green("[LLGSolver] Initialize RHS function")
 
-        internal_args = ["t", "m"]
-        #        for param in self._parameters.keys():
-        #            internal_args.append(param)
+        internal_args = ["t", "m"] + self._parameters
 
         self._func, self._args = self._state.get_func(llg_rhs, internal_args)
         rhs = lambda t, m, args: self._scale_t * self._func(
-            t * self._scale_t, m, *self._args[2:]
+            t * self._scale_t, m, *args, *self._args[len(internal_args) :]
         )
-        self._rhs = jax.jit(rhs)
-
-    #        for i, param in enumerate(self._parameters.keys()):
-    #            self._args[2 + i] = self._parameters[param]
+        self._term = ODETerm(jax.jit(rhs))
 
     def relax(self, tol=2e7 * jnp.pi):
-        # TODO use proper relaxation
-        self.step(1e-9)
-        self.reset()
+        """
+        Use time integration of the damping term to relax the magnetization into an
+        energetic equilibrium. The convergence criterion is defined in terms of
+        the maximum norm of dm/dt in rad/s.
 
-    def step(self, dt):
+        :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
+        :type tol: float
+        """
+        func, args = self._state.get_func(llg_relax_rhs, ["t", "m"])
+        logging.info_blue(
+            f"[LLGSolverJAX] Start relaxation, initial energy E = {self._state.E:g} J"
+        )
+        rhs_fn = lambda t, m, _: self._scale_t * func(
+            self._state.t * self._scale_t, m, *args[2:]
+        )
+        event_fn = (
+            lambda t, m, _, **kwargs: jnp.linalg.norm(
+                func(self._state.t * self._scale_t, m, *args[2:]), axis=-1
+            ).max()
+            < tol
+        )
+
+        sol = diffeqsolve(
+            ODETerm(jax.jit(rhs_fn)),
+            self._solver,
+            t0=self._state.t / self._scale_t,
+            t1=(self._state.t + 1.0) / self._scale_t,
+            dt0=self._dt0 / self._scale_t,
+            y0=self._state.m.tensor,
+            event=Event(eqx.filter_jit(event_fn)),
+            stepsize_controller=self._stepsize_controller,
+            max_steps=None,
+        )
+        logging.info_blue(
+            f"[LLGSolverJAX] Relaxation finished, final energy E = {self._state.E:g} J"
+        )
+        self._state.m.tensor = sol.ys[-1]
+        return sol
+
+    def step(self, dt, *args):
         """
         Perform single integration step of LLG. Internally an adaptive time step is
         used.
 
         :param dt: The size of the time step
         :type dt: float
+        TODO args
         """
         logging.info_blue(f"[LLGSolverJAX] Step: dt = {dt:g}s, t = {self._state.t:g}s")
-        t = self._state.tensor(
-            [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
-        )
-        dt0 = 1e-14 / self._scale_t
-        term = ODETerm(self._rhs)
-        solver = Dopri5()
-        saveat = SaveAt(ts=[t[-1]])
-        stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
 
-        sol = solve(
-            term, solver, t, dt0, self._state.m.tensor, saveat, stepsize_controller
+        sol = diffeqsolve(
+            self._term,
+            self._solver,
+            t0=self._state.t / self._scale_t,
+            t1=(self._state.t + dt) / self._scale_t,
+            dt0=self._dt0 / self._scale_t,
+            y0=self._state.m.tensor,
+            args=args,
+            saveat=self._saveat_step,
+            stepsize_controller=self._stepsize_controller,
         )
-        # sol = diffeqsolve(term, solver, t0=t[0], t1=t[-1], dt0=dt0, y0=self._state.m.tensor, saveat=saveat, stepsize_controller=stepsize_controller)
         self._state.t = sol.ts[-1] * self._scale_t
-        self._state.m._tensor = sol.ys[-1]
+        self._state.m.tensor = sol.ys[-1]
         return sol
 
 
