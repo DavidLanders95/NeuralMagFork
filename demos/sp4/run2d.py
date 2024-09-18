@@ -8,11 +8,10 @@
 ###
 ###############################################################################
 
-import numpy as np
-
 import neuralmag as nm
 
 nm.config.backend = "jax"
+nm.config.dtype = "float64"
 
 # setup state
 mesh = nm.Mesh((100, 25), (5e-9, 5e-9, 3e-9))
@@ -23,7 +22,7 @@ state.material.Ms = 8e5
 state.material.A = 1.3e-11
 state.material.alpha = 1.0
 
-state.m = nm.VectorFunction(state).fill((np.sqrt(0.5), np.sqrt(0.5), 0))
+state.m = nm.VectorFunction(state).fill((0.5**0.5, 0.5**0.5, 0))
 h_ext = nm.VectorFunction(state).fill((-19576.0, 3421.0, 0.0), expand=True)
 
 # register effective field
