@@ -99,8 +99,8 @@ class Config:
 
     @device.setter
     def device(self, device):
-        logging.info_green(f"[NeuralMag] Set default device to '{device}'.")
         self._device = self.backend.device_from_str(device)
+        logging.info_green(f"[NeuralMag] Set default device to '{device}'.")
 
     @property
     def dtype(self):
@@ -110,8 +110,8 @@ class Config:
 
     @dtype.setter
     def dtype(self, dtype):
-        logging.info_green(f"[NeuralMag] Set default dtype to '{dtype}'.")
         self._dtype = self.backend.dtype_from_str(dtype)
+        logging.info_green(f"[NeuralMag] Set default dtype to '{dtype}'.")
 
 
 config = Config()

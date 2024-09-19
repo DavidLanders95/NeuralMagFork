@@ -21,10 +21,12 @@ state.material.Ku_axis = [0, 0, 1]
 state.material.alpha = 0.1
 
 # set circular geometry
-state.rho = nm.CellFunction(state)
 x, y = state.coordinates()
-state.rho.tensor = nm.config.backend.np.where(
-    x**2.0 + y**2.0 < 50e-9**2.0, 1.0, state.eps
+state.rho = nm.CellFunction(
+    state,
+    tensor=nm.config.backend.np.where(
+        x**2.0 + y**2.0 < 50e-9**2.0, 1.0, state.eps
+    ),
 )
 
 # initial magnetization
