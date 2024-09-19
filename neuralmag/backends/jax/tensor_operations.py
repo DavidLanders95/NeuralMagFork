@@ -112,3 +112,7 @@ def tile(array, shape):
 
 def assign(target, source, idx):
     return target.at[idx].set(source)
+
+
+def mean(tensor, axis=None):
+    return jnp.mean(tensor, axis=axis)

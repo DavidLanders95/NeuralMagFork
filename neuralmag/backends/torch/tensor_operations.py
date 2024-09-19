@@ -108,3 +108,7 @@ def tile(array, shape):
 def assign(target, source, idx):
     target[idx] = source
     return target
+
+
+def mean(tensor, axis=None):
+    return torch.mean(tensor, dim=axis)

@@ -10,8 +10,6 @@
 
 import neuralmag as nm
 
-nm.config.backend = "jax"
-
 # setup mesh and state
 mesh = nm.Mesh((100, 25, 1), (5e-9, 5e-9, 3e-9))
 state = nm.State(mesh)
