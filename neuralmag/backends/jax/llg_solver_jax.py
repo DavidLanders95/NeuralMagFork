@@ -121,10 +121,10 @@ class LLGSolverJAX(object):
             stepsize_controller=self._stepsize_controller,
             max_steps=None,
         )
+        self._state.m.tensor = sol.ys[-1]
         logging.info_blue(
             f"[LLGSolverJAX] Relaxation finished, final energy E = {self._state.E:g} J"
         )
-        self._state.m.tensor = sol.ys[-1]
         return sol
 
     def step(self, dt, *args):
@@ -153,28 +153,27 @@ class LLGSolverJAX(object):
         self._state.m.tensor = sol.ys[-1]
         return sol
 
+    def solve(self, t, *args):
+        """
+        Solves the LLG for a list of target times. This routine is specifically
+        meant to be used in the context of time-dependent optimization with
+        objective functions depending on multiple mangetization snapshots.
 
-#    def solve(self, t):
-#        """
-#        Solves the LLG for a list of target times. This routine is specifically
-#        meant to be used in the context of time-dependent optimization with
-#        objective functions depending on multiple mangetization snapshots.
-#
-#        :param t: List of target times
-#        :type t: torch.Tensor
-#        """
-#        return odeint(
-#            self, self._state.m.tensor, t / self._scale_t, **self._solver_options
-#        )
-#
-#
-#        ts = t / self._scale_t
-#        dt0 = 1e-14 / self._scale_t
-#
-#        term = ODETerm(vector_field)
-#        solver = Dopri5()
-#        saveat = SaveAt(ts=ts)
-#        stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
-#
-#        sol = diffeqsolve(term, solver, t0=ts[0], t1=ts[-1], dt0=dt0, y0=self._state.m.tensor, saveat=saveat, stepsize_controller=stepsize_controller)
-#        return sol
+        :param t: List of target times
+        :type t: torch.Tensor
+        TODO args
+        """
+        t_scaled = t / self._scale_t
+        saveat = SaveAt(ts=t_scaled)
+        sol = diffeqsolve(
+            self._term,
+            self._solver,
+            t0=t_scaled[0],
+            t1=t_scaled[-1],
+            dt0=self._dt0 / self._scale_t,
+            y0=self._state.m.tensor,
+            args=args,
+            saveat=saveat,
+            stepsize_controller=self._stepsize_controller,
+        )
+        return sol

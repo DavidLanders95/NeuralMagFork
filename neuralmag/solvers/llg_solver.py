@@ -61,4 +61,6 @@ def LLGSolver(state, scale_t=1e-9, parameters=None, **kwargs):
 
     """
 
-    return config.backend.LLGSolver(state, scale_t=1e-9, parameters=None, **kwargs)
+    return config.backend.LLGSolver(
+        state, scale_t=scale_t, parameters=parameters, **kwargs
+    )
