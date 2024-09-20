@@ -37,7 +37,7 @@ class CodeClass(object):
         )
         cache_file = f"{prefix}_{hashlib.md5(pickle.dumps(args)).hexdigest()}.py"
         cache_dir = os.getenv(
-            "NEURALMAG_CACHE", pathlib.Path.home() / ".cache" / "neuralmag"
+            "NM_CACHEDIR", pathlib.Path.home() / ".cache" / "neuralmag"
         )
         code_file_path = cache_dir / cache_file
 

@@ -38,58 +38,48 @@ class Config:
 
     @property
     def backend(self):
-        if self._backend is None:
-            backend = os.getenv("NM_BACKEND", None)
-            if backend == "torch":
-                try:
-                    import torch
+        if self._backend is not None:
+            return self._backend
 
-                    self.backend = "torch"
-                except ImportError:
-                    raise ImportError(
-                        "Backend 'torch' not available. Choose a different NM_BACKEND or install torch using 'pip install neuralmag[torch]'"
-                    )
-            elif backend == "jax":
-                try:
-                    import jax
+        backend_name = os.getenv("NM_BACKEND", None)
+        if backend_name is not None:
+            self.backend = backend_name
+        else:
+            self.set_backend("jax", True)
+            if self._backend is None:
+                self.set_backend("torch", True)
+            if self._backend is None:
+                raise ImportError(
+                    "Neither 'jax' nor 'torch' seems to be available. Use 'pip install neuralmag[torch]' or 'pip install neuralmag[jax]' to select one backend!"
+                )
 
-                    self.backend = "jax"
-                except ImportError:
-                    raise ImportError(
-                        "Backend 'jax' not available. Choose a different NM_BACKEND or install torch using 'pip install neuralmag[jax]'"
-                    )
-            else:
-                try:  # then try torch by default
-                    import torch
-
-                    self.backend = "torch"
-                except ImportError:
-                    try:  # finally try jax
-                        import jax
-
-                        self.backend = "jax"
-                    except ImportError:
-                        pass
-
-        if self._backend is None:
-            raise ImportError(
-                "Neither 'jax' nor 'torch' seems to be available. Use 'pip install neuralmag[torch]' or 'pip install neuralmag[jax]' to select one backend!"
-            )
         return self._backend
 
-    @backend.setter
-    def backend(self, backend_name):
-        # TODO raise error if backend is already set?
+    def set_backend(self, backend_name, graceful=False):
+        if self._backend is not None:
+            raise RuntimeError(
+                "Backend is already set. Cannot switch backend at runtime."
+            )
         if backend_name not in ["torch", "jax"]:
             raise ValueError(f"Unsupported backend: {backend_name}")
 
         self.backend_name = backend_name
-        if backend_name == "torch":
-            self._backend = importlib.import_module("neuralmag.backends.torch")
-        elif backend_name == "jax":
-            self._backend = importlib.import_module("neuralmag.backends.jax")
 
-        logging.info_green(f"[NeuralMag] Backend set to '{backend_name}'.")
+        try:
+            if backend_name == "torch":
+                self._backend = importlib.import_module("neuralmag.backends.torch")
+            if backend_name == "jax":
+                self._backend = importlib.import_module("neuralmag.backends.jax")
+            logging.info_green(f"[NeuralMag] Backend set to '{backend_name}'.")
+        except ImportError:
+            if not graceful:
+                raise ImportError(
+                    f"[NeuralMag] Could not load backend '{backend_name}'. Use 'pip install neuralmag[{backend_name}] to install."
+                )
+
+    @backend.setter
+    def backend(self, backend_name):
+        self.set_backend(backend_name)
 
     @property
     def device(self):
