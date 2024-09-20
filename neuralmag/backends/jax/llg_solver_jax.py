@@ -86,6 +86,7 @@ class LLGSolverJAX(object):
             t * self._scale_t, m, *args, *self._args[len(internal_args) :]
         )
         self._term = ODETerm(jax.jit(rhs))
+        self._solver_state = None
 
     def relax(self, tol=2e7 * jnp.pi):
         """
@@ -148,7 +149,9 @@ class LLGSolverJAX(object):
             args=args,
             saveat=self._saveat_step,
             stepsize_controller=self._stepsize_controller,
+            solver_state=self._solver_state,
         )
+        self._solver_state = sol.solver_state
         self._state.t = sol.ts[-1] * self._scale_t
         self._state.m.tensor = sol.ys[-1]
         return sol
