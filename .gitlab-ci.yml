@@ -138,10 +138,9 @@ pages:
 
 build-package:
   stage: deploy
-  image: *cpu-runner-image
+  image: !reference [.cpu_template, image]
   before_script:
     - micromamba install -y -n base -c conda-forge 'python=3.11' make pandoc
-    - *cpu-before-script
     - python -m pip install --upgrade twine
     - python -m pip install --upgrade build
   variables:
