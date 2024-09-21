@@ -136,6 +136,22 @@ pages:
     # a pages deploy.
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
 
+build-package:
+  stage: deploy
+  image: *cpu-runner-image
+  before_script:
+    - micromamba install -y -n base -c conda-forge 'python=3.11' make pandoc
+    - *cpu-before-script
+    - python -m pip install --upgrade twine
+    - python -m pip install --upgrade build
+  variables:
+    TWINE_USERNAME: $PYPI_USERNAME
+    TWINE_PASSWORD: $PYPI_PASSWORD
+  script:
+    - python -m build
+    - python -m twine upload dist/*
+  rules:
+    - if: $PYPI_USERNAME && $CI_COMMIT_TAG
 
 # Defining workflow rules is required to avoid duplicated pipelines
 # (https://docs.gitlab.com/ee/ci/jobs/job_rules.html#avoid-duplicate-pipelines).
