@@ -9,7 +9,7 @@
 project = "NeuralMag"
 copyright = "2024, NeuralMag Team"
 author = "NeuralMag Team"
-release = "0.9.0"
+release = "0.9.1"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

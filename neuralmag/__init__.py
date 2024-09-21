@@ -17,7 +17,7 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-VERSION = "0.9.0"
+VERSION = "0.9.1"
 
 import neuralmag.common.logging as logging
 from neuralmag.common import *
