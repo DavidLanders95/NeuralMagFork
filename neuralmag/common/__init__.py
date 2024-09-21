@@ -17,10 +17,18 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-from . import config
-from .function import *
-from .logging import *
-from .mesh import *
-from .state import *
+from neuralmag.common import engine
+from neuralmag.common.code_class import *
+from neuralmag.common.config import config
+from neuralmag.common.function import *
+from neuralmag.common.logging import *
+from neuralmag.common.mesh import *
+from neuralmag.common.state import *
 
-__all__ = ["config"] + logging.__all__ + function.__all__ + mesh.__all__ + state.__all__
+__all__ = (
+    ["config", "engine"]
+    + logging.__all__
+    + function.__all__
+    + mesh.__all__
+    + state.__all__
+)

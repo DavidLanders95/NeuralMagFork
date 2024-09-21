@@ -17,14 +17,14 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import torch
-
-from ..generators import pytorch_generator as gen
+from neuralmag.common import config
+from neuralmag.common import engine as en
+from neuralmag.common.code_class import CodeClass
 
 __all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
 
 
-class Function(gen.CodeClass):
+class Function(CodeClass):
     """
     This class represents a discretized field on the mesh of a state object.
 
@@ -67,7 +67,7 @@ class Function(gen.CodeClass):
 
         self._tensor_shape = tuple(tensor_shape) + shape
 
-        if tensor is None or isinstance(tensor, torch.Tensor):
+        if tensor is None or isinstance(tensor, config.backend.Tensor):
             self._tensor = tensor
         else:
             raise NotImplemented("Unsupported tensor type.")
@@ -116,10 +116,14 @@ class Function(gen.CodeClass):
         The tensor containing the discretized values of the function
         """
         if self._tensor is None:
-            self._tensor = torch.zeros(
+            self._tensor = config.backend.zeros(
                 self._tensor_shape, dtype=self._state.dtype, device=self._state.device
             )
         return self._tensor
+
+    @tensor.setter
+    def tensor(self, tensor):
+        self._tensor = tensor
 
     def fill(self, constant, expand=False):
         """
@@ -140,53 +144,15 @@ class Function(gen.CodeClass):
                 state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
                 f = nm.Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
         """
+        tensor = self.state.tensor(constant)
+        shape = self._tensor_shape
+        if self.shape == (3,) and expand == False:
+            shape = self._tensor_shape[:-1] + (1,)
+
         if expand:
-            return self.fill_expanded(constant)
-        if isinstance(constant, (int, float)):
-            assert self.shape == ()
-            self.tensor[...] = constant
-        elif isinstance(constant, (list, tuple)):
-            assert self.shape == (3,)
-            for i in range(3):
-                self.tensor[..., i] = constant[i]
+            self._tensor = config.backend.broadcast_to(tensor, shape)
         else:
-            raise NotImplemented("Unsupported shape.")
-
-        return self
-
-    def fill_expanded(self, constant):
-        """
-        Fills the tensor of the function with a constant value by expanding
-        the constant to the full mesh size by to use of :code:`torch.Tensor.expand`.
-
-        This reduces the memory consumption of the tensor to a single double value.
-
-        :param constant: The constant to fill the tensor
-        :type constant: int, list
-        :return: The function itself
-        :rvalue: :class:`Function`
-        """
-        if self._tensor is None:
-            self._expanded = self.state.tensor(constant)
-            if isinstance(constant, (int, float)):
-                assert self.shape == ()
-                self._tensor = self._expanded.reshape(
-                    (1,) * self.state.mesh.dim
-                ).expand(self._tensor_shape)
-            elif isinstance(constant, (list, tuple)):
-                assert self.shape == (3,)
-                self._tensor = self._expanded.reshape(
-                    (1,) * self.state.mesh.dim + (3,)
-                ).expand(self._tensor_shape)
-            else:
-                raise NotImplemented("Unsupported shape.")
-        elif self._expanded is not None:
-            self._expanded[:] = self.state.tensor(constant)
-        else:
-            raise Exception(
-                "Cannot transform a regular Function to an expanded Function"
-            )
-
+            self._tensor = config.backend.tile(tensor, shape)
         return self
 
     def avg(self):
@@ -200,23 +166,23 @@ class Function(gen.CodeClass):
 
     @classmethod
     def _generate_code(cls, spaces, shape):
-        code = gen.CodeBlock()
+        code = config.backend.CodeBlock()
         dim = len(spaces)
 
         # generate avg method
-        f = gen.Variable("f", spaces, shape)
+        f = en.Variable("f", spaces, shape)
         with code.add_function("avg", ["rho", "dx", "f"]) as func:
-            terms, _ = gen.compile_functional(1 * gen.dV(dim))
+            terms, _ = en.compile_functional(1 * en.dV(dim))
             func.assign_sum("vol", *[term["cmd"] for term in terms])
 
             if shape == ():
-                terms, variables = gen.compile_functional(f * gen.dV(dim))
+                terms, variables = en.compile_functional(f * en.dV(dim))
                 func.assign_sum("fint", *[term["cmd"] for term in terms])
             elif shape == (3,):
                 func.zeros_like("fint", "f", (3,))
                 for i in range(3):
-                    terms, _ = gen.compile_functional(f.dot(gen.cs_e[i]) * gen.dV(dim))
-                    func.assign_sum(f"fint[{i}]", *[term["cmd"] for term in terms])
+                    terms, _ = en.compile_functional(f.dot(en.cs_e[i]) * en.dV(dim))
+                    func.assign_sum(f"fint", *[term["cmd"] for term in terms], index=i)
 
             func.retrn("fint / vol")
 

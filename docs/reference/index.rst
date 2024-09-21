@@ -8,3 +8,4 @@ Reference
    llg_solver
    loggers
    generator
+   config

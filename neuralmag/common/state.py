@@ -23,9 +23,8 @@ import types
 
 import numpy as np
 import pyvista as pv
-import torch
 
-from . import CellFunction, Function, logging
+from neuralmag.common import CellFunction, Function, config, logging
 
 __all__ = ["State"]
 
@@ -52,23 +51,27 @@ class State(object):
 
     :param mesh: The mesh for the simulation
     :type mesh: class:`Mesh`
-    :param device: The PyTorch device to be used, defaults to "cpu"
+    :param device: The device to be used, defaults to "cpu" (torch backend only)
     :type device: str, optional
+    :param dtype: The dtype to be used, defaults to "float64" (torch backend only)
+    :type dtype: str, optional
     """
 
-    def __init__(self, mesh, device=None):
+    def __init__(self, mesh, device=None, dtype=None):
         self._attr_values = {}
         self._attr_types = {}
         self._attr_funcs = {}
         self._attr_args = {}
 
         if device == None:
-            CUDA_DEVICE = os.environ.get("CUDA_DEVICE", "0")
-            self._device = torch.device(
-                f"cuda:{CUDA_DEVICE}" if torch.cuda.is_available() else "cpu"
-            )
+            self._device = config.device
         else:
-            self._device = device
+            self._device = config.backend.device_for_state(device)
+
+        if dtype == None:
+            self._dtype = config.dtype
+        else:
+            self._dtype = config.backend.dtype_for_state(dtype)
 
         self._material = Material(self)
         self._mesh = mesh
@@ -82,8 +85,10 @@ class State(object):
             self.rhoxz = Function(self, "cnc").fill(1.0, expand=True)
             self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
 
-        self._attr_values["eps"] = torch.finfo(self.dtype).eps
-        logging.info_green(f"[State] Running on device: {self._device}")
+        self._attr_values["eps"] = config.backend.eps(self.dtype)
+        logging.info_green(
+            f"[State] Running on device: {self.dx.device} (dtype = {self.dx.dtype}, backend = {config.backend_name})"
+        )
 
     @property
     def device(self):
@@ -97,7 +102,7 @@ class State(object):
         """
         The PyTorch dtype used for all tensors.
         """
-        return torch.float64
+        return self._dtype
 
     @property
     def mesh(self):
@@ -144,26 +149,19 @@ class State(object):
             name = child
         return getattr(container, name)
 
-    def tensor(self, value, requires_grad=False):
+    def tensor(self, value, **kwargs):
         """
         Creates a PyTorch tensor with device and dtype set according to the
         state defaults.
 
         :param value: The value of the tensor
-        :type value: torch.Tensor, list
-        :param requires_grad: Flag to indicate if tensor should be tracked for autodifferentiation
-        :type requires_grad: bool
+        :type value: config.backend.Tensor, list
         :return: The tensor
-        :rtype: :class:`torch.Tensor`
+        :rtype: :class:`config.backend.Tensor`
         """
-        if isinstance(value, torch.Tensor):
-            if value.device != self.device:
-                return value.to(self.device)
-            else:
-                return value
-        return torch.tensor(
-            value, device=self.device, dtype=self.dtype, requires_grad=requires_grad
-        )
+        default_options = {"device": self.device, "dtype": self.dtype}
+        options = {**default_options, **kwargs}
+        return config.backend.tensor(value, **options)
 
     def zeros(self, shape, **kwargs):
         """
@@ -173,9 +171,11 @@ class State(object):
         :type shape: tuple
         :param \**kwargs: Parameters passed to the PyTorch routine
         :return: The tensor
-        :rtype: torch.Tensor
+        :rtype: config.backend.Tensor
         """
-        return torch.zeros(shape, device=self.device, dtype=self.dtype, **kwargs)
+        return config.backend.zeros(
+            shape, device=self.device, dtype=self.dtype, **kwargs
+        )
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
@@ -201,9 +201,6 @@ class State(object):
             return
 
         if isinstance(value, (int, float)):
-            if name in self._attr_values:
-                self._attr_values[name].fill_(value)
-                return
             value = self.tensor(value)
 
         if isinstance(value, tuple) and len(value) == 3:
@@ -262,7 +259,7 @@ class State(object):
         name = "lmda" if f.__name__ == "<lambda>" else name
 
         # setup function with all dependencies
-        if func_names:
+        if func_names or add_args:
             code = f"def {name}({', '.join(add_args + sorted(args))}):\n"
             func_pointers = {}
             for func_name in reversed(func_names):
@@ -337,7 +334,7 @@ class State(object):
         :param spaces: function spaces, e.g. "ccc", "nnn"
         :type spaces: str
         :return: The coordinates
-        :rtype: torch.Tensor
+        :rtype: config.backend.Tensor
 
         :Example:
             .. code-block::
@@ -357,26 +354,30 @@ class State(object):
         for i, space in enumerate(spaces):
             if space == "c":
                 ranges.append(
-                    torch.arange(
+                    config.backend.linspace(
                         self.dx[i] / 2.0 + self.mesh.origin[i],
-                        self.dx[i] * self.mesh.n[i] + self.mesh.origin[i],
-                        self.dx[i],
+                        self.dx[i] / 2.0
+                        + self.mesh.origin[i]
+                        + self.dx[i] * (self.mesh.n[i] - 1.0),
+                        self.mesh.n[i],
+                        device=self.device,
                         dtype=self.dtype,
                     )
                 )
             elif space == "n":
                 ranges.append(
-                    torch.arange(
+                    config.backend.linspace(
                         self.mesh.origin[i],
-                        self.dx[i] * self.mesh.n[i] + self.mesh.origin[i] + self.eps,
-                        self.dx[i],
+                        self.mesh.origin[i] + self.dx[i] * self.mesh.n[i],
+                        self.mesh.n[i] + 1,
+                        device=self.device,
                         dtype=self.dtype,
                     )
                 )
             else:
                 raise NotImplementedError(f"Unknown function space '{space}'.")
 
-        return torch.meshgrid(*ranges, indexing="ij")
+        return config.backend.meshgrid(*ranges, indexing="ij")
 
     def write_vti(self, fields, filename):
         """
@@ -420,36 +421,42 @@ class State(object):
             else:
                 name = field.name
 
+            # check for spatial dimension and pure cell/node data
+            if len(field.spaces) > 3:
+                raise AttributeError(
+                    "VTI only supports spatial dimensions smaller or equal than 3"
+                )
+            if len(set(field.spaces)) > 1:
+                raise AttributeError(
+                    "VTI only supports pure cell/nodal function spaces"
+                )
+            else:
+                space = field.spaces[0]
+
+            data = config.backend.to_numpy(field.tensor)
+
+            # extend data to length 2 in hidden dimensions in case of nodal discretization
+            if space == "n":
+                missing_dims = tuple(
+                    np.arange(3 - len(field.spaces)) + len(field.spaces)
+                )
+                data = np.expand_dims(data, missing_dims)
+                new_shape = np.array(data.shape)
+                new_shape[
+                    missing_dims,
+                ] = 2
+                data = np.broadcast_to(data, new_shape)
+
             if field.shape == ():
-                if field.spaces == "nn":
-                    data = (
-                        field.tensor.detach()
-                        .unsqueeze(-1)
-                        .expand(-1, -1, 2)
-                        .cpu()
-                        .numpy()
-                        .flatten("F")
-                    )
-                else:
-                    data = field.tensor.detach().cpu().numpy().flatten("F")
+                data = data.flatten("F")
             elif field.shape == (3,):
-                if field.spaces == "nn":
-                    data = (
-                        field.tensor.detach()
-                        .unsqueeze(-2)
-                        .expand(-1, -1, 2, -1)
-                        .cpu()
-                        .numpy()
-                        .reshape(-1, 3, order="F")
-                    )
-                else:
-                    data = field.tensor.detach().cpu().numpy().reshape(-1, 3, order="F")
+                data = data.reshape(-1, 3, order="F")
             else:
                 raise NotImplemented(f"Unsupported shape '{field.shape}'.")
 
-            if field.spaces == "nn" or field.spaces == "nnn":
+            if space == "n":
                 grid.point_data.set_array(data, name)
-            elif field.spaces == "cc" or field.spaces == "ccc":
+            elif space == "c":
                 grid.cell_data.set_array(data, name)
             else:
                 raise NotImplemented(f"Unsupported space '{field.spaces}'.")
@@ -475,17 +482,14 @@ class State(object):
         fields = {}
         data = pv.read(filename)
 
-        if self.mesh.dim == 2:
-            assert np.array_equal(self.mesh.n + (1,), np.array(data.dimensions) - 1)
-        else:
-            assert np.array_equal(self.mesh.n, np.array(data.dimensions) - 1)
+        assert np.array_equal(
+            self.mesh.n + (1,) * (3 - self.mesh.dim), np.array(data.dimensions) - 1
+        )
 
         if name is None:
             name = data.array_names[0]
 
-        n = self.mesh.n
-        if self.mesh.dim == 2:
-            n += (1,)
+        n = self.mesh.n + (1,) * (3 - self.mesh.dim)
         if name in data.point_data.keys():
             spaces = "n" * self.mesh.dim
             n = tuple([x + 1 for x in n])
@@ -503,6 +507,8 @@ class State(object):
             shape = (3,)
 
         values = self.tensor(vals.reshape(dim, order="F"))
+        if self.mesh.dim == 1:
+            values = values[:, 0, 0, ...]
         if self.mesh.dim == 2:
             values = values[:, :, 0, ...]
 

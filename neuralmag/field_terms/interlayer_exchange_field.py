@@ -17,18 +17,22 @@ You should have received a copy of the Lesser Python General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import torch
 
-from ..generators.pytorch_generator import N, Variable, dA
-from .field_term import FieldTerm
+from neuralmag.common import config
+from neuralmag.common.engine import N, Variable, dA
+from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["InterlayerExchangeField"]
 
 
 def swap(m, iidx):
-    result = torch.zeros_like(m)
-    result[:, :, iidx[0], :] = m[:, :, iidx[1], :]
-    result[:, :, iidx[1], :] = m[:, :, iidx[0], :]
+    result = config.backend.zeros_like(m)
+    result = config.backend.assign(
+        result, m[:, :, iidx[1], :], (slice(None), slice(None), iidx[0], slice(None))
+    )
+    result = config.backend.assign(
+        result, m[:, :, iidx[0], :], (slice(None), slice(None), iidx[1], slice(None))
+    )
     return result
 
 
@@ -73,7 +77,9 @@ class InterlayerExchangeField(FieldTerm):
     def register(self, state, name=None):
         super().register(state, name)
 
-        state.iidx = torch.tensor(self._iidx, device=state.device, dtype=torch.int)
+        state.iidx = config.backend.tensor(
+            self._iidx, device=state.device, dtype=config.backend.integer
+        )
         state.im_other = (swap, "node", (3,))
 
     @staticmethod

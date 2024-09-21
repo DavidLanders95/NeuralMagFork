@@ -14,7 +14,7 @@
   before_script:
     - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION"
     - python --version  # For debugging
-    - pip install .[dev]
+    - pip install .[dev,jax,torch]
 
 .gpu_template:
   extends: .test_template
@@ -23,7 +23,7 @@
     - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION"
     - python --version  # For debugging
     - nvidia-smi  # Nvidia GPU information
-    - pip install .[dev]
+    - pip install .[dev,jax,torch]
     # make sure PyTorch us using the GPUs
     - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
   tags:
@@ -43,15 +43,29 @@ test_code_formatting:
     - pre-commit run --all-files
 
 
-test_py3_11_gpu:
+test_py3_11_gpu_torch:
   extends: .gpu_template
   variables:
     PYTHON_VERSION: "3.11"
+    NM_BACKEND: "torch"
 
-test_py3_11_cpu:
+test_py3_11_cpu_torch:
   extends: .cpu_template
   variables:
     PYTHON_VERSION: "3.11"
+    NM_BACKEND: "torch"
+
+test_py3_11_gpu_jax:
+  extends: .gpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
+    NM_BACKEND: "jax"
+
+test_py3_11_cpu_jax:
+  extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
+    NM_BACKEND: "jax"
 
 test_py3_10_gpu:
   extends: .gpu_template

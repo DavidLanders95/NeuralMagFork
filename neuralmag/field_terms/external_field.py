@@ -20,12 +20,11 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import inspect
 import types
 
-import torch
 from scipy import constants
 
-from ..common import VectorFunction
-from ..generators.pytorch_generator import Variable, dV
-from .field_term import FieldTerm
+from neuralmag.common import VectorFunction, config
+from neuralmag.common.engine import Variable, dV
+from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["ExternalField"]
 
@@ -38,11 +37,11 @@ class ExternalField(FieldTerm):
 
       E = - \int_\Omega \mu_0 M_s  \vec{m} \cdot \vec{h} \dx
 
-    :param h: The field either given as a :code:`torch.Tensor` or callable
+    :param h: The field either given as a :code:`config.backend.Tensor` or callable
               in case of a field that depends e.g. on :code:`state.t`.
               The shape must be either (nx, ny, nz, 3) or (3,) in which case
               the field expanded to full size.
-    :type h: torch.Tensor
+    :type h: config.backend.Tensor
     :param n_gauss: Degree of Gauss quadrature used in the form compiler.
     :type n_gauss: int
 
@@ -76,21 +75,22 @@ class ExternalField(FieldTerm):
             value = func(*args)
             if value.shape == (3,):
                 arg_names = list(inspect.signature(func).parameters.keys())
-                code = f"def h({', '.join(arg_names)}):\n"
-                code += (
-                    f"    return __h({', '.join(arg_names)}).expand({tensor_shape})\n"
-                )
-                compiled_code = compile(code, "<string>", "exec")
+                block = config.backend.CodeBlock(plain=True)
+                with block.add_function("h", arg_names) as func:
+                    func.retrn_expanded(f"__h({', '.join(arg_names)})", tensor_shape)
+                compiled_code = compile(str(block), "<string>", "exec")
                 self.h = types.FunctionType(
-                    compiled_code.co_consts[0], {f"__h": self._h}, name
+                    compiled_code.co_consts[0],
+                    {**config.backend.libs, **{f"__h": self._h}},
+                    name,
                 )
             else:
                 self.h = self._h
-        elif isinstance(self._h, torch.Tensor):
+        elif isinstance(self._h, config.backend.Tensor):
             if self._h.shape == tensor_shape:
                 self.h = self._h
             elif self._h.shape == (3,):
-                self.h = self._h.expand(tensor_shape)
+                self.h = config.backend.broadcast_to(self._h, tensor_shape)
             else:
                 raise Exception("Shape not matching")
         elif isinstance(self._h, VectorFunction):

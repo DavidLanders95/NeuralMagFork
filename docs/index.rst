@@ -28,11 +28,22 @@ This allows to easily add new effective-field contributions by simply stating th
 Download and Install
 --------------------
 
-NeuralMag is a Python package and requires Python >=3.8. To install the latest version from Gitlab with pip run
+NeuralMag is a Python package and requires Python >=3.8. To install the latest version with either run
 
 .. code::
 
-    pip install git+https://gitlab.com/neuralmag/neuralmag.git
+    pip install neuralmag[jax]
+
+
+to install NeuralMag with JAX as a backend or
+
+.. code::
+
+    pip install neuralmag[torch]
+
+to install NeuralMag with PyTorch as a backend. You can also install NeuralMag with both
+backends and switch choose the backend at runtime.
+
 
 Contribute
 ----------

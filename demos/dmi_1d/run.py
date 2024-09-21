@@ -36,10 +36,13 @@ nm.TotalField("aniso", "dmi", "exchange").register(state)
 
 # relax
 llg = nm.LLGSolver(state)
-llg.step(2e-9)
+while state.t < 2e-9:
+    llg.step(1e-10)
 
 # save 1D data to CSV file log.dat
 data = np.zeros((state.m.tensor.shape[0], 4))
 data[:, 0] = np.arange(data.shape[0]) * 1e-9
 data[:, (1, 2, 3)] = state.m.tensor[:, :]
 np.savetxt("log.dat", data)
+
+state.write_vti(["m"], "m.vti")

@@ -1,10 +1,8 @@
 Code Generator
 ==============
 
-.. autofunction:: neuralmag.generators.pytorch_generator.dA
-.. autofunction:: neuralmag.generators.pytorch_generator.dV
-.. autofunction:: neuralmag.generators.pytorch_generator.dX
-.. autofunction:: neuralmag.generators.pytorch_generator.functional_code
-.. autofunction:: neuralmag.generators.pytorch_generator.gateaux_derivative
-.. autofunction:: neuralmag.generators.pytorch_generator.linear_form_code
-.. autofunction:: neuralmag.generators.pytorch_generator.Variable
+.. autofunction:: neuralmag.common.engine.dA
+.. autofunction:: neuralmag.common.engine.dV
+.. autofunction:: neuralmag.common.engine.dX
+.. autofunction:: neuralmag.common.engine.Variable
+.. autofunction:: neuralmag.common.engine.gateaux_derivative

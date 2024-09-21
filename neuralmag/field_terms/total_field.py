@@ -19,8 +19,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import types
 
-from ..common import logging
-from .field_term import FieldTerm
+from neuralmag.common import logging
+from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["TotalField"]
 

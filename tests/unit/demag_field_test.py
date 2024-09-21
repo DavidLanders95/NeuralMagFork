@@ -3,6 +3,8 @@ import torch
 
 from neuralmag import *
 
+be = config.backend
+
 
 def test_h():
     mesh = Mesh((5, 5, 5), (1e-9, 1e-9, 1e-9))
@@ -12,9 +14,9 @@ def test_h():
     state.material.Ms = CellFunction(state).fill(1.0)
 
     DemagField().register(state)
-    assert (
+    assert be.to_numpy(
         (state.h_demag.tensor * state.m.tensor).sum() / 6**3
-    ).cpu() == pytest.approx(-1 / 3)
+    ) == pytest.approx(-1 / 3)
 
 
 def test_h_2d():
@@ -25,9 +27,9 @@ def test_h_2d():
     state.material.Ms = CellFunction(state).fill(1.0)
 
     DemagField().register(state)
-    assert (
+    assert be.to_numpy(
         (state.h_demag.tensor * state.m.tensor).sum() / 6**2
-    ).cpu() == pytest.approx(-1 / 3, 1e-1)
+    ) == pytest.approx(-1 / 3, 1e-1)
 
 
 def test_E():
@@ -38,7 +40,7 @@ def test_E():
     state.material.Ms = CellFunction(state).fill(1.0)
 
     DemagField().register(state)
-    assert state.E_demag.cpu() == pytest.approx(2.6179938794166683e-32)
+    assert be.to_numpy(state.E_demag) == pytest.approx(2.6179938794166683e-32)
 
 
 def test_rename():
@@ -49,7 +51,7 @@ def test_rename():
     state.material.Ms = CellFunction(state).fill(1.0)
 
     DemagField().register(state, "d")
-    assert ((state.h_d.tensor * state.m.tensor).sum() / 6**3).cpu() == pytest.approx(
-        -1 / 3
-    )
-    assert state.E_d.cpu() == pytest.approx(2.6179938794166683e-32)
+    assert be.to_numpy(
+        (state.h_d.tensor * state.m.tensor).sum() / 6**3
+    ) == pytest.approx(-1 / 3)
+    assert be.to_numpy(state.E_d) == pytest.approx(2.6179938794166683e-32)
