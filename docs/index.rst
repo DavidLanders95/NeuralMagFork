@@ -7,8 +7,8 @@ Introduction
 ============
 
 NeuralMag is a micromagnetic simulation software using the nodal finite-difference discretization scheme, designed specifically with inverse problems in mind.
-It uses `PyTorch <https://pytorch.org/>`_ as a numerical backend for tensor operations and automatic differentiation, enabling computations on both CPU and GPU systems.
-At the moment NeuralMag implements the most common micromagnetic effective-field contributions
+It uses either `JAX <https://jax.readthedocs.io/en/latest/>` or `PyTorch <https://pytorch.org/>` as a numerical backend for tensor operations and automatic differentiation, enabling computations on both CPU and GPU systems.
+At the moment NeuralMag implements the most common micromagnetic effective-field contributions 
 
 * external field
 * exchange field
