@@ -8,6 +8,8 @@ from scipy import constants
 
 import neuralmag as nm
 
+nm.config.fem["n_gauss"] = 1
+
 # setup state
 mesh = nm.Mesh((50, 50), (2e-9, 2e-9, 0.6e-9), (-50e-9, -50e-9, 0))
 state = nm.State(mesh)
