@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 from .bulk_dmi_field import *
+from .cubic_anisotropy_field import *
 from .demag_field import *
 from .exchange_field import *
 from .external_field import *
@@ -26,7 +27,6 @@ from .interface_dmi_field import *
 from .interlayer_exchange_field import *
 from .total_field import *
 from .uniaxial_anisotropy_field import *
-from .cubic_anisotropy_field import *
 
 __all__ = (
     field_term.__all__
