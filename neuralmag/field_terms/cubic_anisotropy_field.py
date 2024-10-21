@@ -47,7 +47,7 @@ class CubicAnisotropyField(FieldTerm):
         * **state.material.Kc_axis2** (*cell vector field*) The second anisotropy axis as unit vector field
         * **state.material.Kc_axis3** (*cell vector field*) The third anisotropy axis as unit vector field
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
-        
+
     **state.material.Kc_axis1**, **state.material.Kc_axis2**, and **state.material.Kc_axis3** should be
     orthogonal unit vectors.
     """
@@ -62,8 +62,12 @@ class CubicAnisotropyField(FieldTerm):
         axis1 = Variable("material__Kc_axis1", "c" * dim, (3,))
         axis2 = Variable("material__Kc_axis2", "c" * dim, (3,))
         axis3 = Variable("material__Kc_axis3", "c" * dim, (3,))
-        return -K * (
+        return (
+            -K
+            * (
                 m.dot(axis1) ** 2 * m.dot(axis2) ** 2
                 + m.dot(axis2) ** 2 * m.dot(axis3) ** 2
                 + m.dot(axis3) ** 2 * m.dot(axis1) ** 2
-            ) * dV(dim)
+            )
+            * dV(dim)
+        )
