@@ -26,6 +26,7 @@ from .interface_dmi_field import *
 from .interlayer_exchange_field import *
 from .total_field import *
 from .uniaxial_anisotropy_field import *
+from .cubic_anisotropy_field import *
 
 __all__ = (
     field_term.__all__
@@ -37,4 +38,5 @@ __all__ = (
     + external_field.__all__
     + total_field.__all__
     + uniaxial_anisotropy_field.__all__
+    + cubic_anisotropy_field.__all__
 )
