@@ -29,6 +29,8 @@ Predefined Field Terms
 
 .. autoclass:: DemagField
 
+.. autoclass:: CubicAnisotropyField
+
 .. autoclass:: ExchangeField
 
 .. autoclass:: ExternalField
