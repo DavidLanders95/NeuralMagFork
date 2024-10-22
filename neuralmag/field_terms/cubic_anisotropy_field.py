@@ -53,8 +53,8 @@ class CubicAnisotropyField(FieldTerm):
     """
     default_name = "caniso"
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, n_gauss=1, **kwargs):
+        super().__init__(n_gauss=n_gauss, **kwargs)
 
     @staticmethod
     def e_expr(m, dim):
