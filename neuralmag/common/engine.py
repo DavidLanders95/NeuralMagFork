@@ -172,7 +172,8 @@ def compile_functional(expr, n_gauss=3):
             raise Exception("Need at least one variable to integrate.")
 
         # try to reduce multiplications of fields for better performance
-        cmd = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
+        # cmd = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
+        cmd = str(sp.collect(sp.factor_terms(iexpr), symbs))
 
         # retrieve topological dimension from first symbol
         match = re.match(r"^_(.*:.*:.*:.*)_$", symbs[0].name)
