@@ -112,7 +112,6 @@ Dynamic attributes can be arbitrarily chained
 
 .. code:: python
 
-    state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
     state.a4 = lambda a2: 2*a2
     print(state.a4)
     # results in "4.0"

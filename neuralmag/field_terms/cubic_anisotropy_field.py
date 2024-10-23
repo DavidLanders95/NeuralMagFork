@@ -28,17 +28,17 @@ class CubicAnisotropyField(FieldTerm):
     Effective field contribution corresponding to the cubic anisotropy energy
 
     .. math::
-      E = - \int_\Omega K \big( (\mathbf{m} \cdot
-           \mathbf{v}_{1})^{2}(\mathbf{m} \cdot
-           \mathbf{v}_{2})^{2} + (\mathbf{m} \cdot
-           \mathbf{v}_{2})^{2}(\mathbf{m} \cdot
-           \mathbf{v}_{3})^{2} + (\mathbf{m} \cdot
-           \mathbf{v}_{1})^{2}(\mathbf{m} \cdot
-           \mathbf{v}_{3})^{2} \big) \dx
+      E = - \int_\Omega K \big( (\vec{m} \cdot
+           \vec{e}_1)^2(\vec{m} \cdot
+           \vec{e}_2)^2 + (\vec{m} \cdot
+           \vec{e}_2)^2(\vec{m} \cdot
+           \vec{e}_3)^2 + (\vec{m} \cdot
+           \vec{e}_1)^2(\vec{m} \cdot
+           \vec{e}_3)^2 \big) \dx
 
     with the anisotropy constant :math:`K` given in units of :math:`\text{J/m}^3`.
 
-    :param n_gauss: Degree of Gauss quadrature used in the form compiler.
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler (defaults to 1).
     :type n_gauss: int
 
     :Required state attributes (if not renamed):
