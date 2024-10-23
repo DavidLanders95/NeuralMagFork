@@ -13,7 +13,7 @@ At the moment NeuralMag implements the most common micromagnetic effective-field
 * external field
 * exchange field
 * demagnetization field
-* uniaxial anisotropy
+* uniaxial/cubic anisotropy
 * DMI (interface and bulk)
 * interlayer exchange
 
