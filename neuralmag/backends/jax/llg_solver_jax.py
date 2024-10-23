@@ -150,6 +150,7 @@ class LLGSolverJAX(object):
             saveat=self._saveat_step,
             stepsize_controller=self._stepsize_controller,
             solver_state=self._solver_state,
+            max_steps=None,
         )
         self._solver_state = sol.solver_state
         self._state.t = sol.ts[-1] * self._scale_t
@@ -178,5 +179,6 @@ class LLGSolverJAX(object):
             args=args,
             saveat=saveat,
             stepsize_controller=self._stepsize_controller,
+            max_steps=None,
         )
         return sol
