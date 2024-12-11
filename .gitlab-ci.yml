@@ -14,7 +14,7 @@
   before_script:
     - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION"
     - python --version  # For debugging
-    - pip install .[dev,jax,torch]
+    - pip install .[dev,$NM_BACKEND]
 
 .gpu_template:
   extends: .test_template
@@ -23,12 +23,13 @@
     - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION"
     - python --version  # For debugging
     - nvidia-smi  # Nvidia GPU information
-    - pip install .[dev,jax,torch]
-    # make sure PyTorch us using the GPUs
-    - python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
+    - pip install .[dev,$NM_BACKEND]
+    - |
+      if [ "$NM_BACKEND" = "torch" ]; then
+        python -c "import torch; exit('PyTorch did not find a GPU') if not torch.cuda.is_available() else print('PyTorch is using GPU')"
+      fi
   tags:
     - saas-linux-medium-amd64-gpu-standard
-
 
 test_code_formatting:
   stage: test
@@ -67,40 +68,60 @@ test_py3_11_cpu_jax:
     PYTHON_VERSION: "3.11"
     NM_BACKEND: "jax"
 
-test_py3_10_gpu:
+test_py3_10_gpu_torch:
   extends: .gpu_template
   variables:
     PYTHON_VERSION: "3.10"
+    NM_BACKEND: "torch"
   when: manual
 
-test_py3_10_cpu:
+test_py3_10_gpu_jax:
+  extends: .gpu_template
+  variables:
+    PYTHON_VERSION: "3.10"
+    NM_BACKEND: "jax"
+  when: manual
+
+test_py3_10_cpu_torch:
   extends: .cpu_template
   variables:
     PYTHON_VERSION: "3.10"
+    NM_BACKEND: "torch"
   when: manual
 
-test_py3_9_gpu:
+test_py3_10_cpu_jax:
+  extends: .cpu_template
+  variables:
+    PYTHON_VERSION: "3.10"
+    NM_BACKEND: "jax"
+  when: manual
+
+test_py3_9_gpu_torch:
   extends: .gpu_template
   variables:
     PYTHON_VERSION: "3.9"
+    NM_BACKEND: "torch"
   when: manual
 
-test_py3_9_cpu:
+test_py3_9_cpu_torch:
   extends: .cpu_template
   variables:
     PYTHON_VERSION: "3.9"
+    NM_BACKEND: "torch"
   when: manual
 
-test_py3_8_gpu:
+test_py3_8_gpu_torch:
   extends: .gpu_template
   variables:
     PYTHON_VERSION: "3.8"
+    NM_BACKEND: "torch"
   when: manual
 
-test_py3_8_cpu:
+test_py3_8_cpu_torch:
   extends: .cpu_template
   variables:
     PYTHON_VERSION: "3.8"
+    NM_BACKEND: "torch"
   when: manual
 
 
@@ -108,6 +129,7 @@ docs:
   extends: .cpu_template
   variables:
     PYTHON_VERSION: "3.11"
+    NM_BACKEND: "torch"
   script:
     - micromamba install -y -n base -c conda-forge make pandoc
     - cd docs
@@ -146,6 +168,7 @@ build-package:
   variables:
     TWINE_USERNAME: $PYPI_USERNAME
     TWINE_PASSWORD: $PYPI_PASSWORD
+    NM_BACKEND: "torch"
   script:
     - python -m build
     - python -m twine upload dist/*
