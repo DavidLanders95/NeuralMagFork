@@ -43,6 +43,17 @@ test_code_formatting:
   script:
     - pre-commit run --all-files
 
+notebooks_py3_11_gpu:
+  extends: .gpu_template
+  variables:
+    PYTHON_VERSION: "3.11"
+  parallel:
+    matrix:
+      - NM_BACKEND:
+          - "torch"
+          - "jax"
+  script:
+    - pytest -v --nbval docs/examples
 
 test_py3_11_gpu_torch:
   extends: .gpu_template

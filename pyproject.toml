@@ -21,7 +21,7 @@ authors = [
 dependencies = ["numpy", "sympy", "pyvista", "scipy", "tqdm"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pre-commit", "nbsphinx", "pydata-sphinx-theme", "jupyterlab"]
+dev = ["pytest", "pre-commit", "nbsphinx", "pydata-sphinx-theme", "jupyterlab", "nbval"]
 torch = ["torch", "torchdiffeq"]
 jax = ["jax[cuda]>=0.4.31", "diffrax", "optax"]
 
