@@ -1,0 +1,5 @@
+# Install jax manually to get cpu only verion
+jax
+diffrax
+optax
+neuralmag

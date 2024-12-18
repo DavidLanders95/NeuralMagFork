@@ -32,6 +32,22 @@ Documentation
 The documentation of NeuralMag including a reference to all classes as well as several
 examples can found [here](https://neuralmag.gitlab.io/neuralmag/index.html).
 
+NeuralMag in the cloud
+======================
+
+Experience NeuralMag without installing it locally by accessing it directly in the cloud
+via Binder. Simply click the badge to get started:
+[![Binder](https://notebooks.mpcdf.mpg.de/binder/badge_logo.svg)](https://notebooks.mpcdf.mpg.de/binder/v2/git/https%3A%2F%2Fgitlab.mpcdf.mpg.de%2Fneuralmag%2Fneuralmag.git/binder)
+
+Using NeuralMag on Binder allows you to experience its features, without the hassle
+of setting up your local environment. It provides a quick and accessible way to test
+and experiment with the software from any device with a web browser.
+It is important to note that the Binder-hosted version is a CPU-only JAX
+implementation, and it will run slower than a local installation.
+Sessions are temporary and may time out after a period of inactivity, and any files
+created or modified during your session will not be saved.
+To avoid losing your work, please remember to download any files you create or edit
+before your session ends.
 
 Download and Install
 ====================
