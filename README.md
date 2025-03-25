@@ -52,17 +52,17 @@ before your session ends.
 Download and Install
 ====================
 
-NeuralMag is a Python package and requires Python \>=3.8. To install the latest version
+NeuralMag is a Python package and requires Python \>=3.8 (\>=3.10 for JAX backend). To install the latest version
 with pip either run
 
 ``` {.sourceCode .}
-pip install neuralmag[jax]
+pip install "neuralmag[jax]"
 ```
 
 to install NeuralMag with JAX as a backend or
 
 ``` {.sourceCode .}
-pip install neuralmag[torch]
+pip install "neuralmag[torch]"
 ```
 
 to install NeuralMag with PyTorch as a backend. You can also install NeuralMag with both
