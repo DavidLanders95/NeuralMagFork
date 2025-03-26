@@ -333,7 +333,7 @@ class State(object):
         compiled_code = compile(code, "<string>", "exec")
         return types.FunctionType(compiled_code.co_consts[0], {f"__{name}": f}, name)
 
-    def coordinates(self, spaces=None):
+    def coordinates(self, spaces=None, numpy=False):
         """
         Returns 3 tensors containing the x, y, z coordinates of each cell/node
         of the mesh. In the case of cell discretization the coordinates at the
@@ -342,6 +342,8 @@ class State(object):
 
         :param spaces: function spaces, e.g. "ccc", "nnn"
         :type spaces: str
+        :param numpy: return numpy arrays instead of backend arrays
+        :type numpy: bool
         :return: The coordinates
         :rtype: config.backend.Tensor
 
@@ -386,7 +388,11 @@ class State(object):
             else:
                 raise NotImplementedError(f"Unknown function space '{space}'.")
 
-        return config.backend.meshgrid(*ranges, indexing="ij")
+        coords = config.backend.meshgrid(*ranges, indexing="ij")
+        if numpy:
+            return tuple(config.backend.to_numpy(c) for c in coords)
+        else:
+            return coords
 
     def write_vti(self, fields, filename):
         """

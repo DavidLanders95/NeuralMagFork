@@ -122,5 +122,6 @@ def test_update_of_function_tensor(state):
     state.f = Function(state).fill(1.0)
     state.f_sum = lambda f: f.sum()
     assert be.to_numpy(state.f_sum) == pytest.approx(27.0)
-    state.f.tensor = state.tensor(np.ones_like(state.f.tensor) * 2.0)
+    g = Function(state).fill(2.0)
+    state.f.tensor = g.tensor
     assert be.to_numpy(state.f_sum) == pytest.approx(54.0)
