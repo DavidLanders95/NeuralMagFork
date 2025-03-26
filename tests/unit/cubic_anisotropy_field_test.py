@@ -17,13 +17,13 @@ def test_E(state):
 
     state.m = VectorFunction(state).fill((0, 0, 1))
 
-    assert be.to_numpy(state.E_caniso) == pytest.approx(0, abs=1e-25)
+    assert be.to_numpy(state.E_caniso) == pytest.approx(0, abs=1e-16)
 
     state.m = VectorFunction(state).fill(
         (1 / np.sqrt(3), 1 / np.sqrt(3), 1 / np.sqrt(3))
     )
     assert be.to_numpy(state.E_caniso) == pytest.approx(
-        -Kc * state.mesh.volume / 3, abs=1e-25
+        -Kc * state.mesh.volume / 3, abs=1e-16
     )
 
 

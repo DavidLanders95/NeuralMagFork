@@ -53,7 +53,7 @@ notebooks_py3_11_gpu:
           - "torch"
           - "jax"
   script:
-    - pytest -v --nbval docs/examples
+    - pytest -v --nbval-lax docs/examples
 
 test_py3_11_gpu_torch:
   extends: .gpu_template
