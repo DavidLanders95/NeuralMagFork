@@ -123,6 +123,7 @@ class Function(CodeClass):
 
     @tensor.setter
     def tensor(self, tensor):
+        self._state._update_attr(self._tensor, tensor)
         self._tensor = tensor
 
     def fill(self, constant, expand=False):

@@ -108,3 +108,19 @@ def test_coordinates():
     assert be.to_numpy(x)[1, 0, 0] == pytest.approx(2.5e-9)
     assert be.to_numpy(y)[0, 1, 0] == pytest.approx(4e-9)
     assert be.to_numpy(z)[0, 0, 0] == pytest.approx(4.5e-9)
+
+
+def test_update_of_tensor(state):
+    state.f = state.tensor([1.0])
+    state.f_sum = lambda f: f.sum()
+    assert be.to_numpy(state.f_sum) == pytest.approx(1.0)
+    state.f = state.tensor([2.0])
+    assert be.to_numpy(state.f_sum) == pytest.approx(2.0)
+
+
+def test_update_of_function_tensor(state):
+    state.f = Function(state).fill(1.0)
+    state.f_sum = lambda f: f.sum()
+    assert be.to_numpy(state.f_sum) == pytest.approx(27.0)
+    state.f.tensor = state.tensor(np.ones_like(state.f.tensor) * 2.0)
+    assert be.to_numpy(state.f_sum) == pytest.approx(54.0)

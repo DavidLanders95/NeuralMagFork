@@ -50,7 +50,7 @@ class Config:
                 self.set_backend("torch", True)
             if self._backend is None:
                 raise ImportError(
-                    "Neither 'jax' nor 'torch' seems to be available. Use 'pip install neuralmag[torch]' or 'pip install neuralmag[jax]' to select one backend!"
+                    "Neither 'jax' nor 'torch' seems to be available. Use 'pip install \"neuralmag[torch]\"' or 'pip install \"neuralmag[jax]\"' to select one backend!"
                 )
 
         return self._backend
