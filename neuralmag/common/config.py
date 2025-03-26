@@ -32,8 +32,13 @@ class Config:
         self._dtype = None
 
         # public config keys
-        self.torch = {"compile": True}
-        self.jax = {"jit": True}
+        self.torch = {
+            "compile": os.getenv("NM_TORCH_COMPILE", "True").lower()
+            in ("true", "1", "yes")
+        }
+        self.jax = {
+            "jit": os.getenv("NM_JAX_JIT", "True").lower() in ("true", "1", "yes")
+        }
         self.fem = {"n_gauss": 3}
 
     @property
