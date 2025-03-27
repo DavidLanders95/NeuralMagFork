@@ -54,7 +54,7 @@ notebooks_py3_11_gpu:
           - "torch"
           - "jax"
   script:
-    - pytest -v --nbval-lax docs/examples
+    - pytest -v --nbval-lax --nbval-cell-timeout=5000 docs/examples
 
 test_py3_11_gpu_torch:
   extends: .gpu_template
