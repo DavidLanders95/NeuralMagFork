@@ -34,11 +34,6 @@ def llg_rhs(h, m, material__alpha):
     )
 
 
-def llg_relax_rhs(h, m):
-    gamma_prime = 221276.14725379366 / 2.0
-    return -gamma_prime * jnp.cross(m, jnp.cross(m, h))
-
-
 class LLGSolverJAX(object):
     """
     Time integrator using explicit adaptive time-stepping provided by the
@@ -77,7 +72,7 @@ class LLGSolverJAX(object):
         """
         Set up the function for the RHS evaluation of the LLG
         """
-        logging.info_green("[LLGSolver] Initialize RHS function")
+        logging.info_green("[LLGSolverJAX] Initialize RHS function")
 
         internal_args = ["t", "m"] + self._parameters
 
@@ -97,36 +92,46 @@ class LLGSolverJAX(object):
         :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
         :type tol: float
         """
-        func, args = self._state.get_func(llg_relax_rhs, ["t", "m"])
-        logging.info_blue(
-            f"[LLGSolverJAX] Start relaxation, initial energy E = {self._state.E:g} J"
-        )
-        rhs_fn = lambda t, m, _: self._scale_t * func(
-            self._state.t * self._scale_t, m, *args[2:]
-        )
-        event_fn = (
-            lambda t, m, _, **kwargs: jnp.linalg.norm(
-                func(self._state.t * self._scale_t, m, *args[2:]), axis=-1
-            ).max()
-            < tol
-        )
+        dt = 1e-11
+        alpha = self._state.tensor(1.0)
 
-        sol = diffeqsolve(
-            ODETerm(jax.jit(rhs_fn)),
-            self._solver,
-            t0=self._state.t / self._scale_t,
-            t1=(self._state.t + 1.0) / self._scale_t,
-            dt0=self._dt0 / self._scale_t,
-            y0=self._state.m.tensor,
-            event=Event(eqx.filter_jit(event_fn)),
-            stepsize_controller=self._stepsize_controller,
-            max_steps=None,
+        func, args = self._state.get_func(llg_rhs, ["t", "m", "material__alpha"])
+        rhs = lambda t, m, _: self._scale_t * func(
+            t * self._scale_t, m, alpha, *args[3:]
         )
-        self._state.m.tensor = sol.ys[-1]
+        term = ODETerm(jax.jit(rhs))
+
+        logging.info_blue(
+            f"[LLGSolverJAX] Relaxation started, initial energy E = {self._state.E:g} J"
+        )
+        t = self._scale_t * self._state.t
+        # rhs_args = [self._scale_t * self._state.t, self._state.m.tensor, None]
+        while (
+            jnp.linalg.norm(
+                term.vector_field(t, self._state.m.tensor, None), axis=-1
+            ).max()
+            / self._scale_t
+            > tol
+        ):
+            logging.info_blue(
+                f"[LLGSolverJAX] Relaxation step (max dm/dt = {jnp.linalg.norm(term.vector_field(t, self._state.m.tensor, None), axis=-1).max() / self._scale_t:g}) 1/s"
+            )
+            sol = diffeqsolve(
+                term,
+                self._solver,
+                t0=self._state.t / self._scale_t,
+                t1=(self._state.t + dt) / self._scale_t,
+                dt0=self._dt0 / self._scale_t,
+                y0=self._state.m.tensor,
+                saveat=self._saveat_step,
+                stepsize_controller=self._stepsize_controller,
+                max_steps=None,
+            )
+            self._state.m.tensor = sol.ys[-1]
+
         logging.info_blue(
             f"[LLGSolverJAX] Relaxation finished, final energy E = {self._state.E:g} J"
         )
-        return sol
 
     def step(self, dt, *args):
         """
