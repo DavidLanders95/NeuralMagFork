@@ -54,6 +54,7 @@ notebooks_py3_11_gpu:
           - "torch"
           - "jax"
   script:
+    - apt-get update && apt-get install -y libx11-6 libgl1-mesa-glx
     - pytest -v --nbval-lax --nbval-cell-timeout=5000 docs/examples
 
 test_py3_11_gpu_torch:
