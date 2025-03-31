@@ -48,14 +48,16 @@ notebooks_py3_11_gpu:
   variables:
     PYTHON_VERSION: "3.11"
     NM_TORCH_COMPILE: "False"
-    GITLAB_RUNNER_USER: "root"
   parallel:
     matrix:
       - NM_BACKEND:
           - "torch"
           - "jax"
+  before_script:
+    - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION" xvfb mesa-libgl-devel
+    - Xvfb :99 -screen 0 1024x768x24 &
+    - export DISPLAY=:99
   script:
-    - apt-get update && apt-get install -y libx11-6 libgl1-mesa-glx
     - pytest -v --nbval-lax --nbval-cell-timeout=5000 docs/examples
 
 test_py3_11_gpu_torch:
