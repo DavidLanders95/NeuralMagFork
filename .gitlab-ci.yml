@@ -48,6 +48,7 @@ notebooks_py3_11_gpu:
   variables:
     PYTHON_VERSION: "3.11"
     NM_TORCH_COMPILE: "False"
+    GITLAB_RUNNER_USER: "root"
   parallel:
     matrix:
       - NM_BACKEND:
