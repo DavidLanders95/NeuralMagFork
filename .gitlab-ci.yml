@@ -54,7 +54,7 @@ notebooks_py3_11_gpu:
           - "torch"
           - "jax"
   before_script:
-    - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION" xorg-libx11 xorg-libxext xorg-libxfixes xorg-libxdamage xorg-libxcursor xorg-libxxf86vm mesa-libglxx xorg-xvfb
+    - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION" xorg-libx11 xorg-libxext xorg-libxfixes xorg-libxdamage xorg-libxcursor xorg-libxxf86vm mesa xorg-xserver-xvfb
   script:
     - xvfb-run -s "-screen 0 1024x768x24" pytest -v --nbval-lax --nbval-cell-timeout=5000 docs/examples
 
