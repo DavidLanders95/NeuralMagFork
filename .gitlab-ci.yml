@@ -54,11 +54,9 @@ notebooks_py3_11_gpu:
           - "torch"
           - "jax"
   before_script:
-    - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION" xvfb mesa-libgl-devel
-    - Xvfb :99 -screen 0 1024x768x24 &
-    - export DISPLAY=:99
+    - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION" xorg-libx11 xorg-libxext xorg-libxfixes xorg-libxdamage xorg-libxcursor xorg-libxxf86vm mesa-libglxx xorg-xvfb
   script:
-    - pytest -v --nbval-lax --nbval-cell-timeout=5000 docs/examples
+    - xvfb-run -s "-screen 0 1024x768x24" pytest -v --nbval-lax --nbval-cell-timeout=5000 docs/examples
 
 test_py3_11_gpu_torch:
   extends: .gpu_template
