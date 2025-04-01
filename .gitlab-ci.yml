@@ -45,21 +45,29 @@ test_code_formatting:
     - pre-commit run --all-files
   needs: []
 
-notebooks_py3_11_gpu:
-  extends: .gpu_template
-  variables:
-    PYTHON_VERSION: "3.11"
-    NM_TORCH_COMPILE: "False"
-  parallel:
-    matrix:
-      - NM_BACKEND:
-          - "torch"
-          - "jax"
+
+generate_notebook_pipeline_config:
+  stage: .pre
+  image: python:3.11
   before_script:
-    - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION" xorg-libx11 xorg-libxext xorg-libxfixes xorg-libxdamage \
-        xorg-libxcursor xorg-libxxf86vm mesa xorg-server
+    - pip install -r .gitlab/ci/requirements.txt
   script:
-    - xvfb-run -s "-screen 0 1024x768x24" pytest -v --nbval-lax --nbval-cell-timeout=5000 docs/examples
+    - python .gitlab/ci/generate-notebook-pipeline.py
+    - cat generated-notebook-pipeline.yml
+  artifacts:
+    paths:
+      - generated-notebook-pipeline.yml
+
+trigger_notebook_pipeline:
+  stage: test
+  needs:
+    - generate_notebook_pipeline_config
+  trigger:
+    include:
+      - artifact: generated-notebook-pipeline.yml
+        job: generate_notebook_pipeline_config
+    strategy: depend
+
 
 test_py3_11_gpu_torch:
   extends: .gpu_template
