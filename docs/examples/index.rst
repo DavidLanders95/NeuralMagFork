@@ -3,5 +3,5 @@ Examples
 
 .. toctree::
 
-   standard-problem-5
-   skyrmion-disk
+   standard-problem-3
+   standard-problem-4

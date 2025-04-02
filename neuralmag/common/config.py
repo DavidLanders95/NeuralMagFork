@@ -32,8 +32,13 @@ class Config:
         self._dtype = None
 
         # public config keys
-        self.torch = {"compile": True}
-        self.jax = {"jit": True}
+        self.torch = {
+            "compile": os.getenv("NM_TORCH_COMPILE", "True").lower()
+            in ("true", "1", "yes")
+        }
+        self.jax = {
+            "jit": os.getenv("NM_JAX_JIT", "True").lower() in ("true", "1", "yes")
+        }
         self.fem = {"n_gauss": 3}
 
     @property
@@ -50,7 +55,7 @@ class Config:
                 self.set_backend("torch", True)
             if self._backend is None:
                 raise ImportError(
-                    "Neither 'jax' nor 'torch' seems to be available. Use 'pip install neuralmag[torch]' or 'pip install neuralmag[jax]' to select one backend!"
+                    "Neither 'jax' nor 'torch' seems to be available. Use 'pip install \"neuralmag[torch]\"' or 'pip install \"neuralmag[jax]\"' to select one backend!"
                 )
 
         return self._backend

@@ -61,7 +61,7 @@ class State(object):
         self._attr_values = {}
         self._attr_types = {}
         self._attr_funcs = {}
-        self._attr_args = {}
+        self._attr_updates = {}
 
         if device == None:
             self._device = config.device
@@ -169,7 +169,7 @@ class State(object):
 
         :param shape: The shape of the tensor
         :type shape: tuple
-        :param \**kwargs: Parameters passed to the PyTorch routine
+        :param **kwargs: Parameters passed to the PyTorch routine
         :return: The tensor
         :rtype: config.backend.Tensor
         """
@@ -179,12 +179,15 @@ class State(object):
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
+            for t_old, t_new in self._attr_updates.items():
+                for _, args in self._attr_funcs.values():
+                    args[:] = [t_new if id(t) == t_old else t for t in args]
+            self._attr_updates = {}
             if not name in self._attr_funcs:
                 attr = self._attr_values[name]
                 self._attr_funcs[name] = self.get_func(attr)
             func, args = self._attr_funcs[name]
             value = func(*args)
-
         else:
             value = self._attr_values[name]
 
@@ -215,9 +218,12 @@ class State(object):
             except ValueError:
                 pass
 
+        if callable(value):
+            self._attr_funcs.clear()
+        elif name in self._attr_values:
+            self._update_attr(self._attr_values[name], value)
+
         self._attr_values[name] = value
-        self._attr_funcs.clear()
-        self._attr_args.clear()
 
     def _collect_func_deps(self, attr):
         func_names = []
@@ -236,6 +242,9 @@ class State(object):
                 args[arg] = attr
 
         return func_names, args
+
+    def _update_attr(self, old, new):
+        self._attr_updates[id(old)] = new
 
     def get_func(self, f, add_args=None):
         """
@@ -324,7 +333,7 @@ class State(object):
         compiled_code = compile(code, "<string>", "exec")
         return types.FunctionType(compiled_code.co_consts[0], {f"__{name}": f}, name)
 
-    def coordinates(self, spaces=None):
+    def coordinates(self, spaces=None, numpy=False):
         """
         Returns 3 tensors containing the x, y, z coordinates of each cell/node
         of the mesh. In the case of cell discretization the coordinates at the
@@ -333,6 +342,8 @@ class State(object):
 
         :param spaces: function spaces, e.g. "ccc", "nnn"
         :type spaces: str
+        :param numpy: return numpy arrays instead of backend arrays
+        :type numpy: bool
         :return: The coordinates
         :rtype: config.backend.Tensor
 
@@ -377,7 +388,11 @@ class State(object):
             else:
                 raise NotImplementedError(f"Unknown function space '{space}'.")
 
-        return config.backend.meshgrid(*ranges, indexing="ij")
+        coords = config.backend.meshgrid(*ranges, indexing="ij")
+        if numpy:
+            return tuple(config.backend.to_numpy(c) for c in coords)
+        else:
+            return coords
 
     def write_vti(self, fields, filename):
         """

@@ -171,9 +171,12 @@ def compile_functional(expr, n_gauss=3):
         if len(symbs) == 0:
             raise Exception("Need at least one variable to integrate.")
 
-        # try to reduce multiplications of fields for better performance
-        # cmd = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
-        cmd = str(sp.collect(sp.factor_terms(iexpr), symbs))
+        ## try to reduce multiplications of fields for better performance
+        ## the switch on n_gaus is purely heuristic and was introduced for the cubic anisotropy
+        if n_gauss == 1:
+            cmd = str(sp.collect(sp.factor_terms(iexpr), symbs))
+        else:
+            cmd = str(sp.collect(sp.factor_terms(sp.expand(iexpr)), symbs))
 
         # retrieve topological dimension from first symbol
         match = re.match(r"^_(.*:.*:.*:.*)_$", symbs[0].name)

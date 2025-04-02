@@ -7,7 +7,7 @@ name = "neuralmag"
 version = "0.9.1"
 description = "NeuralMag is a micromagnetic GPU code implementing the nodal FD discretization"
 readme = "README.md"
-requires-python = ">=3.8, <3.12"
+requires-python = ">=3.8"
 
 authors = [
 { name = "Claas Abert", email = "claas.abert@univie.ac.at" },
@@ -21,7 +21,7 @@ authors = [
 dependencies = ["numpy", "sympy", "pyvista", "scipy", "tqdm"]
 
 [project.optional-dependencies]
-dev = ["pytest", "pre-commit", "nbsphinx", "pydata-sphinx-theme", "jupyterlab"]
+dev = ["pytest", "pre-commit", "nbsphinx", "pydata-sphinx-theme", "jupyterlab", "nbval"]
 torch = ["torch", "torchdiffeq"]
 jax = ["jax[cuda]>=0.4.31", "diffrax", "optax"]
 

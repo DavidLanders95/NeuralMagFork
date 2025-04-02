@@ -1,12 +1,19 @@
+default:
+  # cancel old pipelines on the same branch/MR when a new commit is pushed
+  interruptible: true
+
 # Dot in front of the job will hide it from the CI
 .test_template:
   stage: test
+  variables:
+    PYTEST_ADDOPTS: "--color=yes"
   artifacts:
     paths:
       - tests/test_artifacts/  # Or the directory where plots are saved
     expire_in: 1 week  # Optional: set an expiration time for artifacts
     when: on_failure  # Save artifacts only on failure
   script: python -m pytest --verbose
+  needs: []
 
 .cpu_template:
   extends: .test_template
@@ -42,6 +49,30 @@ test_code_formatting:
     - pre-commit install
   script:
     - pre-commit run --all-files
+  needs: []
+
+
+generate_notebook_pipeline_config:
+  stage: .pre
+  image: python:3.11
+  before_script:
+    - pip install -r .gitlab/ci/requirements.txt
+  script:
+    - python .gitlab/ci/generate-notebook-pipeline.py
+    - cat generated-notebook-pipeline.yml
+  artifacts:
+    paths:
+      - generated-notebook-pipeline.yml
+
+trigger_notebook_pipeline:
+  stage: test
+  needs:
+    - generate_notebook_pipeline_config
+  trigger:
+    include:
+      - artifact: generated-notebook-pipeline.yml
+        job: generate_notebook_pipeline_config
+    strategy: depend
 
 
 test_py3_11_gpu_torch:
@@ -138,6 +169,7 @@ docs:
     paths:
       - docs/_build
     when: on_success
+  needs: []
 
 pages:
   # Take compiled html, and make available on gitlab pages
@@ -157,6 +189,8 @@ pages:
     # This ensures that only pushes to the default branch will trigger
     # a pages deploy.
     - if: $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+  interruptible: false
+  needs: ["docs"]
 
 build-package:
   stage: deploy
@@ -174,6 +208,8 @@ build-package:
     - python -m twine upload dist/*
   rules:
     - if: $PYPI_USERNAME && $CI_COMMIT_TAG
+  interruptible: false
+  needs: []
 
 # Defining workflow rules is required to avoid duplicated pipelines
 # (https://docs.gitlab.com/ee/ci/jobs/job_rules.html#avoid-duplicate-pipelines).

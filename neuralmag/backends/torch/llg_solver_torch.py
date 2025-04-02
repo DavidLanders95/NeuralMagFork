@@ -20,7 +20,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import torch
 import torch.nn as nn
 from torchdiffeq import odeint_adjoint as odeint
-from torchdiffeq import odeint_event
 
 from neuralmag.common import Function, logging
 
@@ -32,11 +31,6 @@ def llg_rhs(h, m, material__alpha):
     return -gamma_prime * torch.linalg.cross(
         m, h
     ) - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
-
-
-def llg_relax_rhs(h, m):
-    gamma_prime = 221276.14725379366 / 2.0
-    return -gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
 
 
 class LLGSolverTorch(nn.Module):
@@ -111,8 +105,6 @@ class LLGSolverTorch(nn.Module):
     def forward(self, t, m):
         return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
 
-    # TODO test using step instead of event_fn for better performance
-    # TODO check/fix behavior in inverse problems
     def relax(self, tol=2e7 * torch.pi):
         """
         Use time integration of the damping term to relax the magnetization into an
@@ -122,24 +114,28 @@ class LLGSolverTorch(nn.Module):
         :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
         :type tol: float
         """
-        func, args = self._state.get_func(llg_relax_rhs, ["t", "m"])
+        dt = 1e-11
+        alpha = self._state.tensor(1.0)
+
+        func, args = self._state.get_func(llg_rhs, ["t", "m", "material__alpha"])
+        rhs = lambda t, m: self._scale_t * func(t * self._scale_t, m, alpha, *args[3:])
+
         logging.info_blue(
-            f"[LLGSolverTorch] Start relaxation, initial energy E = {self._state.E:g} J"
+            f"[LLGSolverTorch] Relaxation started, initial energy E = {self._state.E:g} J"
         )
-        _, m_next = odeint_event(
-            lambda t, m: self._scale_t
-            * func(self._state.t * self._scale_t, m, *args[2:]),
-            self._state.m.tensor,
-            self._state.t,
-            event_fn=lambda t, m: func(self._state.t * self._scale_t, m, *args[2:])
-            .norm(dim=-1)
-            .max()
-            - tol,
-            odeint_interface=odeint,
-            adjoint_params=[],
-            **self._solver_options,
+
+        t = self._state.tensor(
+            [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
         )
-        self._state.m.tensor[:] = m_next[-1]
+        while rhs(t[0], self._state.m.tensor).norm(dim=-1).max() / self._scale_t > tol:
+            logging.info_blue(
+                f"[LLGSolverTorch] Relaxation step (max dm/dt = {rhs(t[0], self._state.m.tensor).norm(dim=-1).max() / self._scale_t:g}) 1/s"
+            )
+            m_next = odeint(
+                rhs, self._state.m.tensor, t, adjoint_params=(), **self._solver_options
+            )
+            self._state.m.tensor[:] = m_next[-1]
+
         logging.info_blue(
             f"[LLGSolverTorch] Relaxation finished, final energy E = {self._state.E:g} J"
         )

@@ -1,0 +1,27 @@
+{% for job in jobs %}
+test_notebook_{{ job.notebook }}_{{ job.backend }}:
+  image: ubuntu:latest
+  variables:
+    PYTEST_ADDOPTS: "--color=yes"
+  before_script:
+    - echo -e "\e[0Ksection_start:`date +%s`:apt-get[collapsed=true]\r\e[0KInstalling system dependencies"
+    - apt-get update -y
+    - DEBIAN_FRONTENT=noninteractive apt-get install -y python3-pip xvfb libgl1 libglx-mesa0
+    - echo -e "\e[0Ksection_end:`date +%s`:apt-get\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:pip[collapsed=true]\r\e[0KInstalling neuralmag"
+    - pip install --break-system-packages .[dev,{{ job.backend }}]
+    - echo -e "\e[0Ksection_end:`date +%s`:pip\r\e[0K"
+    - echo -e "\e[0Ksection_start:`date +%s`:xvfb[collapsed=true]\r\e[0KConfigure headless display"
+    - export DISPLAY=:99.0
+    - export PYVISTA_OFF_SCREEN=true
+    - Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+    - sleep 3
+    - echo -e "\e[0Ksection_end:`date +%s`:xvfb\r\e[0K"
+  script:
+    # Run pytest in the examples directory because there are some relative paths to output files
+    # that are otherwise not resolved correctly.
+    - cd docs/examples
+    - pytest -v --nbval-lax --nbval-cell-timeout=5000 {{ job.notebook }}
+  rules:
+  - if: $CI_PIPELINE_SOURCE == "parent_pipeline"
+{% endfor %}
