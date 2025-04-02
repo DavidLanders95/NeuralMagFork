@@ -5,6 +5,8 @@ default:
 # Dot in front of the job will hide it from the CI
 .test_template:
   stage: test
+  variables:
+    PYTEST_ADDOPTS: "--color=yes"
   artifacts:
     paths:
       - tests/test_artifacts/  # Or the directory where plots are saved
