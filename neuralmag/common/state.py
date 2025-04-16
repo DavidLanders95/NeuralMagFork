@@ -251,8 +251,9 @@ class State(object):
         Analyse arguments of supplied function and create Python function that
         depends solely on static state attributes of the state.
 
-        :param f: The function to by analyzed
-        :type f: Callable
+        :param f: The function to by analyzed, if string is provided the state
+                  attribute with the respective name is used.
+        :type f: Callable, str
         :param add_args: Additional arguments to be added. Arguments provided
                          here are always used as the first arguments in the
                          signature.
@@ -261,6 +262,8 @@ class State(object):
                  list of references to the static attributes.
         :rtype: tuple
         """
+        if isinstance(f, str):
+            f = self._attr_values[f]
         add_args = add_args or []
         func_names, args = self._collect_func_deps(f)
         args = list(set(args) - set(add_args))

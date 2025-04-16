@@ -46,7 +46,7 @@ class CodeClass(object):
             code_file_path.parent.mkdir(parents=True, exist_ok=True)
             # TODO check if _generate_code method exists
             logging.info_green(
-                f"[{self.__class__.__name__}] Generate torch core methods"
+                f"[{self.__class__.__name__}] Generate {config.backend.name} core methods"
             )
             code = str(self._generate_code(*args))
             with open(code_file_path, "w") as f:
