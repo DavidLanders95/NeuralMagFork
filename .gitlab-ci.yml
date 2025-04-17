@@ -2,6 +2,10 @@ default:
   # cancel old pipelines on the same branch/MR when a new commit is pushed
   interruptible: true
 
+variables:
+  # re-try initial git clone on failure
+  GET_SOURCES_ATTEMPTS: 3
+
 # Dot in front of the job will hide it from the CI
 .test_template:
   stage: test

@@ -1,3 +1,7 @@
+variables:
+  # re-try initial git clone on failure
+  GET_SOURCES_ATTEMPTS: 3
+
 {% for job in jobs %}
 test_notebook_{{ job.notebook }}_{{ job.backend }}:
   image: ubuntu:latest
