@@ -14,7 +14,7 @@ jobs = []
 
 for notebook in (Path(__file__).parent.parent.parent / "docs/examples").glob("*.ipynb"):
     if notebook.stem.endswith("_jax"):
-        backed = ["jax"]
+        backends = ["jax"]
     elif notebook.stem.endswith("_torch"):
         backends = ["torch"]
     else:
