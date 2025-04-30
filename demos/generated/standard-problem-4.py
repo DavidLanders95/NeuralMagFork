@@ -90,7 +90,8 @@ p.show()
 
 # Setup Zeeman field
 h_ext = nm.VectorFunction(state).fill(
-    [-24.6e-3 / constants.mu_0, 4.3e-3 / constants.mu_0, 0.0]
+    # [-24.6e-3 / constants.mu_0, 4.3e-3 / constants.mu_0, 0.0]  # B1
+    [-35.5e-3 / constants.mu_0, -6.3e-3 / constants.mu_0, 0.0]  # B2
 )
 nm.ExternalField(h_ext).register(state, "external")
 
