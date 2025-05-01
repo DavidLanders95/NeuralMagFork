@@ -14,7 +14,7 @@ authors = [
 { name = "Florian Bruckner", email = "florian.bruckner@univie.ac.at" },
 { name = "Martin Lang", email = "martin.lang@mpsd.mpg.de" },
 { name = "Swapneel Amit Pathak", email = "swapneel-amit.pathak@mpsd.mpg.de" },
-{ name = "Samuel Hol", email = "samuel.holt@mpsd.mpg.de" },
+{ name = "Samuel Holt", email = "samuel.holt@mpsd.mpg.de" },
 { name = "Hans Fangohr", email = "hans.fangohr@mpsd.mpg.de" },
 ]
 
