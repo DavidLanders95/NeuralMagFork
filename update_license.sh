@@ -5,7 +5,7 @@
 # Create a license header for Python files
 LICENSE_HEADER="# MIT License
 #
-# Copyright (c) 2024 NeuralMag team
+# Copyright (c) 2024-2025 NeuralMag team
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the \"Software\"), to deal
