@@ -34,4 +34,3 @@ line-length = 88
 [tool.isort]
 profile = "black"
 skip_gitignore = true  # ignores files listed in .gitignore
-skip_glob = ["/neuralmag/field_terms/code/*"]
