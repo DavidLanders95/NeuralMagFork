@@ -5,7 +5,10 @@
 # Create a license header for Python files
 LICENSE_HEADER="# MIT License
 #
-# Copyright (c) 2024-2025 NeuralMag team
+# Copyright (c) 2022-2025 NeuralMag team
+#
+# This file is part of NeuralMag – a simulation package for inverse micromagnetics.
+# Repository: https://gitlab.com/neuralmag/neuralmag
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the \"Software\"), to deal
