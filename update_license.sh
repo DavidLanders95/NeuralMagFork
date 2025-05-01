@@ -42,34 +42,55 @@ find ./neuralmag -type f -name "*.py" \
         shebang_line=$(head -1 "$file")
     fi
     
-    # Remove any existing license header
-    # This pattern looks for common license indicators at the top of the file
-    if grep -q -E "^(#|\"\"\"|\'\'\').*([Cc]opyright|[Ll]icense)" "$file" | head -20; then
+    # Use sed to remove license headers
+    # This handles both comment-style and docstring-style headers
+    
+    # First, create a clean file without any license header
+    if grep -q "Copyright" "$file"; then
         echo "  Removing existing license header..."
         
-        # For docstring-style headers (triple quotes)
-        if head -20 "$file" | grep -q -E "^(\"\"\"|''').*[Cc]opyright"; then
-            # Skip the docstring license block
-            awk 'BEGIN{skip=0; found=0}
-                /^"""/ || /^'\'''\''/ {
-                    if (skip == 0 && !found && ($0 ~ /[Cc]opyright/ || NR < 20)) {
-                        skip=1;
-                        found=1;
-                        next;
-                    }
-                    if (skip == 1) {
-                        skip=0;
-                        next;
-                    }
-                }
-                skip == 0 {print}' "$file" > "$temp_file"
-        else
-            # For comment-style headers
-            awk 'BEGIN{skip=1}
-                skip==1 && /^[^#]/ {skip=0}
-                skip==1 && /^$/ {skip=0}
-                skip==0 || !/^#/ {print}' "$file" > "$temp_file"
-        fi
+        # Create a temporary Python script to handle the removal
+        python_script=$(mktemp)
+        cat > "$python_script" << 'EOF'
+import re
+import sys
+
+def remove_license_header(content):
+    # Check for docstring license
+    docstring_match = re.match(r'("""|\'\'\')(.*?)("""|\'\'\')', content, re.DOTALL)
+    if docstring_match and ('Copyright' in docstring_match.group(2) or 'License' in docstring_match.group(2)):
+        # Remove the docstring license
+        content = content[docstring_match.end():].lstrip()
+    
+    # Check for comment license (# lines at the beginning)
+    lines = content.split('\n')
+    start_code = 0
+    for i, line in enumerate(lines):
+        if line.strip() and not line.strip().startswith('#'):
+            start_code = i
+            break
+    
+    # If we have comments at the top and they contain license info
+    if start_code > 0:
+        comment_block = '\n'.join(lines[:start_code])
+        if 'Copyright' in comment_block or 'License' in comment_block:
+            content = '\n'.join(lines[start_code:])
+    
+    return content
+
+if __name__ == "__main__":
+    with open(sys.argv[1], 'r') as f:
+        content = f.read()
+    
+    cleaned_content = remove_license_header(content)
+    
+    with open(sys.argv[2], 'w') as f:
+        f.write(cleaned_content)
+EOF
+        
+        # Run the Python script to remove the license header
+        python3 "$python_script" "$file" "$temp_file"
+        rm "$python_script"
     else
         # No license header found, just copy the file
         cat "$file" > "$temp_file"
@@ -92,11 +113,7 @@ find ./neuralmag -type f -name "*.py" \
     echo "" >> "$final_file"
     
     # Add the rest of the file content
-    if [ $has_shebang -eq 1 ]; then
-        tail -n +2 "$temp_file" >> "$final_file"
-    else
-        cat "$temp_file" >> "$final_file"
-    fi
+    cat "$temp_file" >> "$final_file"
     
     # Replace the original file
     mv "$final_file" "$file"
