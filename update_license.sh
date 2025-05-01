@@ -69,7 +69,7 @@ find ./neuralmag -type f -name "*.py" \
                 /^"""/ || /^'''\'/ {
                     if (docstring == 0) {
                         docstring=1;
-                    } else {
+                    } else if (docstring == 1) {
                         docstring=2;
                         next;
                     }
