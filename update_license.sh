@@ -66,12 +66,12 @@ find ./neuralmag -type f -name "*.py" \
         if grep -q '""".*Copyright' "$file" || grep -q "'''.*Copyright" "$file"; then
             # Extract content after the first triple-quoted section
             awk 'BEGIN{docstring=0; printed=0} 
-                /^"""/ || /^'''\'/ {
+                /^"""/ || /^'\'''\''/ {
                     if (docstring == 0) {
-                        docstring=1;
+                        docstring=1
                     } else if (docstring == 1) {
-                        docstring=2;
-                        next;
+                        docstring=2
+                        next
                     }
                 }
                 docstring == 2 && !printed {print ""; printed=1; next}
