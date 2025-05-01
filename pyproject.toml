@@ -29,7 +29,7 @@ jax = ["jax[cuda]>=0.4.31", "diffrax", "optax"]
 include = ["neuralmag*"]
 
 [tool.black]
-exclude = "/field_terms/neuralmag"
+line-length = 88
 
 [tool.isort]
 profile = "black"
