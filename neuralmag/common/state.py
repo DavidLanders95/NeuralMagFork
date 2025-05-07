@@ -227,10 +227,11 @@ class State(object):
 
         self._attr_values[name] = value
 
-    def _collect_func_deps(self, attr):
+    def _collect_func_deps(self, attr, exclude=None):
+        exclude = exclude or []
         func_names = []
         args = {}
-        for arg in list(inspect.signature(attr).parameters.keys()):
+        for arg in set(inspect.signature(attr).parameters.keys()) - set(exclude):
             attr = self._attr_values[arg]
 
             if callable(attr):
@@ -249,7 +250,7 @@ class State(object):
         """
         Analyse arguments of supplied function and create Python function that
         depends solely on func_args if provided. If func_args is None the returned
-        function will depend only on static state attributes.
+        function will depend on all static state attributes that are dependencies of func.
 
         :param f: The function to by analyzed, if string is provided the state
                   attribute with the respective name is used.
@@ -265,7 +266,7 @@ class State(object):
         if isinstance(func, str):
             func = self._attr_values[func]
 
-        subfunc_names, args = self._collect_func_deps(func)
+        subfunc_names, args = self._collect_func_deps(func, func_args)
         name = func.__name__
         name = "lmda" if func.__name__ == "<lambda>" else name
 
