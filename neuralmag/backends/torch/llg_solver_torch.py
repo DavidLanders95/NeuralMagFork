@@ -117,8 +117,8 @@ class LLGSolverTorch(nn.Module):
         dt = 1e-11
         alpha = self._state.tensor(1.0)
 
-        func, args = self._state.get_func(llg_rhs, ["t", "m", "material__alpha"])
-        rhs = lambda t, m: self._scale_t * func(t * self._scale_t, m, alpha, *args[3:])
+        func = self._state.resolve(llg_rhs, ["t", "m", "material__alpha"])
+        rhs = lambda t, m: self._scale_t * func(t * self._scale_t, m, alpha)
 
         logging.info_blue(
             f"[LLGSolverTorch] Relaxation started, initial energy E = {self._state.E:g} J"

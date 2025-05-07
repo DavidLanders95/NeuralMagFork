@@ -38,7 +38,7 @@ state.rho_m = nm.CellFunction(state).fill(1.0)
 # We set up the demag-field class, register it with the state and get a plain function for the demag-field computation with the masked material density `rho_m` as a first parameter.
 
 demag = nm.DemagField().register(state, "demag")
-func, args = state.get_func("h_demag", ["rho_m"])
+demag_func = state.resolve("h_demag", ["rho_m"])
 
 
 # ## Define loss function
@@ -48,7 +48,7 @@ func, args = state.get_func("h_demag", ["rho_m"])
 
 
 def loss(rho):
-    return -func(rho**3, *args[1:])[10, 10, 12, 2] ** 2
+    return -demag_func(rho**3)[10, 10, 12, 2] ** 2
 
 
 grad_loss = jax.grad(loss)

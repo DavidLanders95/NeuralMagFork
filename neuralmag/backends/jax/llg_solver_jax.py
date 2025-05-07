@@ -93,10 +93,8 @@ class LLGSolverJAX(object):
         dt = 1e-11
         alpha = self._state.tensor(1.0)
 
-        func, args = self._state.get_func(llg_rhs, ["t", "m", "material__alpha"])
-        rhs = lambda t, m, _: self._scale_t * func(
-            t * self._scale_t, m, alpha, *args[3:]
-        )
+        func = self._state.resolve(llg_rhs, ["t", "m", "material__alpha"])
+        rhs = lambda t, m, _: self._scale_t * func(t * self._scale_t, m, alpha)
         term = ODETerm(jax.jit(rhs))
 
         logging.info_blue(
