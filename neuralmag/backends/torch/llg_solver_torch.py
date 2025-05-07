@@ -97,13 +97,13 @@ class LLGSolverTorch(nn.Module):
         for param in self._parameters.keys():
             internal_args.append(param)
 
-        self._func, self._args = self._state.get_func(llg_rhs, internal_args)
+        self._func = self._state.resolve(llg_rhs, internal_args)
 
         for i, param in enumerate(self._parameters.keys()):
             self._args[2 + i] = self._parameters[param]
 
     def forward(self, t, m):
-        return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
+        return self._scale_t * self._func(t * self._scale_t, m)
 
     def relax(self, tol=2e7 * torch.pi):
         """
@@ -117,8 +117,8 @@ class LLGSolverTorch(nn.Module):
         dt = 1e-11
         alpha = self._state.tensor(1.0)
 
-        func, args = self._state.get_func(llg_rhs, ["t", "m", "material__alpha"])
-        rhs = lambda t, m: self._scale_t * func(t * self._scale_t, m, alpha, *args[3:])
+        func = self._state.resolve(llg_rhs, ["t", "m", "material__alpha"])
+        rhs = lambda t, m: self._scale_t * func(t * self._scale_t, m, alpha)
 
         logging.info_blue(
             f"[LLGSolverTorch] Relaxation started, initial energy E = {self._state.E:g} J"

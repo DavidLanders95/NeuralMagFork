@@ -1,3 +1,5 @@
+import inspect
+
 import numpy as np
 import pytest
 
@@ -59,13 +61,41 @@ def test_dependency_handling(state):
     assert state.material.d == 2
 
 
-def test_get_func(state):
+def test_resolve_with_not_args(state):
+    state.a = 1.0
+    state.b = lambda a: 2.0 * a
+    c = lambda b: 2.0 * b
+    func = state.resolve(c)
+    arg_names = list(inspect.signature(func).parameters.keys())
+    assert arg_names[0] == "a"
+    assert func(1.0) == 4.0
+    assert func(2.0) == 8.0
+
+
+def test_resolve(state):
+    state.a = 2.0
+    state.b = 4.0
+    c = lambda a, b: a * b
+
+    func = state.resolve(c, ["a"])
+    arg_names = list(inspect.signature(func).parameters.keys())
+    assert arg_names[0] == "a"
+    assert func(1.0) == 4.0
+
+    func = state.resolve(c, ["b"])
+    arg_names = list(inspect.signature(func).parameters.keys())
+    assert arg_names[0] == "b"
+    assert func(1.0) == 2.0
+
+
+def test_resolve_overriding_dynamic_attribute(state):
     state.a = 1
     state.b = lambda a: 2 * a
     c = lambda b: 2 * b
-    func, args = state.get_func(c)
-    assert len(args) == 1
-    assert args[0] == state.a
+    func = state.resolve(c, ["b"])
+    arg_names = list(inspect.signature(func).parameters.keys())
+    assert arg_names[0] == "b"
+    assert func(3.0) == 6.0
 
 
 def test_setting_lambda_to_return_function(state):
