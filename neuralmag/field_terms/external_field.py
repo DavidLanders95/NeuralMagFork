@@ -71,10 +71,10 @@ class ExternalField(FieldTerm):
     def register(self, state, name=None):
         tensor_shape = VectorFunction(state).tensor_shape
         if callable(self._h):
-            func, args = state.get_func(self._h)
-            value = func(*args)
+            # check if h function return 3-vector
+            value = state.resolve(self._h, [])()
             if value.shape == (3,):
-                arg_names = list(inspect.signature(func).parameters.keys())
+                arg_names = list(inspect.signature(self._h).parameters.keys())
                 block = config.backend.CodeBlock(plain=True)
                 with block.add_function("h", arg_names) as func:
                     func.retrn_expanded(f"__h({', '.join(arg_names)})", tensor_shape)

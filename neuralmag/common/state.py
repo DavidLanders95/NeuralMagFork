@@ -61,7 +61,6 @@ class State(object):
         self._attr_values = {}
         self._attr_types = {}
         self._attr_funcs = {}
-        self._attr_updates = {}
 
         if device == None:
             self._device = config.device
@@ -179,14 +178,19 @@ class State(object):
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
-            for t_old, t_new in self._attr_updates.items():
-                for _, args in self._attr_funcs.values():
-                    args[:] = [t_new if id(t) == t_old else t for t in args]
-            self._attr_updates = {}
             if not name in self._attr_funcs:
                 attr = self._attr_values[name]
-                self._attr_funcs[name] = self.get_func(attr)
-            func, args = self._attr_funcs[name]
+                self._attr_funcs[name] = self.resolve(attr)
+
+            func = self._attr_funcs[name]
+            args = []
+            for arg in list(inspect.signature(func).parameters.keys()):
+                attr = getattr(self, arg)
+                if hasattr(attr, "tensor"):
+                    args.append(attr.tensor)
+                else:
+                    args.append(attr)
+
             value = func(*args)
         else:
             value = self._attr_values[name]
@@ -220,8 +224,6 @@ class State(object):
 
         if callable(value):
             self._attr_funcs.clear()
-        elif name in self._attr_values:
-            self._update_attr(self._attr_values[name], value)
 
         self._attr_values[name] = value
 
@@ -243,64 +245,62 @@ class State(object):
 
         return func_names, args
 
-    def _update_attr(self, old, new):
-        self._attr_updates[id(old)] = new
-
-    def get_func(self, f, add_args=None):
+    def resolve(self, func, func_args=None):
         """
         Analyse arguments of supplied function and create Python function that
-        depends solely on static state attributes of the state.
+        depends solely on func_args if provided. If func_args is None the returned
+        function will depend only on static state attributes.
 
         :param f: The function to by analyzed, if string is provided the state
                   attribute with the respective name is used.
         :type f: Callable, str
-        :param add_args: Additional arguments to be added. Arguments provided
-                         here are always used as the first arguments in the
-                         signature.
-        :type add_args: list, optional
-        :return: New function that only depends on static state attributes and
-                 list of references to the static attributes.
+        :param func_args: Arguments of the returned function. If not set,
+                          function takes all dependent attributes
+        :type func_args: list, optional
+        :return: New function that takes args as arguments, if args is None
+                 the functions has all dependencies as arguments.
+
         :rtype: tuple
         """
-        if isinstance(f, str):
-            f = self._attr_values[f]
-        add_args = add_args or []
-        func_names, args = self._collect_func_deps(f)
-        args = list(set(args) - set(add_args))
-        name = f.__name__
-        name = "lmda" if f.__name__ == "<lambda>" else name
+        if isinstance(func, str):
+            func = self._attr_values[func]
+
+        subfunc_names, args = self._collect_func_deps(func)
+        name = func.__name__
+        name = "lmda" if func.__name__ == "<lambda>" else name
 
         # setup function with all dependencies
-        if func_names or add_args:
-            code = f"def {name}({', '.join(add_args + sorted(args))}):\n"
-            func_pointers = {}
-            for func_name in reversed(func_names):
-                func = self._attr_values[func_name]
-                func_pointers[f"__{func_name}"] = func
+        if subfunc_names or func_args is not None:
+            code = (
+                f"def {name}({', '.join(args if func_args is None else func_args)}):\n"
+            )
+            globals = {}
+            for subfunc_name in reversed(subfunc_names):
+                subfunc = self._attr_values[subfunc_name]
+                globals[f"__{subfunc_name}"] = subfunc
                 code += (
-                    f"    {func_name} ="
-                    f" __{func_name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
+                    f"    {subfunc_name} ="
+                    f" __{subfunc_name}({', '.join(list(inspect.signature(subfunc).parameters.keys()))})\n"
                 )
-            func_pointers[f"__{name}"] = f
+            globals[f"__{name}"] = func
             code += (
                 "    return"
-                f" __{name}({', '.join(list(inspect.signature(f).parameters.keys()))})\n"
+                f" __{name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
             )
+
+            # populate globals with bound variables
+            if func_args is not None:
+                for arg in list(set(args) - set(func_args)):
+                    attr = getattr(self, arg)
+                    if hasattr(attr, "tensor"):
+                        globals[arg] = attr.tensor
+                    else:
+                        globals[arg] = attr
+
             compiled_code = compile(code, "<string>", "exec")
-            func = types.FunctionType(compiled_code.co_consts[0], func_pointers, name)
+            return types.FunctionType(compiled_code.co_consts[0], globals, name)
         else:
-            func = f
-
-        # collect args
-        args = []
-        for arg in list(inspect.signature(func).parameters.keys()):
-            attr = self.getattr(arg.replace("__", "."))
-            if hasattr(attr, "tensor"):
-                args.append(attr.tensor)
-            else:
-                args.append(attr)
-
-        return func, args
+            return func
 
     @staticmethod
     def wrap_func(f, mapping):
