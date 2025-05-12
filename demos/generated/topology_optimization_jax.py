@@ -77,7 +77,7 @@ plotter = pv.Plotter()
 plotter.add_mesh(
     thresholded_mesh,
     color="white",
-    lighting=False,
+    lighting=True,
     smooth_shading=False,
     show_edges=True,
 )

@@ -22,6 +22,7 @@
 #
 # Firstly, we import all necessary modules and configure pyvista for static rendering.
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 from scipy import constants
@@ -130,8 +131,6 @@ for L in L_array:
     flower = minimise_system_energy(L, m_init_flower)
     vortex_energies.append(nm.config.backend.to_numpy(vortex.E))
     flower_energies.append(nm.config.backend.to_numpy(flower.E))
-
-import matplotlib.pyplot as plt
 
 plt.figure(figsize=(8, 4))
 plt.plot(L_array, vortex_energies, "o-", label="vortex")
