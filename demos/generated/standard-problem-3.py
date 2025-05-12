@@ -139,6 +139,7 @@ plt.xlabel("L (lex)")
 plt.ylabel("E (J)")
 plt.grid()
 plt.legend()
+plt.show()
 
 
 # From the plot, we can see that the energy crossing occurrs between $8.3l_\text{ex}$ and $8.5l_\text{ex}$.

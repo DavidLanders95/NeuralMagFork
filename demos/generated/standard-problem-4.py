@@ -122,6 +122,7 @@ plt.plot(data[:, 0], data[:, 3], label="m_z")
 plt.legend()
 plt.xlabel("t [s]")
 plt.ylabel("m_i")
+plt.show()
 
 
 # ## References
