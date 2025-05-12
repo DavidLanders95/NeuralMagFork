@@ -96,10 +96,10 @@ def minimise_system_energy(L, m_init):
 
 # Minimize energy and write magnetization to file
 state = minimise_system_energy(8, m_init_vortex)
-state.write_vti(["m"], "vortex.vti")
+state.write_vti(["m"], "standard-problem-3/vortex.vti")
 
 # Plot the vortex state
-mesh = pv.read("vortex.vti")
+mesh = pv.read("standard-problem-3/vortex.vti")
 glyphs = mesh.glyph(orient="m", scale="m", factor=1e-8)
 p = pv.Plotter()
 p.add_mesh(glyphs, color="white", lighting=True, smooth_shading=True)
@@ -110,10 +110,10 @@ p.show()
 
 # Minimize energy and write magnetization to file
 state = minimise_system_energy(8, m_init_flower)
-state.write_vti(["m"], "flower.vti")
+state.write_vti(["m"], "standard-problem-3/flower.vti")
 
 # Plot the flower state
-mesh = pv.read("flower.vti")
+mesh = pv.read("standard-problem-3/flower.vti")
 glyphs = mesh.glyph(orient="m", scale="m", factor=1e-8)
 p = pv.Plotter()
 p.add_mesh(glyphs, color="white", lighting=True, smooth_shading=True)

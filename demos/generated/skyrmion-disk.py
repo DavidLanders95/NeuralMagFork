@@ -64,13 +64,13 @@ nm.TotalField("exchange", "demag", "dmi", "aniso").register(state)
 
 llg = nm.LLGSolver(state, scale_t=1e-12)
 llg.relax(1e9)
-state.write_vti(["m", "rho"], "skyrmion.vti")
+state.write_vti(["m", "rho"], "skyrmion-disk/m.vti")
 
 
 # ## Visualization
 # We use pyvista to visualize the resulting skyrmion, using a threshold filte on ```state.rho``` in order to show only the magnetic region.
 
-grid = pv.read("skyrmion.vti")
+grid = pv.read("skyrmion-disk/m.vti")
 
 thresholded = grid.threshold(value=0.5, scalars="rho", preference="cell")
 glyphs = thresholded.glyph(orient="m", scale="m", factor=1e-8)
