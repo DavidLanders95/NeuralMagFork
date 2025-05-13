@@ -112,7 +112,7 @@ class LLGSolverJAX(object):
             f"[LLGSolverJAX] Relaxation finished, final energy E = {self._state.E:g} J"
         )
 
-    def step(self, dt, *args):
+    def step(self, dt, *args, max_steps=4096):
         """
         Perform single integration step of LLG. Internally an adaptive time step is
         used.
@@ -134,14 +134,14 @@ class LLGSolverJAX(object):
             saveat=self._saveat_step,
             stepsize_controller=self._stepsize_controller,
             solver_state=self._solver_state,
-            max_steps=None,
+            max_steps=max_steps,
         )
         self._solver_state = sol.solver_state
         self._state.t = sol.ts[-1] * self._scale_t
         self._state.m.tensor = sol.ys[-1]
         return sol
 
-    def solve(self, t, *args):
+    def solve(self, t, *args, max_steps=4096):
         """
         Solves the LLG for a list of target times. This routine is specifically
         meant to be used in the context of time-dependent optimization with
@@ -163,6 +163,6 @@ class LLGSolverJAX(object):
             args=args,
             saveat=saveat,
             stepsize_controller=self._stepsize_controller,
-            max_steps=None,
+            max_steps=max_steps,
         )
         return sol
