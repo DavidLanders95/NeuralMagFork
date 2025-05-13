@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Time dependent optimization (JAX version)
+# # Time dependent optimization (PyTorch version)
 # In this example, we use the inverse computing capibilities of NeuralMag in order to optimize the direction of an external field in order to control the magnetization dynamics of a single-domain particle. Specifilly, the field is optimized such that the magnetization is pointing in a given direction $\vec{m}_\text{target}$ at time $T$. This example is taken from [1] and reads
 #
 # $$
@@ -21,17 +21,15 @@
 # ### Import libraries
 # Import libraries, set backend to JAX and reduce FEM quadrature order for better performance.
 
-import equinox as eqx
-import jax.numpy as jnp
 import matplotlib.pyplot as plt
 import numpy as np
-import optax
+import torch
 from scipy import constants
 from tqdm import tqdm
 
 import neuralmag as nm
 
-nm.config.backend = "jax"
+nm.config.backend = "torch"
 nm.config.fem["n_gauss"] = 1
 
 
@@ -56,12 +54,12 @@ state.m = nm.VectorFunction(state).fill((0, 0, 1))
 H = 2 * 1e5 / (constants.mu_0 * 8e5)
 state.phi = lambda angles: angles[0]
 state.theta = lambda angles: angles[1]
-state.angles = [jnp.pi / 2, jnp.pi / 2]
-h_ext = lambda angles: jnp.stack(
+state.angles = [torch.pi / 2, torch.pi / 2]
+h_ext = lambda angles: torch.stack(
     [
-        H / 2 * jnp.sin(angles[0]) * jnp.cos(angles[1]),
-        H / 2 * jnp.sin(angles[0]) * jnp.sin(angles[1]),
-        H / 2 * jnp.cos(angles[0]),
+        H / 2 * torch.sin(angles[0]) * torch.cos(angles[1]),
+        H / 2 * torch.sin(angles[0]) * torch.sin(angles[1]),
+        H / 2 * torch.cos(angles[0]),
     ]
 )
 
@@ -80,49 +78,36 @@ nm.TotalField("exchange", "aniso", "external").register(state)
 llg = nm.LLGSolver(state, parameters=["angles"])
 
 
-# ### Define loss function
-# We define the target magnetzation ```m_target``` and the loss function ```grad_loss```. Note the use of the ```filter_value_and_grad``` decorator that enriches the return value of the loss with its gradient.
-
-m_target = nm.VectorFunction(state).fill((0.5**0.5, 0, 0.5**0.5)).tensor
-
-
-@eqx.filter_value_and_grad
-def grad_loss(angles):
-    m_pred = llg.solve(state.tensor([0.0, 0.05e-9]), angles).ys[-1]
-    return jnp.mean((m_target - m_pred) ** 2)
-
-
 # ### Set up optimizer
-# Now, we define a step function for the optimization and set up an AdaBelief optimizer with a learning rate of 0.05.
+# Now, we define an Adams optimizer along with a L1 loss function and the target magnetization.
 
+optimizer = torch.optim.Adam(llg.parameters(), lr=0.05)
 
-@eqx.filter_jit
-def make_step(angles, opt_state):
-    loss, grads = grad_loss(angles)
-    updates, opt_state = optim.update(grads, opt_state)
-    angles = eqx.apply_updates(angles, updates)
-    return loss, angles, opt_state
-
-
-optim = optax.adabelief(0.05)
-opt_state = optim.init(state.angles)
+my_loss = torch.nn.L1Loss()
+m_target = nm.VectorFunction(state).fill((0.5**0.5, 0, 0.5**0.5)).tensor
 
 
 # ### Perform optimization loop
 
 logger = nm.ScalarLogger(
-    "time-dependent-optimization_jax/log.dat", ["step", "phi", "theta", "loss"]
+    "time-dependent-optimization_torch/log.dat", ["step", "phi", "theta", "loss"]
 )
 for step in tqdm(range(100)):
     state.step = step
-    state.loss, state.angles, opt_state = make_step(state.angles, opt_state)
+
+    optimizer.zero_grad()
+    m_pred = llg.solve(state.tensor([0.0, 0.05e-9]))
+    state.loss = my_loss(m_pred[-1], m_target)
+    state.loss.backward()
+    optimizer.step()
+
     logger.log(state)
 
 
 # ### Plot the solution
 # Finally, we plot the evolution of the field angles along with the loss function against the number of optimization steps.
 
-data = np.loadtxt("time-dependent-optimization_jax/log.dat")
+data = np.loadtxt("time-dependent-optimization_torch/log.dat")
 fig, ax1 = plt.subplots()
 (l1,) = ax1.plot(data[:, 0], data[:, 1], label="phi")
 (l2,) = ax1.plot(data[:, 0], data[:, 2], label="theta")

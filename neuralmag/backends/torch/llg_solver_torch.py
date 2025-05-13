@@ -59,14 +59,9 @@ class LLGSolverTorch(nn.Module):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
-        self._parameters = {}
+        self._parameter_names = parameters or []
         self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
         self._solver_options.update(solver_options or {})
-        for param in parameters or []:
-            value = state.getattr(param)
-            if isinstance(value, Function):
-                value = value.tensor
-            self._parameters[param] = torch.nn.Parameter(value)
 
         self.reset()
 
@@ -76,17 +71,22 @@ class LLGSolverTorch(nn.Module):
         """
         logging.info_green("[LLGSolverTorch] Initialize RHS function")
 
-        internal_args = ["t", "m"]
-        for param in self._parameters.keys():
-            internal_args.append(param)
+        internal_args = ["t", "m"] + self._parameter_names
+
+        self._parameter_values = []
+        for parameter_name in self._parameter_names:
+            value = self._state.getattr(parameter_name)
+            if isinstance(value, Function):
+                value = value.tensor
+
+            parameter = torch.nn.Parameter(value)
+            self.register_parameter(parameter_name, parameter)
+            self._parameter_values.append(parameter)
 
         self._func = self._state.resolve(llg_rhs, internal_args)
 
-        for i, param in enumerate(self._parameters.keys()):
-            self._args[2 + i] = self._parameters[param]
-
     def forward(self, t, m):
-        return self._scale_t * self._func(t * self._scale_t, m)
+        return self._scale_t * self._func(t * self._scale_t, m, *self._parameter_values)
 
     def relax(self, tol=2e7 * torch.pi):
         """

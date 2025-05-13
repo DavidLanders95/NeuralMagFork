@@ -20,3 +20,18 @@ def test_step(state):
     assert be.to_numpy(state.m.avg()) == pytest.approx(
         (0.44655174, 0.54584754, 0.70895207), rel=1e-5
     )
+
+
+def test_torch_parameters(state):
+    if be.name == "jax":
+        pytest.skip()
+
+    state.material.alpha = 1.0
+    state.m.fill([1, 0, 0])
+    h_ext = VectorFunction(state).fill([0, 0, 8e5])
+    ExternalField(h_ext).register(state, "")
+
+    state.a = Function(state).fill(0.0)
+
+    llg = LLGSolver(state, parameters=["a"])
+    assert len(list(llg.parameters())) == 1
