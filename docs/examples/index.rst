@@ -5,6 +5,7 @@ Examples
    :maxdepth: 1
    
    DMI-in-1D-stripe
+   domain-wall-depinning
    skyrmion-disk
    standard-problem-3
    standard-problem-4

@@ -36,12 +36,15 @@ class LLGSolverJAX(object):
         * **state.m** (*nodal vector field*) The magnetization
     """
 
-    def __init__(self, state, scale_t=1e-9, parameters=None):
+    def __init__(self, state, scale_t=1e-9, parameters=None, max_steps=4096):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
         self._parameters = [] if parameters is None else parameters
         self._dt0 = 1e-14
+
+        # solver options
+        self._max_steps = max_steps
 
         # TODO Solver options
         # self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
@@ -64,7 +67,7 @@ class LLGSolverJAX(object):
         self._term = ODETerm(jax.jit(rhs))
         self._solver_state = None
 
-    def relax(self, tol=2e7 * jnp.pi):
+    def relax(self, tol=2e7 * jnp.pi, dt=1e-11):
         """
         Use time integration of the damping term to relax the magnetization into an
         energetic equilibrium. The convergence criterion is defined in terms of
@@ -72,8 +75,9 @@ class LLGSolverJAX(object):
 
         :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
         :type tol: float
+        :param dt: Interval for checking convergence
+        :type dt: float
         """
-        dt = 1e-11
         alpha = self._state.tensor(1.0)
 
         func = self._state.resolve(llg_rhs, ["t", "m", "material__alpha"])
@@ -104,7 +108,7 @@ class LLGSolverJAX(object):
                 y0=self._state.m.tensor,
                 saveat=self._saveat_step,
                 stepsize_controller=self._stepsize_controller,
-                max_steps=None,
+                max_steps=self._max_steps,
             )
             self._state.m.tensor = sol.ys[-1]
 
@@ -112,7 +116,7 @@ class LLGSolverJAX(object):
             f"[LLGSolverJAX] Relaxation finished, final energy E = {self._state.E:g} J"
         )
 
-    def step(self, dt, *args, max_steps=4096):
+    def step(self, dt, *args):
         """
         Perform single integration step of LLG. Internally an adaptive time step is
         used.
@@ -134,14 +138,14 @@ class LLGSolverJAX(object):
             saveat=self._saveat_step,
             stepsize_controller=self._stepsize_controller,
             solver_state=self._solver_state,
-            max_steps=max_steps,
+            max_steps=self._max_steps,
         )
         self._solver_state = sol.solver_state
         self._state.t = sol.ts[-1] * self._scale_t
         self._state.m.tensor = sol.ys[-1]
         return sol
 
-    def solve(self, t, *args, max_steps=4096):
+    def solve(self, t, *args):
         """
         Solves the LLG for a list of target times. This routine is specifically
         meant to be used in the context of time-dependent optimization with
@@ -163,6 +167,6 @@ class LLGSolverJAX(object):
             args=args,
             saveat=saveat,
             stepsize_controller=self._stepsize_controller,
-            max_steps=max_steps,
+            max_steps=self._max_steps,
         )
         return sol

@@ -69,10 +69,10 @@ nm.TotalField("aniso", "exchange", "external").register(state)
 # ### Perform time integration
 # Finally we perform time integration observing the y-component of the averaged magnetization as an indicator for depinning. Once the value exceeds 0.55, we assume that the domain-wall has depinned and we print the strength of the depinning field.
 
-llg = nm.LLGSolver(state)
+llg = nm.LLGSolver(state, max_steps=None)
 state.t = 20e-9
 while state.t < 100e-9:
-    llg.step(1e-9, max_steps=None)
+    llg.step(1e-9)
     if state.m.avg()[1] > 0.55:
         print(f"Depinning Field H = {state.h_external.avg()[1] * constants.mu_0} A/m")
         break

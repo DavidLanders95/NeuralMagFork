@@ -55,13 +55,18 @@ class LLGSolverTorch(nn.Module):
 
     """
 
-    def __init__(self, state, scale_t=1e-9, parameters=None, solver_options=None):
+    def __init__(
+        self, state, scale_t=1e-9, parameters=None, max_steps=None, solver_options=None
+    ):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
         self._parameter_names = parameters or []
         self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
         self._solver_options.update(solver_options or {})
+
+        # solver options
+        self._max_steps = max_steps  # ignored for now
 
         self.reset()
 
@@ -88,7 +93,7 @@ class LLGSolverTorch(nn.Module):
     def forward(self, t, m):
         return self._scale_t * self._func(t * self._scale_t, m, *self._parameter_values)
 
-    def relax(self, tol=2e7 * torch.pi):
+    def relax(self, tol=2e7 * torch.pi, dt=1e-11):
         """
         Use time integration of the damping term to relax the magnetization into an
         energetic equilibrium. The convergence criterion is defined in terms of
@@ -96,6 +101,8 @@ class LLGSolverTorch(nn.Module):
 
         :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
         :type tol: float
+        :param dt: Interval for checking convergence
+        :type dt: float
         """
         dt = 1e-11
         alpha = self._state.tensor(1.0)
