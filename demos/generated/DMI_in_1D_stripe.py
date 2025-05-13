@@ -6,12 +6,16 @@
 #
 # ## Simulation
 # ### Import libraries
+# Import libraries and set default precision to double to guarantee convergence.
 
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy import constants
 
 import neuralmag as nm
+
+nm.config.dtype = "float64"
+
 
 # ### Create mesh and state
 # Next we set up a state with a 1D mesh object (a mesh with nodes only in the x-direction).
