@@ -2,8 +2,14 @@ Examples
 ========
 
 .. toctree::
+   :maxdepth: 1
    
+   DMI-in-1D-stripe
    skyrmion-disk
    standard-problem-3
    standard-problem-4
-   topology_optimization_jax
+   stoner-wohlfarth-hysteresis
+   synthetic-antiferromagnet
+   time-dependent-optimization_jax
+   time-dependent-optimization_torch
+   topology-optimization_jax
