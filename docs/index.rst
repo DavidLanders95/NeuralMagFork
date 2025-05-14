@@ -50,8 +50,8 @@ Contribute
 
 Thank you for considering contributing to our project!
 We welcome any contributions, whether they are in the form of bug fixes, feature enhancements, documentation improvements, or any other kind of enhancement.
-NeuralMag is licensed under the `GNU Lesser General Public License (LPGL) <https://www.gnu.org/licenses/>`_.
-By contributing to this project, you agree to license your contributions under the terms of the LGPL.
+NeuralMag is licensed under the `MIT License] <https://opensource.org/license/MIT>`_.
+By contributing to this project, you agree to license your contributions under the terms of the MIT License.
 
 .. toctree::
    :maxdepth: 1
