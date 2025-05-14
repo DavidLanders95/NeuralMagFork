@@ -66,7 +66,7 @@ pip install "neuralmag[torch]"
 ```
 
 to install NeuralMag with PyTorch as a backend. You can also install NeuralMag with both
-backends and switch choose the backend at runtime.
+backends and choose the backend at runtime.
 
 
 Contribute

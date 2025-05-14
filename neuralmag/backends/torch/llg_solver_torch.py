@@ -1,21 +1,4 @@
-"""
-NeuralMag - A nodal finite-difference code for inverse micromagnetics
-
-Copyright (c) 2024 NeuralMag team
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the Lesser Python General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-Lesser Python General Public License for more details.
-
-You should have received a copy of the Lesser Python General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
+# SPDX-License-Identifier: MIT
 
 import torch
 import torch.nn as nn
@@ -72,18 +55,18 @@ class LLGSolverTorch(nn.Module):
 
     """
 
-    def __init__(self, state, scale_t=1e-9, parameters=None, solver_options=None):
+    def __init__(
+        self, state, scale_t=1e-9, parameters=None, max_steps=None, solver_options=None
+    ):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
-        self._parameters = {}
+        self._parameter_names = parameters or []
         self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
         self._solver_options.update(solver_options or {})
-        for param in parameters or []:
-            value = state.getattr(param)
-            if isinstance(value, Function):
-                value = value.tensor
-            self._parameters[param] = torch.nn.Parameter(value)
+
+        # solver options
+        self._max_steps = max_steps  # ignored for now
 
         self.reset()
 
@@ -93,19 +76,24 @@ class LLGSolverTorch(nn.Module):
         """
         logging.info_green("[LLGSolverTorch] Initialize RHS function")
 
-        internal_args = ["t", "m"]
-        for param in self._parameters.keys():
-            internal_args.append(param)
+        internal_args = ["t", "m"] + self._parameter_names
 
-        self._func, self._args = self._state.get_func(llg_rhs, internal_args)
+        self._parameter_values = []
+        for parameter_name in self._parameter_names:
+            value = self._state.getattr(parameter_name)
+            if isinstance(value, Function):
+                value = value.tensor
 
-        for i, param in enumerate(self._parameters.keys()):
-            self._args[2 + i] = self._parameters[param]
+            parameter = torch.nn.Parameter(value)
+            self.register_parameter(parameter_name, parameter)
+            self._parameter_values.append(parameter)
+
+        self._func = self._state.resolve(llg_rhs, internal_args)
 
     def forward(self, t, m):
-        return self._scale_t * self._func(t * self._scale_t, m, *self._args[2:])
+        return self._scale_t * self._func(t * self._scale_t, m, *self._parameter_values)
 
-    def relax(self, tol=2e7 * torch.pi):
+    def relax(self, tol=2e7 * torch.pi, dt=1e-11):
         """
         Use time integration of the damping term to relax the magnetization into an
         energetic equilibrium. The convergence criterion is defined in terms of
@@ -113,12 +101,14 @@ class LLGSolverTorch(nn.Module):
 
         :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
         :type tol: float
+        :param dt: Interval for checking convergence
+        :type dt: float
         """
         dt = 1e-11
         alpha = self._state.tensor(1.0)
 
-        func, args = self._state.get_func(llg_rhs, ["t", "m", "material__alpha"])
-        rhs = lambda t, m: self._scale_t * func(t * self._scale_t, m, alpha, *args[3:])
+        func = self._state.resolve(llg_rhs, ["t", "m", "material__alpha"])
+        rhs = lambda t, m: self._scale_t * func(t * self._scale_t, m, alpha)
 
         logging.info_blue(
             f"[LLGSolverTorch] Relaxation started, initial energy E = {self._state.E:g} J"

@@ -2,6 +2,10 @@ default:
   # cancel old pipelines on the same branch/MR when a new commit is pushed
   interruptible: true
 
+variables:
+  # re-try initial git clone on failure
+  GET_SOURCES_ATTEMPTS: 3
+
 # Dot in front of the job will hide it from the CI
 .test_template:
   stage: test
@@ -217,11 +221,11 @@ demos-up-to-date:
     - micromamba install -y -n base -c conda-forge "python=3.11"
     - pip install .[dev]
   script:
-    - jupyter nbconvert --to script --output-dir demos/check-generated docs/examples/*.ipynb --no-prompt
-    - isort demos/check-generated/*.py
-    - black demos/check-generated/*.py
+    - jupyter nbconvert --to script --output-dir demos-check-generated docs/examples/*.ipynb --no-prompt
+    - isort demos-check-generated/*.py
+    - black demos-check-generated/*.py
     # if auto-generated notebooks are not up-to-date `diff` will fail
-    - diff -u -r demos/generated demos/check-generated
+    - diff -u -r demos demos-check-generated
 
 
 # Defining workflow rules is required to avoid duplicated pipelines

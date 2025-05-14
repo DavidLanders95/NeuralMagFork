@@ -26,4 +26,4 @@ repos:
   rev: 22.10.0
   hooks:
   - id: black-jupyter
-    exclude: nmagnum/field_terms/cache
+    exclude: demos

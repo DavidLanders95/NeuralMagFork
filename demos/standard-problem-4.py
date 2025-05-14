@@ -75,10 +75,10 @@ nm.TotalField("exchange", "demag").register(state)
 
 llg = nm.LLGSolver(state)
 llg.relax()
-state.write_vti(["m"], "sstate.vti")
+state.write_vti(["m"], "standard-problem-4/s-state.vti")
 
 # Plot the flower state
-mesh = pv.read("sstate.vti")
+mesh = pv.read("standard-problem-4/s-state.vti")
 glyphs = mesh.glyph(orient="m", scale="m", factor=1e-8)
 p = pv.Plotter()
 p.add_mesh(glyphs, color="white", lighting=True, smooth_shading=True)
@@ -90,7 +90,8 @@ p.show()
 
 # Setup Zeeman field
 h_ext = nm.VectorFunction(state).fill(
-    [-24.6e-3 / constants.mu_0, 4.3e-3 / constants.mu_0, 0.0]
+    [-24.6e-3 / constants.mu_0, 4.3e-3 / constants.mu_0, 0.0]  # B1
+    # [-35.5e-3 / constants.mu_0, -6.3e-3 / constants.mu_0, 0.0]  # B2
 )
 nm.ExternalField(h_ext).register(state, "external")
 
@@ -104,7 +105,7 @@ llg.reset()
 # ### Simulate switching
 # Finally, we can run the switching simulation using the LLGSolver. We run the magnetisation evolution for $t=1 \,\text{ns}$. We set up a logger to save the averaged magnetization as well as a time series of the full magnetization configuration and log the simulation state every $10\,\text{ps}$.
 
-logger = nm.Logger("data", ["t", "m"], ["m"])
+logger = nm.Logger("standard-problem-4", ["t", "m"], ["m"])
 while state.t < 1e-9:
     llg.step(1.0e-11)
     logger.log(state)
@@ -114,13 +115,14 @@ while state.t < 1e-9:
 
 # Finally, we want to plot the average magnetization configuration as a function of time `t`:
 
-data = np.loadtxt("data/log.dat")
+data = np.loadtxt("standard-problem-4/log.dat")
 plt.plot(data[:, 0], data[:, 1], label="m_x")
 plt.plot(data[:, 0], data[:, 2], label="m_y")
 plt.plot(data[:, 0], data[:, 3], label="m_z")
 plt.legend()
 plt.xlabel("t [s]")
 plt.ylabel("m_i")
+plt.show()
 
 
 # ## References

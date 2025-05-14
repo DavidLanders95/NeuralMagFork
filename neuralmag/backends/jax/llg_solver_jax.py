@@ -1,21 +1,4 @@
-"""
-NeuralMag - A nodal finite-difference code for inverse micromagnetics
-
-Copyright (c) 2024 NeuralMag team
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the Lesser Python General Public License as
-published by the Free Software Foundation, either version 3 of the
-License, or (at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-Lesser Python General Public License for more details.
-
-You should have received a copy of the Lesser Python General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
-"""
+# SPDX-License-Identifier: MIT
 
 import equinox as eqx
 import jax
@@ -53,12 +36,15 @@ class LLGSolverJAX(object):
         * **state.m** (*nodal vector field*) The magnetization
     """
 
-    def __init__(self, state, scale_t=1e-9, parameters=None):
+    def __init__(self, state, scale_t=1e-9, parameters=None, max_steps=4096):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
         self._parameters = [] if parameters is None else parameters
         self._dt0 = 1e-14
+
+        # solver options
+        self._max_steps = max_steps
 
         # TODO Solver options
         # self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
@@ -76,14 +62,12 @@ class LLGSolverJAX(object):
 
         internal_args = ["t", "m"] + self._parameters
 
-        self._func, self._args = self._state.get_func(llg_rhs, internal_args)
-        rhs = lambda t, m, args: self._scale_t * self._func(
-            t * self._scale_t, m, *args, *self._args[len(internal_args) :]
-        )
+        self._func = self._state.resolve(llg_rhs, internal_args)
+        rhs = lambda t, m, args: self._scale_t * self._func(t * self._scale_t, m, *args)
         self._term = ODETerm(jax.jit(rhs))
         self._solver_state = None
 
-    def relax(self, tol=2e7 * jnp.pi):
+    def relax(self, tol=2e7 * jnp.pi, dt=1e-11):
         """
         Use time integration of the damping term to relax the magnetization into an
         energetic equilibrium. The convergence criterion is defined in terms of
@@ -91,14 +75,13 @@ class LLGSolverJAX(object):
 
         :param tol: The stopping criterion in rad/s, defaults to 2 pi / 100 ns
         :type tol: float
+        :param dt: Interval for checking convergence
+        :type dt: float
         """
-        dt = 1e-11
         alpha = self._state.tensor(1.0)
 
-        func, args = self._state.get_func(llg_rhs, ["t", "m", "material__alpha"])
-        rhs = lambda t, m, _: self._scale_t * func(
-            t * self._scale_t, m, alpha, *args[3:]
-        )
+        func = self._state.resolve(llg_rhs, ["t", "m", "material__alpha"])
+        rhs = lambda t, m, _: self._scale_t * func(t * self._scale_t, m, alpha)
         term = ODETerm(jax.jit(rhs))
 
         logging.info_blue(
@@ -125,7 +108,7 @@ class LLGSolverJAX(object):
                 y0=self._state.m.tensor,
                 saveat=self._saveat_step,
                 stepsize_controller=self._stepsize_controller,
-                max_steps=None,
+                max_steps=self._max_steps,
             )
             self._state.m.tensor = sol.ys[-1]
 
@@ -155,7 +138,7 @@ class LLGSolverJAX(object):
             saveat=self._saveat_step,
             stepsize_controller=self._stepsize_controller,
             solver_state=self._solver_state,
-            max_steps=None,
+            max_steps=self._max_steps,
         )
         self._solver_state = sol.solver_state
         self._state.t = sol.ts[-1] * self._scale_t
@@ -184,6 +167,6 @@ class LLGSolverJAX(object):
             args=args,
             saveat=saveat,
             stepsize_controller=self._stepsize_controller,
-            max_steps=None,
+            max_steps=self._max_steps,
         )
         return sol

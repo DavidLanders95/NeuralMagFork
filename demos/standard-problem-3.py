@@ -22,6 +22,7 @@
 #
 # Firstly, we import all necessary modules and configure pyvista for static rendering.
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pyvista as pv
 from scipy import constants
@@ -95,10 +96,10 @@ def minimise_system_energy(L, m_init):
 
 # Minimize energy and write magnetization to file
 state = minimise_system_energy(8, m_init_vortex)
-state.write_vti(["m"], "vortex.vti")
+state.write_vti(["m"], "standard-problem-3/vortex.vti")
 
 # Plot the vortex state
-mesh = pv.read("vortex.vti")
+mesh = pv.read("standard-problem-3/vortex.vti")
 glyphs = mesh.glyph(orient="m", scale="m", factor=1e-8)
 p = pv.Plotter()
 p.add_mesh(glyphs, color="white", lighting=True, smooth_shading=True)
@@ -109,10 +110,10 @@ p.show()
 
 # Minimize energy and write magnetization to file
 state = minimise_system_energy(8, m_init_flower)
-state.write_vti(["m"], "flower.vti")
+state.write_vti(["m"], "standard-problem-3/flower.vti")
 
 # Plot the flower state
-mesh = pv.read("flower.vti")
+mesh = pv.read("standard-problem-3/flower.vti")
 glyphs = mesh.glyph(orient="m", scale="m", factor=1e-8)
 p = pv.Plotter()
 p.add_mesh(glyphs, color="white", lighting=True, smooth_shading=True)
@@ -131,8 +132,6 @@ for L in L_array:
     vortex_energies.append(nm.config.backend.to_numpy(vortex.E))
     flower_energies.append(nm.config.backend.to_numpy(flower.E))
 
-import matplotlib.pyplot as plt
-
 plt.figure(figsize=(8, 4))
 plt.plot(L_array, vortex_energies, "o-", label="vortex")
 plt.plot(L_array, flower_energies, "o-", label="flower")
@@ -140,6 +139,7 @@ plt.xlabel("L (lex)")
 plt.ylabel("E (J)")
 plt.grid()
 plt.legend()
+plt.show()
 
 
 # From the plot, we can see that the energy crossing occurrs between $8.3l_\text{ex}$ and $8.5l_\text{ex}$.
