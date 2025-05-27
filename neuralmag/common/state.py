@@ -287,16 +287,15 @@ class State(object):
             return func
 
     @staticmethod
-    def wrap_func(f, mapping):
+    def remap(f, mapping):
         """
-        Wrappes a given function into another function renaming its arguments
-        according to the mapping provided.
+        Remaps the arguments of a given function according the the provided mapping.
 
-        :param f: The function to be wrapped
+        :param f: The function to be remapped
         :type f: Callable
         :param mapping: The name mapping of the arguments
         :type mapping: dict
-        :return: The wrapped function
+        :return: The remapped function
         :rtype: Callable
 
         :Example:
@@ -307,7 +306,7 @@ class State(object):
                 def f(a, b):
                    return a + b
 
-                g = state.wrap_func(f, {"a": "x", "b": "y"})
+                g = state.remap(f, {"a": "x", "b": "y"})
                 # g is a function with arguments "x" and "y"
         """
         name = "lmda" if f.__name__ == "<lambda>" else f.__name__

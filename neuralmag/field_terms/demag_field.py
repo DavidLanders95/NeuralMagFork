@@ -64,8 +64,8 @@ class DemagField(FieldTerm):
             raise
         # fix reference to h_demag in E_demag if suffix is changed
         if name is not None:
-            wrapped = state.wrap_func(self.E, {"h_demag": self.attr_name("h", name)})
-            setattr(state, self.attr_name("E", name), wrapped)
+            func = state.remap(self.E, {"h_demag": self.attr_name("h", name)})
+            setattr(state, self.attr_name("E", name), func)
         config.backend.demag_field.init_N(state, self._p)
 
     @staticmethod

@@ -105,12 +105,12 @@ def test_setting_lambda_to_return_function(state):
     assert be.to_numpy(state.f.tensor.sum()) == pytest.approx(3**3 * 2.0)
 
 
-def test_wrap_func(state):
+def test_remap(state):
     state.a = 1.0
     state.b = 2.0
     state.c = 3.0
     f = lambda a, b: a + b
-    g = state.wrap_func(f, {"a": "c"})
+    g = state.remap(f, {"a": "c"})
     state.f = f
     state.g = g
     assert be.to_numpy(state.f.sum()) == pytest.approx(3.0)
