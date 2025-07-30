@@ -60,8 +60,17 @@ class State(object):
         self.dx = self.tensor(mesh.dx)
         self.t = 0.0
 
-        # initialize density fields for volume and facet measure with 1
-        self.rho = CellFunction(self).fill(1.0, expand=True)
+        # initialize a single domain and the density fields
+        # TODO default to static rho for performance reasons?
+        self.domains = CellFunction(self, dtype=config.backend.integer).fill(
+            1, expand=True
+        )
+        self.rho = (
+            lambda domains: config.backend.np.where(domains > 0, 1.0, self.eps),
+            "c" * mesh.dim,
+            (),
+        )
+
         if mesh.dim == 3:
             self.rhoxy = Function(self, "ccn").fill(1.0, expand=True)
             self.rhoxz = Function(self, "cnc").fill(1.0, expand=True)
@@ -142,7 +151,10 @@ class State(object):
         :rtype: :class:`config.backend.Tensor`
         """
         default_options = {"device": self.device, "dtype": self.dtype}
-        options = {**default_options, **kwargs}
+        options = {
+            **default_options,
+            **{k: v for k, v in kwargs.items() if v is not None},
+        }
         return config.backend.tensor(value, **options)
 
     def zeros(self, shape, **kwargs):
@@ -379,6 +391,14 @@ class State(object):
             return tuple(config.backend.to_numpy(c) for c in coords)
         else:
             return coords
+
+    def add_domain(self, id, condition):
+        # initialize full tensor zero
+        if self.domains.avg() == 1:
+            self.domains.fill(0)
+        self.domains.tensor = config.backend.np.where(
+            condition, id, self.domains.tensor
+        )
 
     def write_vti(self, fields, filename):
         """

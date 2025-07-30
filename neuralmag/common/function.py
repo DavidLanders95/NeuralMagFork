@@ -26,9 +26,13 @@ class Function(CodeClass):
     :type tensor: :class:`torch.Tensor`
     :param name: Name of the function
     :type name: str
+    :param dtype: dtype to be used for the tensor
+    :type dtype: dtype
     """
 
-    def __init__(self, state, spaces=None, shape=(), tensor=None, name=None):
+    def __init__(
+        self, state, spaces=None, shape=(), tensor=None, name=None, dtype=None
+    ):
         self._state = state
         if spaces is None:
             spaces = "n" * state.mesh.dim
@@ -38,6 +42,7 @@ class Function(CodeClass):
             self._name = "f"
         else:
             self._name = name
+        self._dtype = dtype
 
         tensor_shape = []
         for i, space in enumerate(spaces):
@@ -99,8 +104,9 @@ class Function(CodeClass):
         The tensor containing the discretized values of the function
         """
         if self._tensor is None:
+            dtype = self._dtype or self._state.dtype
             self._tensor = config.backend.zeros(
-                self._tensor_shape, dtype=self._state.dtype, device=self._state.device
+                self._tensor_shape, dtype=dtype, device=self._state.device
             )
         return self._tensor
 
@@ -127,7 +133,7 @@ class Function(CodeClass):
                 state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
                 f = nm.Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
         """
-        tensor = self.state.tensor(constant)
+        tensor = self.state.tensor(constant, dtype=self._dtype)
         shape = self._tensor_shape
         if self.shape == (3,) and expand == False:
             shape = self._tensor_shape[:-1] + (1,)

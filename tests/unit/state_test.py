@@ -155,3 +155,10 @@ def test_update_of_function_tensor(state):
     g = Function(state).fill(2.0)
     state.f.tensor = g.tensor
     assert be.to_numpy(state.f_sum) == pytest.approx(54.0)
+
+
+def test_add_domain(state):
+    x, y, z = state.coordinates()
+    assert be.to_numpy(state.rho.avg()) == pytest.approx(1.0)
+    state.add_domain(1, x > 1e-9)
+    assert be.to_numpy(state.rho.avg()) == pytest.approx(0.5)
