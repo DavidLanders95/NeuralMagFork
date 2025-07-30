@@ -160,5 +160,7 @@ def test_update_of_function_tensor(state):
 def test_add_domain(state):
     x, y, z = state.coordinates()
     assert be.to_numpy(state.rho.avg()) == pytest.approx(1.0)
+    print(state.rhoxy.tensor)
     state.add_domain(1, x > 1e-9)
+    print(state.rhoxy.tensor)
     assert be.to_numpy(state.rho.avg()) == pytest.approx(0.5)

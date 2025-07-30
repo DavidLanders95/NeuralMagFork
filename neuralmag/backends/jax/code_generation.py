@@ -102,6 +102,9 @@ class CodeFunction(object):
     def retrn_expanded(self, code, shape):
         self.add_line(f"return jnp.broadcast_to({code}, {shape})")
 
+    def retrn_maximum(self, a, b):
+        self.add_line(f"return jnp.maximum({a}, {b})")
+
 
 class CodeBlock(object):
     def __init__(self, plain=False):

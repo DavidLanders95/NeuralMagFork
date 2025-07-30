@@ -8,6 +8,7 @@ import numpy as np
 import pyvista as pv
 
 from neuralmag.common import CellFunction, Function, config, logging
+from neuralmag.common.code_class import CodeClass
 
 __all__ = ["State"]
 
@@ -27,7 +28,7 @@ class Material:
         return setattr(self._state, "material__" + name, value)
 
 
-class State(object):
+class State(CodeClass):
     r"""
     This class carries all information of the spatial discretization, parameters
     and the current state of the simulation.
@@ -71,12 +72,16 @@ class State(object):
             (),
         )
 
+        self.save_and_load_code(mesh.dim)
+
+        # TODO allow surface regions also for lower dimensions
         if mesh.dim == 3:
-            self.rhoxy = Function(self, "ccn").fill(1.0, expand=True)
-            self.rhoxz = Function(self, "cnc").fill(1.0, expand=True)
-            self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
+            self.rhoxy = (self._code.rhoxy, "ccn", ())
+            self.rhoxz = (self._code.rhoxz, "cnc", ())
+            self.rhoyz = (self._code.rhoyz, "ncc", ())
 
         self._attr_values["eps"] = config.backend.eps(self.dtype)
+
         logging.info_green(
             f"[State] Running on device: {self.dx.device} (dtype = {self.dx.dtype}, backend = {config.backend_name})"
         )
@@ -559,3 +564,46 @@ class State(object):
         return Function(
             self, spaces="c" * mesh.dim, tensor=self.tensor(data.reshape(mesh.n))
         )
+
+    @classmethod
+    def _generate_code(cls, dim):
+        if dim < 3:
+            return
+
+        code = config.backend.CodeBlock()
+
+        # generate interface rho attributes
+        with code.add_function("rhoxy", ["rho"]) as func:
+            func.zeros_like(
+                "rhoxy1", "rho", shape="(rho.shape[0], rho.shape[1], rho.shape[2]+1)"
+            )
+            func.zeros_like(
+                "rhoxy2", "rho", shape="(rho.shape[0], rho.shape[1], rho.shape[2]+1)"
+            )
+            func.add_to("rhoxy1", ":,:,:-1", "rho")
+            func.add_to("rhoxy2", ":,:,1:", "rho")
+            func.retrn_maximum("rhoxy1", "rhoxy2")
+
+        with code.add_function("rhoxz", ["rho"]) as func:
+            func.zeros_like(
+                "rhoxz1", "rho", shape="(rho.shape[0], rho.shape[1]+1, rho.shape[2])"
+            )
+            func.zeros_like(
+                "rhoxz2", "rho", shape="(rho.shape[0], rho.shape[1]+1, rho.shape[2])"
+            )
+            func.add_to("rhoxz1", ":,:-1,:", "rho")
+            func.add_to("rhoxz2", ":,1:,:", "rho")
+            func.retrn_maximum("rhoxz1", "rhoxz2")
+
+        with code.add_function("rhoyz", ["rho"]) as func:
+            func.zeros_like(
+                "rhoyz1", "rho", shape="(rho.shape[0]+1, rho.shape[1], rho.shape[2])"
+            )
+            func.zeros_like(
+                "rhoyz2", "rho", shape="(rho.shape[0]+1, rho.shape[1], rho.shape[2])"
+            )
+            func.add_to("rhoyz1", ":-1,:,:", "rho")
+            func.add_to("rhoyz2", "1:,:,:", "rho")
+            func.retrn_maximum("rhoyz1", "rhoyz2")
+
+        return code
