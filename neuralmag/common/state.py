@@ -63,13 +63,20 @@ class State(CodeClass):
 
         # initialize a single domain and the density fields
         # TODO default to static rho for performance reasons?
-        self.domains = CellFunction(self, dtype=config.backend.integer).fill(
-            1, expand=True
-        )
         self.rho = (
             lambda domains: config.backend.np.where(domains > 0, 1.0, self.eps),
             "c" * mesh.dim,
             (),
+        )
+        self.rho_from_domain_id = (
+            lambda domains, domain_id: config.backend.np.where(
+                domains == domain_id, 1.0, self.eps
+            ),
+            "c" * mesh.dim,
+            (),
+        )
+        self.domains = CellFunction(self, dtype=config.backend.integer).fill(
+            1, expand=True
         )
 
         self.save_and_load_code(mesh.dim)

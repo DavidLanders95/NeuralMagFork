@@ -63,6 +63,12 @@ class Function(CodeClass):
 
         self.save_and_load_code(spaces, shape)
 
+        self._avg = state.resolve(self._code.avg, ["f", "rho"])
+        self._avg_from_domain_id = state.resolve(
+            state.remap(self._code.avg, {"rho": "rho_from_domain_id"}),
+            ["f", "domains", "domain_id"],
+        )
+
     @property
     def name(self):
         """
@@ -144,14 +150,21 @@ class Function(CodeClass):
             self._tensor = config.backend.tile(tensor, shape)
         return self
 
-    def avg(self):
+    def avg(self, domain_id=None):
         """
         Returns the componentwise average of the function over the mesh.
 
+        :param domain_id: id of domain to average over, if None average is computed over all domains
+        :type domain_id: int
         :return: The componentwise average
         :rtype: :class:`torch.Tensor`
         """
-        return self._code.avg(self._state.rho.tensor, self._state.dx, self.tensor)
+        if domain_id is None:
+            return self._avg(self.tensor, self._state.rho.tensor)
+        else:
+            return self._avg_from_domain_id(
+                self.tensor, self._state.domains.tensor, domain_id
+            )
 
     @classmethod
     def _generate_code(cls, spaces, shape):
