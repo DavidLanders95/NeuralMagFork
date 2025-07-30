@@ -227,16 +227,21 @@ class State(CodeClass):
 
         self._attr_values[name] = value
 
-    def _collect_func_deps(self, attr, exclude=None):
+    def _collect_func_deps(self, attr, exclude=None, inject={}):
         exclude = exclude or []
         func_names = []
         args = {}
         for arg in set(inspect.signature(attr).parameters.keys()) - set(exclude):
-            attr = self._attr_values[arg]
+            if arg in inject:
+                attr = inject[arg]
+            else:
+                attr = self._attr_values[arg]
 
             if callable(attr):
                 func_names.append(arg)
-                subfunc_names, subargs = self._collect_func_deps(attr)
+                subfunc_names, subargs = self._collect_func_deps(
+                    attr, exclude=exclude, inject=inject
+                )
                 func_names = [
                     f for f in func_names if f not in subfunc_names
                 ] + subfunc_names
@@ -246,7 +251,7 @@ class State(CodeClass):
 
         return func_names, args
 
-    def resolve(self, func, func_args=None):
+    def resolve(self, func, func_args=None, inject={}):
         """
         Analyse arguments of supplied function and create Python function that
         depends solely on func_args if provided. If func_args is None the returned
@@ -258,15 +263,16 @@ class State(CodeClass):
         :param func_args: Arguments of the returned function. If not set,
                           function takes all dependent attributes
         :type func_args: list, optional
+        :param inject: callables to be injected instead of named attributes
+        :type inject: dict
         :return: New function that takes args as arguments, if args is None
                  the functions has all dependencies as arguments.
-
         :rtype: tuple
         """
         if isinstance(func, str):
             func = self._attr_values[func]
 
-        subfunc_names, args = self._collect_func_deps(func, func_args)
+        subfunc_names, args = self._collect_func_deps(func, func_args, inject)
         name = func.__name__
         name = "lmda" if func.__name__ == "<lambda>" else name
 
@@ -277,7 +283,10 @@ class State(CodeClass):
             )
             globals = {}
             for subfunc_name in reversed(subfunc_names):
-                subfunc = self._attr_values[subfunc_name]
+                if subfunc_name in inject:
+                    subfunc = inject[subfunc_name]
+                else:
+                    subfunc = self._attr_values[subfunc_name]
                 globals[f"__{subfunc_name}"] = subfunc
                 code += (
                     f"    {subfunc_name} ="

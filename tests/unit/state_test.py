@@ -98,6 +98,18 @@ def test_resolve_overriding_dynamic_attribute(state):
     assert func(3.0) == 6.0
 
 
+def test_resolve_with_inject(state):
+    state.a = 2.0
+    state.b = 4.0
+    c = lambda a, b: a * b
+
+    func = state.resolve(c, ["e"], inject={"b": lambda e: 2 * e})
+
+    arg_names = list(inspect.signature(func).parameters.keys())
+    assert arg_names[0] == "e"
+    assert func(1.0) == 4.0
+
+
 def test_setting_lambda_to_return_function(state):
     state.a = Function(state).fill(1.0)
     state.f = (lambda a: 2 * a, "nnn", ())
@@ -115,6 +127,18 @@ def test_remap(state):
     state.g = g
     assert be.to_numpy(state.f.sum()) == pytest.approx(3.0)
     assert be.to_numpy(state.g.sum()) == pytest.approx(5.0)
+
+
+def test_remap_func(state):
+    state.a = 1.0
+    state.b = lambda c: 2.0 * c
+    state.c = 3.0
+    f = lambda a, b: a + b
+    g = state.remap(f, {"b": "c"})
+    state.f = f
+    state.g = g
+    assert be.to_numpy(state.f.sum()) == pytest.approx(7.0)
+    assert be.to_numpy(state.g.sum()) == pytest.approx(4.0)
 
 
 def test_coordinates():
