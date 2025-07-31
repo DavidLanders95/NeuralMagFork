@@ -65,8 +65,7 @@ class Function(CodeClass):
 
         self._avg = state.resolve(self._code.avg, ["f", "rho"])
         self._avg_from_domain_id = state.resolve(
-            state.remap(self._code.avg, {"rho": "rho_from_domain_id"}),
-            ["f", "domains", "domain_id"],
+            self._code.avg, ["f", "domains", "domain_id"]
         )
 
     @property

@@ -268,7 +268,10 @@ class State(CodeClass):
                   attribute with the respective name is used.
         :type f: Callable, str
         :param func_args: Arguments of the returned function. If not set,
-                          function takes all dependent attributes
+                          function takes all dependent attributes.
+                          If the special attribute "domain_id" is included,
+                          the general region indicator rho is replaced by
+                          the dynamic region_indicator rho_from_domain_id.
         :type func_args: list, optional
         :param inject: callables to be injected instead of named attributes
         :type inject: dict
@@ -278,6 +281,9 @@ class State(CodeClass):
         """
         if isinstance(func, str):
             func = self._attr_values[func]
+
+        if "domain_id" in (func_args or []):
+            func = self.remap(func, {"rho": "rho_from_domain_id"})
 
         subfunc_names, args = self._collect_func_deps(func, func_args, inject)
         name = func.__name__

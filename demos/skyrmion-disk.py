@@ -36,13 +36,10 @@ state.material.alpha = 0.1
 
 
 # ### Define circular geometry
-# Set cell function `state.rho` to 1. within disk region and to `state.eps` in the air region.
+# Initialize geometry by defining a circular domain with ID 1.
 
 x, y = state.coordinates()
-state.rho = nm.CellFunction(
-    state,
-    tensor=nm.config.backend.np.where(x**2.0 + y**2.0 < 50e-9**2.0, 1.0, state.eps),
-)
+state.add_domain(1, x**2.0 + y**2.0 < 50e-9**2.0)
 
 
 # ### Set initial magnetization
