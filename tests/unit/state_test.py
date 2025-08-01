@@ -110,6 +110,17 @@ def test_resolve_with_inject(state):
     assert func(1.0) == 4.0
 
 
+def test_resolve_inject_with_dependencies(state):
+    state.a = 2.0
+    state.b = lambda a: 2 * a
+    state.c = lambda b: 2 * b
+    d = lambda c: 2 * c
+
+    func = state.resolve(d, ["a"], inject={"b": lambda a: 4 * a})
+
+    assert func(1.0) == 16.0
+
+
 def test_setting_lambda_to_return_function(state):
     state.a = Function(state).fill(1.0)
     state.f = (lambda a: 2 * a, "nnn", ())

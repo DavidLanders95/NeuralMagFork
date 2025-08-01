@@ -61,33 +61,29 @@ class State(CodeClass):
         self.dx = self.tensor(mesh.dx)
         self.t = 0.0
 
-        # initialize a single domain and the density fields
+        self._attr_values["eps"] = config.backend.eps(self.dtype)
+
+        self.save_and_load_code(mesh.dim)
+
+        # initialize domain management
         # TODO default to static rho for performance reasons?
+        self.domain = lambda domains: domains > 0
+        self.subdomain = lambda domains, domain_id: domains == domain_id
         self.rho = (
-            lambda domains: config.backend.np.where(domains > 0, 1.0, self.eps),
+            lambda domain: config.backend.np.where(domain, 1.0, self.eps),
             "c" * mesh.dim,
             (),
         )
-        self.rho_from_domain_id = (
-            lambda domains, domain_id: config.backend.np.where(
-                domains == domain_id, 1.0, self.eps
-            ),
-            "c" * mesh.dim,
-            (),
-        )
+
         self.domains = CellFunction(self, dtype=config.backend.integer).fill(
             1, expand=True
         )
-
-        self.save_and_load_code(mesh.dim)
 
         # TODO allow surface regions also for lower dimensions
         if mesh.dim == 3:
             self.rhoxy = (self._code.rhoxy, "ccn", ())
             self.rhoxz = (self._code.rhoxz, "cnc", ())
             self.rhoyz = (self._code.rhoyz, "ncc", ())
-
-        self._attr_values["eps"] = config.backend.eps(self.dtype)
 
         logging.info_green(
             f"[State] Running on device: {self.dx.device} (dtype = {self.dx.dtype}, backend = {config.backend_name})"
@@ -234,11 +230,13 @@ class State(CodeClass):
 
         self._attr_values[name] = value
 
-    def _collect_func_deps(self, attr, exclude=None, inject={}):
+    def _collect_func_deps(self, attr, exclude=None, remap={}, inject={}):
         exclude = exclude or []
         func_names = []
         args = {}
-        for arg in set(inspect.signature(attr).parameters.keys()) - set(exclude):
+        for arg in set(
+            [remap.get(a, a) for a in inspect.signature(attr).parameters.keys()]
+        ) - set(exclude):
             if arg in inject:
                 attr = inject[arg]
             else:
@@ -247,7 +245,7 @@ class State(CodeClass):
             if callable(attr):
                 func_names.append(arg)
                 subfunc_names, subargs = self._collect_func_deps(
-                    attr, exclude=exclude, inject=inject
+                    attr, exclude=exclude, remap=remap, inject=inject
                 )
                 func_names = [
                     f for f in func_names if f not in subfunc_names
@@ -258,7 +256,7 @@ class State(CodeClass):
 
         return func_names, args
 
-    def resolve(self, func, func_args=None, inject={}):
+    def resolve(self, func, func_args=None, remap={}, inject={}):
         """
         Analyse arguments of supplied function and create Python function that
         depends solely on func_args if provided. If func_args is None the returned
@@ -269,10 +267,9 @@ class State(CodeClass):
         :type f: Callable, str
         :param func_args: Arguments of the returned function. If not set,
                           function takes all dependent attributes.
-                          If the special attribute "domain_id" is included,
-                          the general region indicator rho is replaced by
-                          the dynamic region_indicator rho_from_domain_id.
         :type func_args: list, optional
+        :param remap: applies mapping to function and all dependent subfunctions
+        :type remap: dict
         :param inject: callables to be injected instead of named attributes
         :type inject: dict
         :return: New function that takes args as arguments, if args is None
@@ -282,10 +279,11 @@ class State(CodeClass):
         if isinstance(func, str):
             func = self._attr_values[func]
 
-        if "domain_id" in (func_args or []):
-            func = self.remap(func, {"rho": "rho_from_domain_id"})
+        func = self.remap(func, remap)
 
-        subfunc_names, args = self._collect_func_deps(func, func_args, inject)
+        subfunc_names, args = self._collect_func_deps(
+            func, exclude=func_args, remap=remap, inject=inject
+        )
         name = func.__name__
         name = "lmda" if func.__name__ == "<lambda>" else name
 
@@ -303,7 +301,7 @@ class State(CodeClass):
                 globals[f"__{subfunc_name}"] = subfunc
                 code += (
                     f"    {subfunc_name} ="
-                    f" __{subfunc_name}({', '.join(list(inspect.signature(subfunc).parameters.keys()))})\n"
+                    f" __{subfunc_name}({', '.join([remap.get(a, a) for a in inspect.signature(subfunc).parameters.keys()])})\n"
                 )
             globals[f"__{name}"] = func
             code += (
@@ -348,9 +346,15 @@ class State(CodeClass):
                 g = state.remap(f, {"a": "x", "b": "y"})
                 # g is a function with arguments "x" and "y"
         """
+        if mapping == {}:
+            return f
+
         name = "lmda" if f.__name__ == "<lambda>" else f.__name__
         old_args = list(inspect.signature(f).parameters.keys())
         new_args = [mapping.get(a, a) for a in old_args]
+
+        if old_args == new_args:
+            return f
 
         code = f"def {name}({', '.join(new_args)}):\n"
         code += f"    return __{name}({', '.join(new_args)})\n"
