@@ -158,11 +158,11 @@ class Function(CodeClass):
         """
         if domain_id is None:
             if self._avg is None:
-                self._avg = state.resolve(self._code.avg, ["f", "domains"])
+                self._avg = self._state.resolve(self._code.avg, ["f", "domains"])
             return self._avg(self._tensor, self._state.domains.tensor)
         else:
             if self._avg_on_domain is None:
-                self._avg_on_domain = state.resolve(
+                self._avg_on_domain = self._state.resolve(
                     self._code.avg,
                     ["f", "domains", "domain_id"],
                     remap={"domain": "subdomain"},
