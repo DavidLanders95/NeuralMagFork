@@ -63,10 +63,8 @@ class Function(CodeClass):
 
         self.save_and_load_code(spaces, shape)
 
-        self._avg = state.resolve(self._code.avg, ["f", "domains"])
-        self._avg_on_domain = state.resolve(
-            self._code.avg, ["f", "domains", "domain_id"], remap={"domain": "subdomain"}
-        )
+        self._avg = None
+        self._avg_on_domain = None
 
     @property
     def name(self):
@@ -159,8 +157,16 @@ class Function(CodeClass):
         :rtype: :class:`torch.Tensor`
         """
         if domain_id is None:
+            if self._avg is None:
+                self._avg = state.resolve(self._code.avg, ["f", "domains"])
             return self._avg(self._tensor, self._state.domains.tensor)
         else:
+            if self._avg_on_domain is None:
+                self._avg_on_domain = state.resolve(
+                    self._code.avg,
+                    ["f", "domains", "domain_id"],
+                    remap={"domain": "subdomain"},
+                )
             return self._avg_on_domain(
                 self._tensor, self._state.domains.tensor, domain_id
             )
