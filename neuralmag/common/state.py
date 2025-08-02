@@ -210,6 +210,9 @@ class State(CodeClass):
             super().__setattr__(name, value)
             return
 
+        if isinstance(value, Function) and value._func is not None:
+            value = (value._func, value.spaces, value.shape)
+
         if isinstance(value, (int, float)):
             value = self.tensor(value)
 

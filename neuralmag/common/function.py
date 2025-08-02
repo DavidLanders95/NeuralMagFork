@@ -65,6 +65,8 @@ class Function(CodeClass):
 
         self._avg = None
         self._avg_on_domain = None
+        self._func = None
+        self._func_aux = None
 
     @property
     def name(self):
@@ -106,6 +108,9 @@ class Function(CodeClass):
         """
         The tensor containing the discretized values of the function
         """
+        if self._func is not None:
+            return self._func(self._state.domains.tensor)
+
         if self._tensor is None:
             dtype = self._dtype or self._state.dtype
             self._tensor = config.backend.zeros(
@@ -115,6 +120,8 @@ class Function(CodeClass):
 
     @tensor.setter
     def tensor(self, tensor):
+        self._func = None
+        self._func_aux = None
         self._tensor = tensor
 
     def fill(self, constant, expand=False):
@@ -147,6 +154,15 @@ class Function(CodeClass):
             self._tensor = config.backend.tile(tensor, shape)
         return self
 
+    def fill_by_domain(self, values):
+        self._func_aux = self.state.tensor(values)
+        if self._spaces == "c" * self._state.mesh.dim:
+            self._func = lambda domains: self._func_aux[domains]
+        else:
+            raise NotImplemented
+
+        return self
+
     def avg(self, domain_id=None):
         """
         Returns the componentwise average of the function over the mesh.
@@ -159,7 +175,7 @@ class Function(CodeClass):
         if domain_id is None:
             if self._avg is None:
                 self._avg = self._state.resolve(self._code.avg, ["f", "domains"])
-            return self._avg(self._tensor, self._state.domains.tensor)
+            return self._avg(self.tensor, self._state.domains.tensor)
         else:
             if self._avg_on_domain is None:
                 self._avg_on_domain = self._state.resolve(
@@ -168,7 +184,7 @@ class Function(CodeClass):
                     remap={"domain": "subdomain"},
                 )
             return self._avg_on_domain(
-                self._tensor, self._state.domains.tensor, domain_id
+                self.tensor, self._state.domains.tensor, domain_id
             )
 
     @classmethod
