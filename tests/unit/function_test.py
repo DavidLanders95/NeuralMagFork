@@ -84,4 +84,3 @@ def test_fill_by_domain(state):
 
     state.material.A = CellFunction(state).fill_by_domain([0.0, 4.0, 6.0])
     assert be.to_numpy(state.material.A.avg()) == pytest.approx(5.0)
-    assert False
