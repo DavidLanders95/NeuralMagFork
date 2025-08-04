@@ -123,7 +123,7 @@ def test_resolve_inject_with_dependencies(state):
 
 def test_setting_lambda_to_return_function(state):
     state.a = Function(state).fill(1.0)
-    state.f = (lambda a: 2 * a, "nnn", ())
+    state.f = Function(state, tensor=lambda a: 2 * a)
     assert isinstance(state.f, Function)
     assert be.to_numpy(state.f.tensor.sum()) == pytest.approx(3**3 * 2.0)
 
@@ -197,8 +197,21 @@ def test_add_domain(state):
     assert be.to_numpy(state.rho.avg()) == pytest.approx(1.0)
     state.add_domain(1, x > 1e-9)
     state.add_domain(2, x < 1e-9)
+
     assert be.to_numpy(state.m.avg(1)) == pytest.approx([0.5312498, 0.46875, 0.0])
     assert be.to_numpy(state.m.avg(2)) == pytest.approx([-0.46875, 0.46875, 0.0])
     assert be.to_numpy(state.m.avg(1) + state.m.avg(2)) / 2.0 == pytest.approx(
         be.to_numpy(state.m.avg()), abs=1e-7
     )
+
+
+def test_statify_function(state):
+    state.a = Function(state).fill(1.0)
+    b = Function(state, tensor=lambda a: 2 * a)
+    assert be.to_numpy(b.avg()) == 2.0
+    state.b = b
+    state.c = Function(state, tensor=lambda b: 2 * b)
+    assert be.to_numpy(state.c.avg()) == 4.0
+    b.fill(5.0)
+    assert be.to_numpy(b.avg()) == pytest.approx(5.0)
+    assert be.to_numpy(state.c.avg()) == pytest.approx(10.0)

@@ -34,6 +34,9 @@ class Function(CodeClass):
         self, state, spaces=None, shape=(), tensor=None, name=None, dtype=None
     ):
         self._state = state
+        self._tensor = None
+        self.tensor = tensor
+
         if spaces is None:
             spaces = "n" * state.mesh.dim
         self._spaces = spaces
@@ -55,18 +58,10 @@ class Function(CodeClass):
 
         self._tensor_shape = tuple(tensor_shape) + shape
 
-        if tensor is None or isinstance(tensor, config.backend.Tensor):
-            self._tensor = tensor
-        else:
-            raise NotImplemented("Unsupported tensor type.")
-        self._expanded = False
-
         self.save_and_load_code(spaces, shape)
 
         self._avg = None
         self._avg_on_domain = None
-        self._func = None
-        self._func_aux = None
 
     @property
     def name(self):
@@ -104,12 +99,22 @@ class Function(CodeClass):
         return self._spaces
 
     @property
+    def func(self):
+        if callable(self._tensor):
+            return self._tensor
+        return None
+
+    @property
+    def func_id(self):
+        return f"function__{str(id(self))}"
+
+    @property
     def tensor(self):
         """
         The tensor containing the discretized values of the function
         """
-        if self._func is not None:
-            return self._func(self._state.domains.tensor)
+        if callable(self._tensor):
+            return getattr(self._state, self.func_id)
 
         if self._tensor is None:
             dtype = self._dtype or self._state.dtype
@@ -120,9 +125,13 @@ class Function(CodeClass):
 
     @tensor.setter
     def tensor(self, tensor):
-        self._func = None
-        self._func_aux = None
+        if self.func:
+            delattr(self._state, self.func_id)
+
         self._tensor = tensor
+
+        if self.func:
+            setattr(self._state, self.func_id, self.func)
 
     def fill(self, constant, expand=False):
         """
@@ -149,15 +158,15 @@ class Function(CodeClass):
             shape = self._tensor_shape[:-1] + (1,)
 
         if expand:
-            self._tensor = config.backend.broadcast_to(tensor, shape)
+            self.tensor = config.backend.broadcast_to(tensor, shape)
         else:
-            self._tensor = config.backend.tile(tensor, shape)
+            self.tensor = config.backend.tile(tensor, shape)
         return self
 
     def fill_by_domain(self, values):
-        self._func_aux = self.state.tensor(values)
+        aux = self.state.tensor(values)
         if self._spaces == "c" * self._state.mesh.dim:
-            self._func = lambda domains: self._func_aux[domains]
+            self.tensor = lambda domains: aux[domains]
         else:
             raise NotImplemented
 

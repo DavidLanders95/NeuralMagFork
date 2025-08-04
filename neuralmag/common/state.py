@@ -66,13 +66,10 @@ class State(CodeClass):
         self.save_and_load_code(mesh.dim)
 
         # initialize domain management
-        # TODO default to static rho for performance reasons?
         self.domain = lambda domains: domains > 0
         self.subdomain = lambda domains, domain_id: domains == domain_id
-        self.rho = (
-            lambda domain: config.backend.np.where(domain, 1.0, self.eps),
-            "c" * mesh.dim,
-            (),
+        self.rho = CellFunction(
+            self, tensor=lambda domain: config.backend.np.where(domain, 1.0, self.eps)
         )
 
         self.domains = CellFunction(self, dtype=config.backend.integer).fill(
@@ -210,17 +207,8 @@ class State(CodeClass):
             super().__setattr__(name, value)
             return
 
-        if isinstance(value, Function) and value._func is not None:
-            value = (value._func, value.spaces, value.shape)
-
         if isinstance(value, (int, float)):
             value = self.tensor(value)
-
-        if isinstance(value, tuple) and len(value) == 3:
-            self._attr_types[name] = value[1:]
-            value = value[0]
-        else:
-            self._attr_types.pop(name, None)
 
         if isinstance(value, list):
             try:
@@ -233,6 +221,17 @@ class State(CodeClass):
 
         self._attr_values[name] = value
 
+    def __delattr__(self, name):
+        # don't mess with protected attributes
+        if name[0] == "_":
+            super().__delattr__(name)
+            return
+
+        attr = self._attr_values.pop(name, None)
+
+        if callable(attr):
+            self._attr_funcs.clear()
+
     def _collect_func_deps(self, attr, exclude=None, remap={}, inject={}):
         exclude = exclude or []
         func_names = []
@@ -244,6 +243,9 @@ class State(CodeClass):
                 attr = inject[arg]
             else:
                 attr = self._attr_values[arg]
+
+            if isinstance(attr, Function) and attr.func:
+                attr = attr.func
 
             if callable(attr):
                 func_names.append(arg)
@@ -301,6 +303,8 @@ class State(CodeClass):
                     subfunc = inject[subfunc_name]
                 else:
                     subfunc = self._attr_values[subfunc_name]
+                    if isinstance(subfunc, Function) and subfunc.func:
+                        subfunc = subfunc.func
                 globals[f"__{subfunc_name}"] = subfunc
                 code += (
                     f"    {subfunc_name} ="
