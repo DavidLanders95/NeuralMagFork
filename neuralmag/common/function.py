@@ -22,7 +22,7 @@ class Function(CodeClass):
     :param shape: The shape of the function (either ``()`` for scalars or ``(3,)`` for
         vectors is currently supported)
     :type shape: tuple
-    :param tensor: Tensor with discretized function values
+    :param tensor: Tensor with discretized function values or function that depends on state attributes
     :type tensor: :class:`torch.Tensor`
     :param name: Name of the function
     :type name: str

@@ -5,7 +5,7 @@ from time import time
 
 from scipy import constants
 
-from neuralmag.common import config
+from neuralmag.common import VectorFunction, config
 from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
@@ -52,13 +52,13 @@ class DemagField(FieldTerm):
             setattr(
                 state,
                 self.attr_name("h", name),
-                (config.backend.demag_field.h2d, "nn", (3,)),
+                VectorFunction(state, tensor=config.backend.demag_field.h2d),
             )
         elif state.mesh.dim == 3:
             setattr(
                 state,
                 self.attr_name("h", name),
-                (config.backend.demag_field.h3d, "nnn", (3,)),
+                VectorFunction(state, tensor=config.backend.demag_field.h3d),
             )
         else:
             raise

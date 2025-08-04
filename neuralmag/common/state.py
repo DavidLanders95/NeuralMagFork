@@ -78,9 +78,9 @@ class State(CodeClass):
 
         # TODO allow surface regions also for lower dimensions
         if mesh.dim == 3:
-            self.rhoxy = (self._code.rhoxy, "ccn", ())
-            self.rhoxz = (self._code.rhoxz, "cnc", ())
-            self.rhoyz = (self._code.rhoyz, "ncc", ())
+            self.rhoxy = Function(self, "ccn", tensor=self._code.rhoxy)
+            self.rhoxz = Function(self, "cnc", tensor=self._code.rhoxz)
+            self.rhoyz = Function(self, "ncc", tensor=self._code.rhoyz)
 
         logging.info_green(
             f"[State] Running on device: {self.dx.device} (dtype = {self.dx.dtype}, backend = {config.backend_name})"

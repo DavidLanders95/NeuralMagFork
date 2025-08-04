@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-from neuralmag.common import config
+from neuralmag.common import VectorFunction, config
 from neuralmag.common.engine import N, Variable, dA
 from neuralmag.field_terms.field_term import FieldTerm
 
@@ -62,7 +62,8 @@ class InterlayerExchangeField(FieldTerm):
         state.iidx = config.backend.tensor(
             self._iidx, device=state.device, dtype=config.backend.integer
         )
-        state.im_other = (swap, "node", (3,))
+        # state.im_other = (swap, "node", (3,))
+        state.im_other = VectorFunction(state, tensor=swap)
 
     @staticmethod
     def e_expr(m, dim):

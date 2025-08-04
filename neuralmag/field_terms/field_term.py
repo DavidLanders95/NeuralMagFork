@@ -86,7 +86,7 @@ class FieldTerm(CodeClass):
             f"[{self.__class__.__name__}] Register state methods (field:"
             f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}')"
         )
-        setattr(state, self.attr_name("h", name), (self.h, "n" * dim, (3,)))
+        setattr(state, self.attr_name("h", name), VectorFunction(state, tensor=self.h))
         setattr(state, self.attr_name("E", name), self.E)
 
     @classmethod
