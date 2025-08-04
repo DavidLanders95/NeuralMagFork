@@ -284,6 +284,9 @@ class State(CodeClass):
         if isinstance(func, str):
             func = self._attr_values[func]
 
+        if isinstance(func, Function) and func.func:
+            func = func.func
+
         func = self.remap(func, remap)
 
         subfunc_names, args = self._collect_func_deps(
