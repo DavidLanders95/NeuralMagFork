@@ -435,7 +435,7 @@ class State(CodeClass):
 
     def add_domain(self, id, condition):
         # initialize full tensor zero
-        if self.domains.avg() == 1:
+        if (self.domains.tensor == 1).all():
             self.domains.fill(0)
         self.domains.tensor = config.backend.np.where(
             condition, id, self.domains.tensor
