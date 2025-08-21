@@ -27,6 +27,13 @@ class Material:
             return
         return setattr(self._state, "material__" + name, value)
 
+    def __delattr__(self, name):
+        # don't mess with protected attributes
+        if name[0] == "_":
+            super().__delattr__(name, value)
+            return
+        return delattr(self._state, "material__" + name)
+
 
 class State(CodeClass):
     r"""
