@@ -5,7 +5,7 @@ from time import time
 
 from scipy import constants
 
-from neuralmag.common import config
+from neuralmag.common import VectorFunction, config
 from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
@@ -52,20 +52,20 @@ class DemagField(FieldTerm):
             setattr(
                 state,
                 self.attr_name("h", name),
-                (config.backend.demag_field.h2d, "nn", (3,)),
+                VectorFunction(state, tensor=config.backend.demag_field.h2d),
             )
         elif state.mesh.dim == 3:
             setattr(
                 state,
                 self.attr_name("h", name),
-                (config.backend.demag_field.h3d, "nnn", (3,)),
+                VectorFunction(state, tensor=config.backend.demag_field.h3d),
             )
         else:
             raise
         # fix reference to h_demag in E_demag if suffix is changed
         if name is not None:
-            wrapped = state.wrap_func(self.E, {"h_demag": self.attr_name("h", name)})
-            setattr(state, self.attr_name("E", name), wrapped)
+            func = state.remap(self.E, {"h_demag": self.attr_name("h", name)})
+            setattr(state, self.attr_name("E", name), func)
         config.backend.demag_field.init_N(state, self._p)
 
     @staticmethod

@@ -30,7 +30,9 @@ state.m = nm.VectorFunction(state).fill((0, 0, 1))
 # ## Create dynamic attribute for material density $\rho(\vec{x})$
 # We create a dynamical attribute `state.rho` that takes a scalar field `state.rho_m` and overrides the upper two layers of cells to be air.
 
-state.rho = (lambda rho_m: rho_m.at[:, :, 10:].set(state.eps), "ccc", ())
+state.rho = nm.CellFunction(
+    state, tensor=lambda rho_m: rho_m.at[:, :, 10:].set(state.eps)
+)
 state.rho_m = nm.CellFunction(state).fill(1.0)
 
 

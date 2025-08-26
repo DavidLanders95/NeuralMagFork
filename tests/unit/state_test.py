@@ -98,23 +98,58 @@ def test_resolve_overriding_dynamic_attribute(state):
     assert func(3.0) == 6.0
 
 
+def test_resolve_with_inject(state):
+    state.a = 2.0
+    state.b = 4.0
+    c = lambda a, b: a * b
+
+    func = state.resolve(c, ["e"], inject={"b": lambda e: 2 * e})
+
+    arg_names = list(inspect.signature(func).parameters.keys())
+    assert arg_names[0] == "e"
+    assert func(1.0) == 4.0
+
+
+def test_resolve_inject_with_dependencies(state):
+    state.a = 2.0
+    state.b = lambda a: 2 * a
+    state.c = lambda b: 2 * b
+    d = lambda c: 2 * c
+
+    func = state.resolve(d, ["a"], inject={"b": lambda a: 4 * a})
+
+    assert func(1.0) == 16.0
+
+
 def test_setting_lambda_to_return_function(state):
     state.a = Function(state).fill(1.0)
-    state.f = (lambda a: 2 * a, "nnn", ())
+    state.f = Function(state, tensor=lambda a: 2 * a)
     assert isinstance(state.f, Function)
     assert be.to_numpy(state.f.tensor.sum()) == pytest.approx(3**3 * 2.0)
 
 
-def test_wrap_func(state):
+def test_remap(state):
     state.a = 1.0
     state.b = 2.0
     state.c = 3.0
     f = lambda a, b: a + b
-    g = state.wrap_func(f, {"a": "c"})
+    g = state.remap(f, {"a": "c"})
     state.f = f
     state.g = g
     assert be.to_numpy(state.f.sum()) == pytest.approx(3.0)
     assert be.to_numpy(state.g.sum()) == pytest.approx(5.0)
+
+
+def test_remap_func(state):
+    state.a = 1.0
+    state.b = lambda c: 2.0 * c
+    state.c = 3.0
+    f = lambda a, b: a + b
+    g = state.remap(f, {"b": "c"})
+    state.f = f
+    state.g = g
+    assert be.to_numpy(state.f.sum()) == pytest.approx(7.0)
+    assert be.to_numpy(state.g.sum()) == pytest.approx(4.0)
 
 
 def test_coordinates():
@@ -155,3 +190,28 @@ def test_update_of_function_tensor(state):
     g = Function(state).fill(2.0)
     state.f.tensor = g.tensor
     assert be.to_numpy(state.f_sum) == pytest.approx(54.0)
+
+
+def test_add_domain(state):
+    x, y, z = state.coordinates()
+    assert be.to_numpy(state.rho.avg()) == pytest.approx(1.0)
+    state.add_domain(1, x > 1e-9)
+    state.add_domain(2, x < 1e-9)
+
+    assert be.to_numpy(state.m.avg(1)) == pytest.approx([0.5312498, 0.46875, 0.0])
+    assert be.to_numpy(state.m.avg(2)) == pytest.approx([-0.46875, 0.46875, 0.0])
+    assert be.to_numpy(state.m.avg(1) + state.m.avg(2)) / 2.0 == pytest.approx(
+        be.to_numpy(state.m.avg()), abs=1e-7
+    )
+
+
+def test_statify_function(state):
+    state.a = Function(state).fill(1.0)
+    b = Function(state, tensor=lambda a: 2 * a)
+    assert be.to_numpy(b.avg()) == 2.0
+    state.b = b
+    state.c = Function(state, tensor=lambda b: 2 * b)
+    assert be.to_numpy(state.c.avg()) == 4.0
+    b.fill(5.0)
+    assert be.to_numpy(b.avg()) == pytest.approx(5.0)
+    assert be.to_numpy(state.c.avg()) == pytest.approx(10.0)

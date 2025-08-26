@@ -8,6 +8,7 @@ import numpy as np
 import pyvista as pv
 
 from neuralmag.common import CellFunction, Function, config, logging
+from neuralmag.common.code_class import CodeClass
 
 __all__ = ["State"]
 
@@ -26,8 +27,15 @@ class Material:
             return
         return setattr(self._state, "material__" + name, value)
 
+    def __delattr__(self, name):
+        # don't mess with protected attributes
+        if name[0] == "_":
+            super().__delattr__(name, value)
+            return
+        return delattr(self._state, "material__" + name)
 
-class State(object):
+
+class State(CodeClass):
     r"""
     This class carries all information of the spatial discretization, parameters
     and the current state of the simulation.
@@ -60,14 +68,27 @@ class State(object):
         self.dx = self.tensor(mesh.dx)
         self.t = 0.0
 
-        # initialize density fields for volume and facet measure with 1
-        self.rho = CellFunction(self).fill(1.0, expand=True)
-        if mesh.dim == 3:
-            self.rhoxy = Function(self, "ccn").fill(1.0, expand=True)
-            self.rhoxz = Function(self, "cnc").fill(1.0, expand=True)
-            self.rhoyz = Function(self, "ncc").fill(1.0, expand=True)
-
         self._attr_values["eps"] = config.backend.eps(self.dtype)
+
+        self.save_and_load_code(mesh.dim)
+
+        # initialize domain management
+        self.domain = lambda domains: domains > 0
+        self.subdomain = lambda domains, domain_id: domains == domain_id
+        self.rho = CellFunction(
+            self, tensor=lambda domain: config.backend.np.where(domain, 1.0, self.eps)
+        )
+
+        self.domains = CellFunction(self, dtype=config.backend.integer).fill(
+            1, expand=True
+        )
+
+        # TODO allow surface regions also for lower dimensions
+        if mesh.dim == 3:
+            self.rhoxy = Function(self, "ccn", tensor=self._code.rhoxy)
+            self.rhoxz = Function(self, "cnc", tensor=self._code.rhoxz)
+            self.rhoyz = Function(self, "ncc", tensor=self._code.rhoyz)
+
         logging.info_green(
             f"[State] Running on device: {self.dx.device} (dtype = {self.dx.dtype}, backend = {config.backend_name})"
         )
@@ -142,7 +163,10 @@ class State(object):
         :rtype: :class:`config.backend.Tensor`
         """
         default_options = {"device": self.device, "dtype": self.dtype}
-        options = {**default_options, **kwargs}
+        options = {
+            **default_options,
+            **{k: v for k, v in kwargs.items() if v is not None},
+        }
         return config.backend.tensor(value, **options)
 
     def zeros(self, shape, **kwargs):
@@ -193,12 +217,6 @@ class State(object):
         if isinstance(value, (int, float)):
             value = self.tensor(value)
 
-        if isinstance(value, tuple) and len(value) == 3:
-            self._attr_types[name] = value[1:]
-            value = value[0]
-        else:
-            self._attr_types.pop(name, None)
-
         if isinstance(value, list):
             try:
                 value = self.tensor(value)
@@ -210,16 +228,37 @@ class State(object):
 
         self._attr_values[name] = value
 
-    def _collect_func_deps(self, attr, exclude=None):
+    def __delattr__(self, name):
+        # don't mess with protected attributes
+        if name[0] == "_":
+            super().__delattr__(name)
+            return
+
+        attr = self._attr_values.pop(name, None)
+
+        if callable(attr):
+            self._attr_funcs.clear()
+
+    def _collect_func_deps(self, attr, exclude=None, remap={}, inject={}):
         exclude = exclude or []
         func_names = []
         args = {}
-        for arg in set(inspect.signature(attr).parameters.keys()) - set(exclude):
-            attr = self._attr_values[arg]
+        for arg in set(
+            [remap.get(a, a) for a in inspect.signature(attr).parameters.keys()]
+        ) - set(exclude):
+            if arg in inject:
+                attr = inject[arg]
+            else:
+                attr = self._attr_values[arg]
+
+            if isinstance(attr, Function) and attr.func:
+                attr = attr.func
 
             if callable(attr):
                 func_names.append(arg)
-                subfunc_names, subargs = self._collect_func_deps(attr)
+                subfunc_names, subargs = self._collect_func_deps(
+                    attr, exclude=exclude, remap=remap, inject=inject
+                )
                 func_names = [
                     f for f in func_names if f not in subfunc_names
                 ] + subfunc_names
@@ -229,7 +268,7 @@ class State(object):
 
         return func_names, args
 
-    def resolve(self, func, func_args=None):
+    def resolve(self, func, func_args=None, remap={}, inject={}):
         """
         Analyse arguments of supplied function and create Python function that
         depends solely on func_args if provided. If func_args is None the returned
@@ -239,17 +278,27 @@ class State(object):
                   attribute with the respective name is used.
         :type f: Callable, str
         :param func_args: Arguments of the returned function. If not set,
-                          function takes all dependent attributes
+                          function takes all dependent attributes.
         :type func_args: list, optional
+        :param remap: applies mapping to function and all dependent subfunctions
+        :type remap: dict
+        :param inject: callables to be injected instead of named attributes
+        :type inject: dict
         :return: New function that takes args as arguments, if args is None
                  the functions has all dependencies as arguments.
-
         :rtype: tuple
         """
         if isinstance(func, str):
             func = self._attr_values[func]
 
-        subfunc_names, args = self._collect_func_deps(func, func_args)
+        if isinstance(func, Function) and func.func:
+            func = func.func
+
+        func = self.remap(func, remap)
+
+        subfunc_names, args = self._collect_func_deps(
+            func, exclude=func_args, remap=remap, inject=inject
+        )
         name = func.__name__
         name = "lmda" if func.__name__ == "<lambda>" else name
 
@@ -260,11 +309,16 @@ class State(object):
             )
             globals = {}
             for subfunc_name in reversed(subfunc_names):
-                subfunc = self._attr_values[subfunc_name]
+                if subfunc_name in inject:
+                    subfunc = inject[subfunc_name]
+                else:
+                    subfunc = self._attr_values[subfunc_name]
+                    if isinstance(subfunc, Function) and subfunc.func:
+                        subfunc = subfunc.func
                 globals[f"__{subfunc_name}"] = subfunc
                 code += (
                     f"    {subfunc_name} ="
-                    f" __{subfunc_name}({', '.join(list(inspect.signature(subfunc).parameters.keys()))})\n"
+                    f" __{subfunc_name}({', '.join([remap.get(a, a) for a in inspect.signature(subfunc).parameters.keys()])})\n"
                 )
             globals[f"__{name}"] = func
             code += (
@@ -287,16 +341,15 @@ class State(object):
             return func
 
     @staticmethod
-    def wrap_func(f, mapping):
+    def remap(f, mapping):
         """
-        Wrappes a given function into another function renaming its arguments
-        according to the mapping provided.
+        Remaps the arguments of a given function according the the provided mapping.
 
-        :param f: The function to be wrapped
+        :param f: The function to be remapped
         :type f: Callable
         :param mapping: The name mapping of the arguments
         :type mapping: dict
-        :return: The wrapped function
+        :return: The remapped function
         :rtype: Callable
 
         :Example:
@@ -307,12 +360,18 @@ class State(object):
                 def f(a, b):
                    return a + b
 
-                g = state.wrap_func(f, {"a": "x", "b": "y"})
+                g = state.remap(f, {"a": "x", "b": "y"})
                 # g is a function with arguments "x" and "y"
         """
+        if mapping == {}:
+            return f
+
         name = "lmda" if f.__name__ == "<lambda>" else f.__name__
         old_args = list(inspect.signature(f).parameters.keys())
         new_args = [mapping.get(a, a) for a in old_args]
+
+        if old_args == new_args:
+            return f
 
         code = f"def {name}({', '.join(new_args)}):\n"
         code += f"    return __{name}({', '.join(new_args)})\n"
@@ -380,6 +439,14 @@ class State(object):
             return tuple(config.backend.to_numpy(c) for c in coords)
         else:
             return coords
+
+    def add_domain(self, id, condition):
+        # initialize full tensor zero
+        if (self.domains.tensor == 1).all():
+            self.domains.fill(0)
+        self.domains.tensor = config.backend.np.where(
+            condition, id, self.domains.tensor
+        )
 
     def write_vti(self, fields, filename):
         """
@@ -540,3 +607,46 @@ class State(object):
         return Function(
             self, spaces="c" * mesh.dim, tensor=self.tensor(data.reshape(mesh.n))
         )
+
+    @classmethod
+    def _generate_code(cls, dim):
+        if dim < 3:
+            return
+
+        code = config.backend.CodeBlock()
+
+        # generate interface rho attributes
+        with code.add_function("rhoxy", ["rho"]) as func:
+            func.zeros_like(
+                "rhoxy1", "rho", shape="(rho.shape[0], rho.shape[1], rho.shape[2]+1)"
+            )
+            func.zeros_like(
+                "rhoxy2", "rho", shape="(rho.shape[0], rho.shape[1], rho.shape[2]+1)"
+            )
+            func.add_to("rhoxy1", ":,:,:-1", "rho")
+            func.add_to("rhoxy2", ":,:,1:", "rho")
+            func.retrn_maximum("rhoxy1", "rhoxy2")
+
+        with code.add_function("rhoxz", ["rho"]) as func:
+            func.zeros_like(
+                "rhoxz1", "rho", shape="(rho.shape[0], rho.shape[1]+1, rho.shape[2])"
+            )
+            func.zeros_like(
+                "rhoxz2", "rho", shape="(rho.shape[0], rho.shape[1]+1, rho.shape[2])"
+            )
+            func.add_to("rhoxz1", ":,:-1,:", "rho")
+            func.add_to("rhoxz2", ":,1:,:", "rho")
+            func.retrn_maximum("rhoxz1", "rhoxz2")
+
+        with code.add_function("rhoyz", ["rho"]) as func:
+            func.zeros_like(
+                "rhoyz1", "rho", shape="(rho.shape[0]+1, rho.shape[1], rho.shape[2])"
+            )
+            func.zeros_like(
+                "rhoyz2", "rho", shape="(rho.shape[0]+1, rho.shape[1], rho.shape[2])"
+            )
+            func.add_to("rhoyz1", ":-1,:,:", "rho")
+            func.add_to("rhoyz2", "1:,:,:", "rho")
+            func.retrn_maximum("rhoyz1", "rhoyz2")
+
+        return code

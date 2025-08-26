@@ -22,14 +22,21 @@ class Function(CodeClass):
     :param shape: The shape of the function (either ``()`` for scalars or ``(3,)`` for
         vectors is currently supported)
     :type shape: tuple
-    :param tensor: Tensor with discretized function values
+    :param tensor: Tensor with discretized function values or function that depends on state attributes
     :type tensor: :class:`torch.Tensor`
     :param name: Name of the function
     :type name: str
+    :param dtype: dtype to be used for the tensor
+    :type dtype: dtype
     """
 
-    def __init__(self, state, spaces=None, shape=(), tensor=None, name=None):
+    def __init__(
+        self, state, spaces=None, shape=(), tensor=None, name=None, dtype=None
+    ):
         self._state = state
+        self._tensor = None
+        self.tensor = tensor
+
         if spaces is None:
             spaces = "n" * state.mesh.dim
         self._spaces = spaces
@@ -38,6 +45,7 @@ class Function(CodeClass):
             self._name = "f"
         else:
             self._name = name
+        self._dtype = dtype
 
         tensor_shape = []
         for i, space in enumerate(spaces):
@@ -50,13 +58,10 @@ class Function(CodeClass):
 
         self._tensor_shape = tuple(tensor_shape) + shape
 
-        if tensor is None or isinstance(tensor, config.backend.Tensor):
-            self._tensor = tensor
-        else:
-            raise NotImplemented("Unsupported tensor type.")
-        self._expanded = False
-
         self.save_and_load_code(spaces, shape)
+
+        self._avg = None
+        self._avg_on_domain = None
 
     @property
     def name(self):
@@ -94,19 +99,39 @@ class Function(CodeClass):
         return self._spaces
 
     @property
+    def func(self):
+        if callable(self._tensor):
+            return self._tensor
+        return None
+
+    @property
+    def func_id(self):
+        return f"function__{str(id(self))}"
+
+    @property
     def tensor(self):
         """
         The tensor containing the discretized values of the function
         """
+        if callable(self._tensor):
+            return getattr(self._state, self.func_id)
+
         if self._tensor is None:
+            dtype = self._dtype or self._state.dtype
             self._tensor = config.backend.zeros(
-                self._tensor_shape, dtype=self._state.dtype, device=self._state.device
+                self._tensor_shape, dtype=dtype, device=self._state.device
             )
         return self._tensor
 
     @tensor.setter
     def tensor(self, tensor):
+        if self.func:
+            delattr(self._state, self.func_id)
+
         self._tensor = tensor
+
+        if self.func:
+            setattr(self._state, self.func_id, self.func)
 
     def fill(self, constant, expand=False):
         """
@@ -127,25 +152,49 @@ class Function(CodeClass):
                 state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
                 f = nm.Function(state, shape = (3,)).fill([1.0, 2.0, 3.0])
         """
-        tensor = self.state.tensor(constant)
+        tensor = self.state.tensor(constant, dtype=self._dtype)
         shape = self._tensor_shape
         if self.shape == (3,) and expand == False:
             shape = self._tensor_shape[:-1] + (1,)
 
         if expand:
-            self._tensor = config.backend.broadcast_to(tensor, shape)
+            self.tensor = config.backend.broadcast_to(tensor, shape)
         else:
-            self._tensor = config.backend.tile(tensor, shape)
+            self.tensor = config.backend.tile(tensor, shape)
         return self
 
-    def avg(self):
+    def fill_by_domain(self, values):
+        aux = self.state.tensor(values)
+        if self._spaces == "c" * self._state.mesh.dim:
+            self.tensor = lambda domains: aux[domains]
+        else:
+            raise NotImplemented
+
+        return self
+
+    def avg(self, domain_id=None):
         """
         Returns the componentwise average of the function over the mesh.
 
+        :param domain_id: id of domain to average over, if None average is computed over all domains with id > 0
+        :type domain_id: int
         :return: The componentwise average
         :rtype: :class:`torch.Tensor`
         """
-        return self._code.avg(self._state.rho.tensor, self._state.dx, self.tensor)
+        if domain_id is None:
+            if self._avg is None:
+                self._avg = self._state.resolve(self._code.avg, ["f", "domains"])
+            return self._avg(self.tensor, self._state.domains.tensor)
+        else:
+            if self._avg_on_domain is None:
+                self._avg_on_domain = self._state.resolve(
+                    self._code.avg,
+                    ["f", "domains", "domain_id"],
+                    remap={"domain": "subdomain"},
+                )
+            return self._avg_on_domain(
+                self.tensor, self._state.domains.tensor, domain_id
+            )
 
     @classmethod
     def _generate_code(cls, spaces, shape):

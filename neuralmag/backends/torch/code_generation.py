@@ -105,6 +105,9 @@ class CodeFunction(object):
     def retrn_expanded(self, code, shape):
         self.add_line(f"return {code}.expand({shape})")
 
+    def retrn_maximum(self, a, b):
+        self.add_line(f"return torch.maximum({a}, {b})")
+
 
 class CodeBlock(object):
     def __init__(self, plain=False):
