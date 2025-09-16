@@ -68,7 +68,7 @@ class DemagField(FieldTerm):
         config.backend.demag_field.init_N(state, self._p)
 
     @staticmethod
-    def e_expr(m, dim):
+    def e_expr(m, dim, _options):
         rho = Variable("rho", "c" * dim)
         Ms = Variable("material__Ms", "c" * dim)
         h_demag = Variable("h_demag", "n" * dim, (3,))

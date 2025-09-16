@@ -30,7 +30,7 @@ class ExchangeField(FieldTerm):
         super().__init__(**kwargs)
 
     @staticmethod
-    def e_expr(m, dim):
+    def e_expr(m, dim, _options):
         A = Variable("material__A", "c" * dim)
         return (
             A

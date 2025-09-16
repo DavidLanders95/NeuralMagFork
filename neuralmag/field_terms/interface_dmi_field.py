@@ -36,7 +36,7 @@ class InterfaceDMIField(FieldTerm):
         super().__init__(**kwargs)
 
     @staticmethod
-    def e_expr(m, dim):
+    def e_expr(m, dim, _options):
         D = Variable("material__Di", "c" * dim)
         axis = Variable("material__Di_axis", "c" * dim, (3,))
         return (

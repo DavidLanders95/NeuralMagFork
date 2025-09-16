@@ -67,7 +67,7 @@ class InterlayerExchangeField(FieldTerm):
         state.im_other = VectorFunction(state, tensor=swap)
 
     @staticmethod
-    def e_expr(m, dim):
+    def e_expr(m, dim, _options):
         assert dim == 3
         iA = Variable("material__iA", "ccn")
         im_other = Variable("im_other", "nnn", (3,))
@@ -75,7 +75,7 @@ class InterlayerExchangeField(FieldTerm):
         return -0.5 * iA * m.dot(im_other) * dA(dim, idx="iidx")
 
     @staticmethod
-    def dedm_expr(m, dim):
+    def dedm_expr(m, dim, _options):
         assert dim == 3
         v = Variable("v", "nnn", (3,))
         iA = Variable("material__iA", "ccn")

@@ -41,7 +41,7 @@ class CubicAnisotropyField(FieldTerm):
         super().__init__(n_gauss=n_gauss, **kwargs)
 
     @staticmethod
-    def e_expr(m, dim):
+    def e_expr(m, dim, _options):
         K = Variable("material__Kc", "c" * dim)
         axis1 = Variable("material__Kc_axis1", "c" * dim, (3,))
         axis2 = Variable("material__Kc_axis2", "c" * dim, (3,))

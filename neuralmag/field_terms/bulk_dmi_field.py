@@ -32,6 +32,6 @@ class BulkDMIField(FieldTerm):
         super().__init__(**kwargs)
 
     @staticmethod
-    def e_expr(m, dim):
+    def e_expr(m, dim, _options):
         D = Variable("material__Db", "c" * dim)
         return D * m.dot(curl(m)) * dV()
