@@ -1,5 +1,3 @@
-import threading
-
 from neuralmag.common.engine import N, Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
@@ -10,41 +8,38 @@ class LIField(FieldTerm):
     r"""
     TODO
     """
-
-    _thread_local = threading.local()
+    default_name = "LI"
 
     def __init__(self, LI: str, **kwargs):
         super().__init__(**kwargs)
-        self.LI = LI
+        self.default_name = f"LI_{LI}"
+        self._options = LI
         self._validate_LI()
-        LIField._thread_local.LI = self.LI
-        self.default_name = f"dmi_{self.LI}"
 
     def _validate_LI(self):
         """Validate and convert LI and ensure it is a valid string of x,y,z."""
         valid_components = ["x", "y", "z"]
 
-        if not isinstance(self.LI, str):
+        if not isinstance(self._options, str):
             raise TypeError(
-                f"LI must be a string, but got {self.LI} of type {type(self.LI).__name__}."
+                f"LI must be a string, but got {self._options} of type {type(self._options).__name__}."
             )
 
-        if len(self.LI) != 3:
+        if len(self._options) != 3:
             raise ValueError(
-                f"LI must be a string of length 3, but got {self.LI} of length {len(self.LI)}."
+                f"LI must be a string of length 3, but got {self._options} of length {len(self._options)}."
             )
 
-        for char in self.LI:
+        for char in self._options:
             if char not in valid_components:
                 raise ValueError(
                     f"LI contains invalid character '{char}'. Valid characters are 'x', 'y', and 'z'."
                 )
 
     @staticmethod
-    def e_expr(m, dim):
-        LI = getattr(LIField._thread_local, "LI", None)
-        D = Variable(f"material__D{LI}", "c" * dim)
-        return D * Lifshitz_invariant(m, LI) * dV()
+    def e_expr(m, dim, options):
+        D = Variable(f"material__D{options}", "c" * dim)
+        return D * Lifshitz_invariant(m, options) * dV()
 
 
 def Lifshitz_invariant(m, LI):
