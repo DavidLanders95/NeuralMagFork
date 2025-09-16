@@ -6,7 +6,48 @@ __all__ = ["LIField"]
 
 class LIField(FieldTerm):
     r"""
-    TODO
+    Effective field contribution for a single Lifshitz invariant (LI) term.
+
+    These terms can be combined to form the DMI energy for different crystal
+    symmetries. Lifshitz invariants are of the form
+
+    .. math::
+
+        L_{ij}^k(\vec m) = m_i \partial_k m_j - m_j \partial_k m_i,
+
+    where :math:`i,j,k \in \{x,y,z\}`, :math:`i \neq j`, and :math:`m_i` is the
+    :math:`i`-th Cartesian component of the unit magnetization vector
+    :math:`\vec m`. This class constructs the energy density by multiplying
+    the Lifshitz invariant by a DMI constant, giving the form
+
+    .. math::
+
+        E = - \int_\Omega D_{ijk} L_{ij}^k(\vec m) \dx,
+
+    with material constant :math:`D_{ijk}` provided as a scalar cell field whose
+    name encodes the chosen LI directions.
+
+    The specific invariant is selected by the string ``LI`` passed to the
+    constructor. This must be a three-character string composed only of the
+    letters ``x``, ``y`` and ``z``. The first two characters specify the pair
+    :math:`(i,j)` in order whilst the third character specifies
+    :math:`k` (the derivative direction).
+
+    The corresponding material constant must be supplied in the simulation state
+    as ``state.material.D{LI}`` (e.g. ``state.material.Dxyz``).
+
+    :param LI: Three-character string selecting the Lifshitz invariant indices (e.g. ``'xyz'``).
+    :type LI: str
+    :param n_gauss: Degree of Gauss quadrature used in the form compiler (inherited via kwargs).
+    :type n_gauss: int, optional
+
+    :Required state attributes (if not renamed):
+         * **state.material.D{LI}** (*cell scalar field*) The DMI constant associated with this invariant.
+         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m.
+
+    :raises TypeError: If ``LI`` is not a string.
+    :raises ValueError: If ``LI`` length is not 3 or contains characters other than ``x``, ``y``, ``z``.
+
     """
 
     default_name = "LI"
