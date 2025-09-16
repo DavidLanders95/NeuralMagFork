@@ -31,6 +31,9 @@ include = ["neuralmag*"]
 [tool.black]
 line-length = 88
 
-[tool.isort]
-profile = "black"
-skip_gitignore = true  # ignores files listed in .gitignore
+[tool.ruff]
+line-length = 88
+target-version = "py38"
+
+[tool.ruff.lint]
+select = ["I"]
