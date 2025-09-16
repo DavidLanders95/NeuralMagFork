@@ -39,7 +39,7 @@ class LIField(FieldTerm):
     @staticmethod
     def e_expr(m, dim, options):
         D = Variable(f"material__D{options}", "c" * dim)
-        return D * Lifshitz_invariant(m, options) * dV()
+        return D * Lifshitz_invariant(m, options) * dV(dim)
 
 
 def Lifshitz_invariant(m, LI):
