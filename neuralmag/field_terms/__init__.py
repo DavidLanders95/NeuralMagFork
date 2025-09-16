@@ -9,6 +9,7 @@ from .external_field import *
 from .field_term import *
 from .interface_dmi_field import *
 from .interlayer_exchange_field import *
+from .test_LI import *
 from .total_field import *
 from .uniaxial_anisotropy_field import *
 
@@ -24,4 +25,5 @@ __all__ = (
     + uniaxial_anisotropy_field.__all__
     + cubic_anisotropy_field.__all__
     + dmi_field.__all__
+    + test_LI.__all__
 )
