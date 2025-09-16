@@ -168,7 +168,7 @@ class Function(CodeClass):
         if self._spaces == "c" * self._state.mesh.dim:
             self.tensor = lambda domains: aux[domains]
         else:
-            raise NotImplemented
+            raise NotImplementedError
 
         return self
 
@@ -214,7 +214,7 @@ class Function(CodeClass):
                 func.zeros_like("fint", "f", (3,))
                 for i in range(3):
                     terms, _ = en.compile_functional(f.dot(en.cs_e[i]) * en.dV(dim))
-                    func.assign_sum(f"fint", *[term["cmd"] for term in terms], index=i)
+                    func.assign_sum("fint", *[term["cmd"] for term in terms], index=i)
 
             func.retrn("fint / vol")
 

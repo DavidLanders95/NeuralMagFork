@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 
-import jax
-import jax.numpy as jnp
 import numpy as np
 
+import jax
+import jax.numpy as jnp
 from neuralmag.common import config, logging
 
 float64 = jnp.float64
@@ -21,7 +21,7 @@ def device_from_str(device):
 
 def device_for_state(device):
     logging.warning(
-        f"[NeuralMag] JAX backend doesn't support setting device per State. Falling back to default device."
+        "[NeuralMag] JAX backend doesn't support setting device per State. Falling back to default device."
     )
     return None
 
@@ -39,7 +39,7 @@ def dtype_from_str(dtype):
 
 def dtype_for_state(dtype):
     logging.warning(
-        f"[NeuralMag] JAX backend doesn't support setting dtype per State. Falling back to default dtype."
+        "[NeuralMag] JAX backend doesn't support setting dtype per State. Falling back to default dtype."
     )
     return config.dtype
 

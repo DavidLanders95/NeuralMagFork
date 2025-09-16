@@ -1,11 +1,10 @@
 # SPDX-License-Identifier: MIT
 
-import equinox as eqx
+from diffrax import Dopri5, ODETerm, PIDController, SaveAt, diffeqsolve
+
 import jax
 import jax.numpy as jnp
-from diffrax import Dopri5, Event, ODETerm, PIDController, SaveAt, diffeqsolve
-
-from neuralmag.common import Function, logging
+from neuralmag.common import logging
 
 __all__ = ["LLGSolverJAX"]
 

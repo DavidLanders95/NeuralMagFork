@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-from neuralmag.common.engine import N, Variable, dV
+from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["CubicAnisotropyField"]
@@ -34,6 +34,7 @@ class CubicAnisotropyField(FieldTerm):
     **state.material.Kc_axis1**, **state.material.Kc_axis2**, and **state.material.Kc_axis3** should be
     orthogonal unit vectors.
     """
+
     default_name = "caniso"
 
     def __init__(self, n_gauss=1, **kwargs):

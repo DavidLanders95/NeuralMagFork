@@ -29,6 +29,7 @@ class TotalField(FieldTerm):
             h = state.h
             E = state.E
     """
+
     default_name = ""
 
     def __init__(self, *field_names):

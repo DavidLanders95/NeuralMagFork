@@ -44,6 +44,7 @@ class ExternalField(FieldTerm):
             external = nm.ExternalField(lambda t: t * state.tensor([0, 8e5 / 10e-9, 0]))
 
     """
+
     default_name = "external"
     h = None
 
@@ -64,7 +65,7 @@ class ExternalField(FieldTerm):
                 compiled_code = compile(str(block), "<string>", "exec")
                 self.h = types.FunctionType(
                     compiled_code.co_consts[0],
-                    {**config.backend.libs, **{f"__h": self._h}},
+                    {**config.backend.libs, **{"__h": self._h}},
                     name,
                 )
             else:

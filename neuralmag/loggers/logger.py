@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 
 import os
-from collections.abc import Iterable
 
 from ..common import logging
 from .field_logger import FieldLogger

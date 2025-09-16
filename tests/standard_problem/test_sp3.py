@@ -1,11 +1,6 @@
-import copy
-import datetime
-import os
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pytest
-from scipy.optimize import bisect
 
 from neuralmag import *
 
@@ -31,7 +26,6 @@ def test_sp3():
     L_array = np.linspace(8.3, 8.6, 5)
     flower_energies, vortex_energies = [], []
     for L in L_array:
-
         lex = cubesize / L  # exchange length.
         Km = 1e6  # magnetostatic energy density (J/m**3)
         Ms = np.sqrt(2 * Km / mu0)  # magnetisation saturation (A/m)

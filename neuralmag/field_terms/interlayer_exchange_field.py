@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 
 from neuralmag.common import VectorFunction, config
-from neuralmag.common.engine import N, Variable, dA
+from neuralmag.common.engine import Variable, dA
 from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["InterlayerExchangeField"]
@@ -50,6 +50,7 @@ class InterlayerExchangeField(FieldTerm):
         * **state.material.iA** (*CCN scalar field*) Interface coupling constant in J/m^2
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
+
     default_name = "iexchange"
 
     def __init__(self, idx1, idx2, **kwargs):

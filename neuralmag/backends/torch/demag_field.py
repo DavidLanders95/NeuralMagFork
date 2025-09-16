@@ -1,12 +1,11 @@
 # SPDX-License-Identifier: MIT
 
 import numpy as np
+
 import torch
 import torch.fft
-from scipy import constants
-from torch import abs, asinh, atan, log, sqrt
-
 from neuralmag.common import logging
+from torch import abs, asinh, atan, sqrt
 
 complex_dtype = {
     torch.float: torch.complex,
@@ -78,9 +77,7 @@ def newell(func, x, y, z, dx, dy, dz, dX, dY, dZ):
 
 def dipole_f(x, y, z, dx, dy, dz, dX, dY, dZ):
     z = z + dZ / 2.0 - dz / 2.0  # diff of cell centers for non-equidistant demag
-    result = (2.0 * x**2 - y**2 - z**2) * pow(
-        x**2 + y**2 + z**2, -5.0 / 2.0
-    )
+    result = (2.0 * x**2 - y**2 - z**2) * pow(x**2 + y**2 + z**2, -5.0 / 2.0)
     result[0, 0, 0] = 0.0
     return result * dx * dy * dz / (4.0 * np.pi)
 
@@ -233,7 +230,7 @@ def init_N_component(state, perm, func, p):
 
 
 def init_N(state, p):
-    logging.info_green(f"[DemagField]: Set up demag tensor")
+    logging.info_green("[DemagField]: Set up demag tensor")
 
     Nxx = init_N_component(state, [0, 1, 2], demag_f, p).to(dtype=state.dtype)
     Nxy = init_N_component(state, [0, 1, 2], demag_g, p).to(dtype=state.dtype)

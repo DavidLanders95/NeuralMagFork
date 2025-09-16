@@ -1,22 +1,15 @@
 # SPDX-License-Identifier: MIT
 
-import os
-from time import time
+
+import numpy as np
 
 import jax
 import jax.numpy as jnp
 import jax.numpy.fft as jfft
-import numpy as np
-from jax import grad, vmap
-from jax.numpy import abs
+from jax.numpy import abs, pi, sqrt
 from jax.numpy import arcsinh as asinh
 from jax.numpy import arctan as atan
-from jax.numpy import log, pi, sqrt
-from scipy import constants
-
 from neuralmag.common import logging
-from neuralmag.common.engine import Variable, dV
-from neuralmag.field_terms.field_term import FieldTerm
 
 complex_dtype = {
     jnp.dtype("float32"): jnp.complex64,
@@ -243,7 +236,7 @@ def init_N_component(state, perm, func, p):
 
 
 def init_N(state, p):
-    logging.info_green(f"[DemagField]: Set up demag tensor")
+    logging.info_green("[DemagField]: Set up demag tensor")
 
     with jax.experimental.enable_x64():
         Nxx = init_N_component(state, [0, 1, 2], demag_f, p).astype(state.dtype)
