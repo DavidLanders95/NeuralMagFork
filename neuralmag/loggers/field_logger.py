@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 
 import os
-import xml.etree.cElementTree as ET
 from xml.dom import minidom
 from xml.etree import cElementTree
 

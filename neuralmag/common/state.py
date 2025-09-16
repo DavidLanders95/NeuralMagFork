@@ -185,7 +185,7 @@ class State(CodeClass):
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
-            if not name in self._attr_funcs:
+            if name not in self._attr_funcs:
                 attr = self._attr_values[name]
                 self._attr_funcs[name] = self.resolve(attr)
 
@@ -511,9 +511,7 @@ class State(CodeClass):
                 )
                 data = np.expand_dims(data, missing_dims)
                 new_shape = np.array(data.shape)
-                new_shape[
-                    missing_dims,
-                ] = 2
+                new_shape[missing_dims,] = 2
                 data = np.broadcast_to(data, new_shape)
 
             if field.shape == ():
@@ -521,14 +519,14 @@ class State(CodeClass):
             elif field.shape == (3,):
                 data = data.reshape(-1, 3, order="F")
             else:
-                raise NotImplemented(f"Unsupported shape '{field.shape}'.")
+                raise NotImplementedError(f"Unsupported shape '{field.shape}'.")
 
             if space == "n":
                 grid.point_data.set_array(data, name)
             elif space == "c":
                 grid.cell_data.set_array(data, name)
             else:
-                raise NotImplemented(f"Unsupported space '{field.spaces}'.")
+                raise NotImplementedError(f"Unsupported space '{field.spaces}'.")
 
         dirname = os.path.dirname(filename)
         if dirname and not os.path.isdir(dirname):

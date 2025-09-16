@@ -1,13 +1,10 @@
 # SPDX-License-Identifier: MIT
 
-import inspect
-import sys
 
 from scipy import constants
 
-from neuralmag.common import CodeClass, Function, VectorFunction, config
+from neuralmag.common import CodeClass, VectorFunction, config, logging
 from neuralmag.common import engine as en
-from neuralmag.common import logging
 
 __all__ = ["FieldTerm"]
 

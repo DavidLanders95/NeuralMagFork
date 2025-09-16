@@ -1,7 +1,6 @@
 # SPDX-License-Identifier: MIT
 
 import jax
-
 from neuralmag.common import config
 
 

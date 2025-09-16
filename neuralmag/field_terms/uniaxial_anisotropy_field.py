@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-from neuralmag.common.engine import N, Variable, dV
+from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["UniaxialAnisotropyField"]
@@ -24,6 +24,7 @@ class UniaxialAnisotropyField(FieldTerm):
         * **state.material.Ku_axis** (*cell vector field*) The anisotropy axis as unit vector field
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
+
     default_name = "uaniso"
 
     def __init__(self, **kwargs):

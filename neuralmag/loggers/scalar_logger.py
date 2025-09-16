@@ -4,7 +4,7 @@ import os
 from collections.abc import Iterable
 from functools import reduce
 
-from ..common import Function, config, logging
+from ..common import Function, config
 
 __all__ = ["ScalarLogger"]
 

@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: MIT
 
-import torch
-import torch.nn as nn
 from torchdiffeq import odeint_adjoint as odeint
 
+import torch
+import torch.nn as nn
 from neuralmag.common import Function, logging
 
 __all__ = ["LLGSolverTorch"]

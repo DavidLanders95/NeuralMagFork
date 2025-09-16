@@ -4,8 +4,6 @@ import os
 
 import torch
 
-from neuralmag.common import logging
-
 float64 = torch.float64
 float32 = torch.float32
 integer = torch.int

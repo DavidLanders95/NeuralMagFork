@@ -1,7 +1,5 @@
 # SPDX-License-Identifier: MIT
 
-import os
-from time import time
 
 from scipy import constants
 
@@ -39,6 +37,7 @@ class DemagField(FieldTerm):
     :Required state attributes (if not renamed):
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
+
     default_name = "demag"
     h = None
 

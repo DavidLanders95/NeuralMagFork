@@ -2,7 +2,7 @@
 
 from sympy.vector import divergence, gradient
 
-from neuralmag.common.engine import N, Variable, dV
+from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["InterfaceDMIField"]
@@ -29,6 +29,7 @@ class InterfaceDMIField(FieldTerm):
         * **state.material.Di_axis** (*cell vector field*) The DMI surface normal as unit vector field
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
+
     default_name = "idmi"
 
     def __init__(self, **kwargs):

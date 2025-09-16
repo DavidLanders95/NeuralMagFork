@@ -2,7 +2,7 @@
 
 from sympy.vector import curl
 
-from neuralmag.common.engine import N, Variable, dV
+from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["BulkDMIField"]
@@ -25,6 +25,7 @@ class BulkDMIField(FieldTerm):
         * **state.material.Db** (*cell scalar field*) The DMI constant in J/m^2
         * **state.material.Ms** (*cell scalar field*) The saturation magnetization in A/m
     """
+
     default_name = "bdmi"
 
     def __init__(self, **kwargs):
