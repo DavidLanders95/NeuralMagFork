@@ -50,7 +50,7 @@ demag_func = state.resolve("h_demag", ["rho_m"])
 
 
 def loss(rho):
-    return -demag_func(rho**3)[10, 10, 12, 2] ** 2
+    return -(demag_func(rho**3)[10, 10, 12, 2] ** 2)
 
 
 grad_loss = jax.grad(loss)
