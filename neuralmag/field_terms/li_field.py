@@ -48,6 +48,14 @@ class LIField(FieldTerm):
     :raises TypeError: If ``LI`` is not a string.
     :raises ValueError: If ``LI`` length is not 3 or contains characters other than ``x``, ``y``, ``z``.
 
+    :Example:
+    .. code-block::
+
+        state = nm.State(nm.Mesh((10, 10, 10), (1e-9, 1e-9, 1e-9)))
+
+        state.material.Dxyz = 1e-3
+        nm.LIField("xyz").register(state, "LI_xyz")
+
     """
 
     default_name = "LI"
