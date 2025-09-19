@@ -38,3 +38,14 @@ def test_E(state):
     h_ext = VectorFunction(state).fill([1.0, 2.0, 3.0])
     ExternalField(h_ext).register(state)
     assert be.to_numpy(state.E_external) == pytest.approx(-8e-27)
+
+
+def test_energy_density(state):
+    h_ext = VectorFunction(state).fill([1.0, 0.0, 0.0])
+    ExternalField(h_ext).register(state)
+
+    state.m = VectorFunction(state).fill([1.0, 0.0, 0.0])
+    assert be.to_numpy(state.e_external.avg()) == pytest.approx(-1)
+
+    state.m = VectorFunction(state).fill([0.0, 1.0, 0.0])
+    assert be.to_numpy(state.e_external.avg()) == pytest.approx(0)

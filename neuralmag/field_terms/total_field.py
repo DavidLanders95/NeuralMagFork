@@ -2,7 +2,7 @@
 
 import types
 
-from neuralmag.common import VectorFunction, logging
+from neuralmag.common import Function, VectorFunction, logging
 from neuralmag.field_terms.field_term import FieldTerm
 
 __all__ = ["TotalField"]
@@ -44,6 +44,14 @@ class TotalField(FieldTerm):
         compiled_code = compile(code, "<string>", "exec")
         h_func = types.FunctionType(compiled_code.co_consts[0], {}, "h_total")
 
+        code = f"def e_total({', '.join([self.attr_name('e', name) for name in self._field_names])}):\n"
+        code += (
+            "    return"
+            f" {' + '.join([self.attr_name('e', name) for name in self._field_names])}"
+        )
+        compiled_code = compile(code, "<string>", "exec")
+        e_func = types.FunctionType(compiled_code.co_consts[0], {}, "e_total")
+
         code = f"def E_total({', '.join([self.attr_name('E', name) for name in self._field_names])}):\n"
         code += (
             "    return"
@@ -54,7 +62,8 @@ class TotalField(FieldTerm):
 
         logging.info_green(
             f"[{self.__class__.__name__}] Register state methods (field:"
-            f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}')"
+            f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}', energy density: '{self.attr_name('e', name)}')"
         )
         setattr(state, self.attr_name("h", name), VectorFunction(state, tensor=h_func))
         setattr(state, self.attr_name("E", name), E_func)
+        setattr(state, self.attr_name("e", name), Function(state, tensor=e_func))

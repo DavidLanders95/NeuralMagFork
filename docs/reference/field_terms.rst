@@ -11,7 +11,7 @@ To this end, it uses symbolic differentiation and integration to implement the r
 For more complicated field terms which require taylored numerical algorithms, such as the :class:`DemagField`, the standard methods of the :class:`FieldTerm` class can be overwritten.
 
 In order to use field terms, they have to be registered with a :class:`State` object.
-By registering the field term, the state is extended by :ref:`dynamic attributes` for the evaluation of the energy and the effective field.
+By registering the field term, the state is extended by :ref:`dynamic attributes` for the evaluation of the energy, energy density, and the effective field.
 In order to combine multiple field contributions to the total effective field, NeuralMag provides the :class:`TotalField` class that automatically adds up arbitrary field contributions and energies.
 
 .. autoclass:: FieldTerm

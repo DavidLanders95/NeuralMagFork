@@ -3,7 +3,7 @@
 
 from scipy import constants
 
-from neuralmag.common import CodeClass, VectorFunction, config, logging
+from neuralmag.common import CodeClass, Function, VectorFunction, config, logging
 from neuralmag.common import engine as en
 
 __all__ = ["FieldTerm"]
@@ -77,13 +77,16 @@ class FieldTerm(CodeClass):
             self.save_and_load_code(self._n_gauss, dim)
         if not hasattr(self, "h"):
             self.h = config.backend.compile(self._code.h)
+        if not hasattr(self, "e"):
+            self.e = config.backend.compile(self._code.e)
         if not hasattr(self, "E"):
             self.E = config.backend.compile(self._code.E)
         logging.info_green(
             f"[{self.__class__.__name__}] Register state methods (field:"
-            f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}')"
+            f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}', energy density: '{self.attr_name('e', name)}')"
         )
         setattr(state, self.attr_name("h", name), VectorFunction(state, tensor=self.h))
+        setattr(state, self.attr_name("e", name), Function(state, tensor=self.e))
         setattr(state, self.attr_name("E", name), self.E)
 
     @classmethod
@@ -132,6 +135,23 @@ class FieldTerm(CodeClass):
                     f.add_to("mass", cmd[0], cmd[1])
 
                 f.retrn("h / mass.reshape(mass.shape + (1,))")  # unsqueeze(-1)")
+
+        if not hasattr(cls, "e"):
+            v = en.Variable("v", "n" * dim)
+
+            cmds1, vars1 = en.linear_form_cmds(v * cls.e_expr(m, dim), n_gauss)
+            cmds2, vars2 = en.linear_form_cmds(v * en.dV(dim))
+
+            with code.add_function("e", sorted(list(vars1 | vars2 | {"m"}))) as f:
+                f.zeros_like("e", "m", shape="m.shape[:-1]")
+                for cmd in cmds1:
+                    f.add_to("e", cmd[0], cmd[1])
+
+                f.zeros_like("mass", "m", shape="m.shape[:-1]")
+                for cmd in cmds2:
+                    f.add_to("mass", cmd[0], cmd[1])
+
+                f.retrn("e / mass")
 
         if not hasattr(cls, "E"):
             terms, variables = en.compile_functional(cls.e_expr(m, dim), n_gauss)
