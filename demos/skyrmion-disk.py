@@ -61,7 +61,7 @@ nm.TotalField("exchange", "demag", "dmi", "aniso").register(state)
 
 llg = nm.LLGSolver(state, scale_t=1e-12)
 llg.relax(1e9)
-state.write_vti(["m", "rho"], "skyrmion-disk/m.vti")
+state.write_vti(["m", "rho", "e"], "skyrmion-disk/m.vti")
 
 
 # ## Visualization
@@ -74,5 +74,5 @@ glyphs = thresholded.glyph(orient="m", scale="m", factor=1e-8)
 
 # Plot
 plotter = pv.Plotter()
-plotter.add_mesh(glyphs, color="white", lighting=True, smooth_shading=True)
+plotter.add_mesh(glyphs, scalars="e", lighting=True, smooth_shading=True)
 plotter.show()
