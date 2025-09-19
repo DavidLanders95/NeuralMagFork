@@ -83,7 +83,7 @@ class FieldTerm(CodeClass):
             self.E = config.backend.compile(self._code.E)
         logging.info_green(
             f"[{self.__class__.__name__}] Register state methods (field:"
-            f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}')"
+            f" '{self.attr_name('h', name)}', energy: '{self.attr_name('E', name)}', energy density: '{self.attr_name('e', name)}')"
         )
         setattr(state, self.attr_name("h", name), VectorFunction(state, tensor=self.h))
         setattr(state, self.attr_name("e", name), Function(state, tensor=self.e))
