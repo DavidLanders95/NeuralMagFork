@@ -4,6 +4,7 @@ Examples
 .. toctree::
    :maxdepth: 1
    
+   LI
    DMI-in-1D-stripe
    domain-wall-depinning
    skyrmion-disk
