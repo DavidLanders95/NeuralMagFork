@@ -140,7 +140,7 @@ class FieldTerm(CodeClass):
         if not hasattr(cls, "e"):
             v = en.Variable("v", "n" * dim)
 
-            cmds1, vars1 = en.linear_form_cmds(v * cls.e_expr(m, dim), n_gauss)
+            cmds1, vars1 = en.linear_form_cmds(v * cls.e_expr(m, dim, options), n_gauss)
             cmds2, vars2 = en.linear_form_cmds(v * en.dV(dim))
 
             with code.add_function("e", sorted(list(vars1 | vars2 | {"m"}))) as f:
