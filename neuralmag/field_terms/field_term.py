@@ -32,7 +32,7 @@ class FieldTerm(CodeClass):
                 default_name = "uaniso"
 
                 @staticmethod
-                def e_expr(m, dim):
+                def e_expr(m, dim, _options):
                     K = en.Variable("material__Ku", "c" * dim)
                     axis = en.Variable("material__Ku_axis", "c" * dim, (3,))
                     return -K * m.dot(axis) ** 2 * en.dV(dim)
@@ -50,6 +50,7 @@ class FieldTerm(CodeClass):
 
     def __init__(self, n_gauss=None):
         self._n_gauss = n_gauss or config.fem["n_gauss"]
+        self._options = None
 
     def __init_subclass__(cls, **kwargs):
         if getattr(cls, "default_name") is None:
@@ -74,7 +75,7 @@ class FieldTerm(CodeClass):
         """
         dim = state.mesh.dim
         if hasattr(self, "e_expr"):
-            self.save_and_load_code(self._n_gauss, dim)
+            self.save_and_load_code(self._n_gauss, dim, self._options)
         if not hasattr(self, "h"):
             self.h = config.backend.compile(self._code.h)
         if not hasattr(self, "e"):
@@ -107,16 +108,16 @@ class FieldTerm(CodeClass):
         return f"{attr}_{name}"
 
     @classmethod
-    def _generate_code(cls, n_gauss, dim):
+    def _generate_code(cls, n_gauss, dim, options):
         code = config.backend.CodeBlock()
         m = en.Variable("m", "n" * dim, (3,))
 
         if not hasattr(cls, "h"):
             # generate linear-form cmds
             if hasattr(cls, "dedm_expr"):
-                field_expr = cls.dedm_expr(m, dim)
+                field_expr = cls.dedm_expr(m, dim, options)
             else:
-                field_expr = en.gateaux_derivative(cls.e_expr(m, dim), m)
+                field_expr = en.gateaux_derivative(cls.e_expr(m, dim, options), m)
 
             cmds1, vars1 = en.linear_form_cmds(field_expr, n_gauss)
 
@@ -154,7 +155,9 @@ class FieldTerm(CodeClass):
                 f.retrn("e / mass")
 
         if not hasattr(cls, "E"):
-            terms, variables = en.compile_functional(cls.e_expr(m, dim), n_gauss)
+            terms, variables = en.compile_functional(
+                cls.e_expr(m, dim, options), n_gauss
+            )
             with code.add_function("E", variables) as f:
                 f.retrn_sum(*[term["cmd"] for term in terms])
 
