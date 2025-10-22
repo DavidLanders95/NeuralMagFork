@@ -247,7 +247,7 @@ def linear_form_cmds(expr, n_gauss=3):
     return cmds, variables
 
 
-def gateaux_derivative(expr, var):
+def gateaux_derivative(expr, var, vname="v"):
     r"""
     Compute the Gateaux derivative (variation) of a functional with respect to
     a given variable.
@@ -256,6 +256,8 @@ def gateaux_derivative(expr, var):
     :type expr: sympy.Expr
     :param var: The variable used for the derivative
     :type var: :class:`Variable`
+    :param var: The name of the test function to be multiplied
+    :type var: str
     :return: The resulting linear form
     :rtype: sympy.Expr
     """
@@ -263,6 +265,6 @@ def gateaux_derivative(expr, var):
     for symb in var.free_symbols:
         if not hasattr(symb, "name") or not re.match(r"^_(.*:.*:.*:.*)_$", symb.name):
             continue
-        v = sp.Symbol(re.sub(r"^_.*:(.*:.*:.*_)$", r"_v:\1", symb.name))
+        v = sp.Symbol(re.sub(r"^_.*:(.*:.*:.*_)$", rf"_{vname}:\1", symb.name))
         result.append(v * expr.diff(symb))
     return reduce(lambda x, y: x + y, result)
