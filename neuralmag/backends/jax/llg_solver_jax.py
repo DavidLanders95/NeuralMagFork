@@ -1,12 +1,23 @@
 # SPDX-License-Identifier: MIT
 
-from diffrax import Dopri5, ODETerm, PIDController, SaveAt, diffeqsolve
+import diffrax as dfx
+import equinox as eqx
+import lineax as lx
+import optimistix as optx
 
 import jax
 import jax.numpy as jnp
 from neuralmag.common import logging
 
 __all__ = ["LLGSolverJAX"]
+
+
+# monkey patch vector field in MultiTerm
+def vector_field(self, *args, **kwargs):
+    return sum([term.vector_field(*args, **kwargs) for term in self.terms])
+
+
+dfx.MultiTerm.vector_field = vector_field
 
 
 def llg_rhs(h, m, material__alpha):
@@ -28,14 +39,33 @@ class LLGSolverJAX(object):
     :param parameters: List a attribute names for the adjoint gradient computation.
                        Only required for optimization problems.
     :type parameters: list
+    :param max_steps: maximum internal steps to be taken in LLGSolver.step
+    :type max_steps: int
+    :param solver_type: Solver type for time integration (Dopri5,Kvaerno3,Kvaerno5,KenCarp3,KenCarp5)
+    :type solver_type: str
+    :param rtol: relative tolerance of time integrator
+    :type rtol: float
+    :param atol: absolute tolerance of time integrator
+    :type atol: float
 
     :Required state attributes:
         * **state.t** (*scalar*) The time in s
-        * **state.h** (*nodal vector field*) The effective field in A/m
+        * **state.h** (*nodal vector field*) The effective field in A/m (in case of implicit/explict solvers)
+        * **state.h_impl** (*nodal vector field*) The effective field in A/m to be integrated implicitly (in case of IMEX solvers)
+        * **state.h_expl** (*nodal vector field*) The effective field in A/m to be integrated explicitly (in case of IMEX solvers)
         * **state.m** (*nodal vector field*) The magnetization
     """
 
-    def __init__(self, state, scale_t=1e-9, parameters=None, max_steps=4096):
+    def __init__(
+        self,
+        state,
+        scale_t=1e-9,
+        parameters=None,
+        max_steps=4096,
+        solver_type="Dopri5",
+        rtol=1e-5,
+        atol=1e-5,
+    ):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
@@ -46,12 +76,57 @@ class LLGSolverJAX(object):
         self._max_steps = max_steps
 
         # TODO Solver options
-        # self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
-        self._solver = Dopri5()
-        self._stepsize_controller = PIDController(rtol=1e-5, atol=1e-5)
-        self._saveat_step = SaveAt(t1=True)
+        solver_types = {
+            "Dopri5": ("explicit", dfx.Dopri5),
+            "Kvaerno3": ("implicit", dfx.Kvaerno3),
+            "Kvaerno5": ("implicit", dfx.Kvaerno5),
+            "KenCarp3": ("imex", dfx.KenCarp3),
+            "KenCarp5": ("imex", dfx.KenCarp5),
+        }
+        self._solver_type, self._solver_class = solver_types[solver_type]
+
+        self._stepsize_controller = dfx.PIDController(rtol=rtol, atol=atol)
+        self._saveat_step = dfx.SaveAt(t1=True, dense=False, steps=False)
 
         self.reset()
+
+    def _setup_term(self, replace={}):
+        internal_args = ["t", "m"] + list(replace.keys()) + self._parameters
+
+        if self._solver_type == "explicit" or self._solver_type == "implicit":
+            llg_rhs_resolved = self._state.resolve(llg_rhs, internal_args)
+
+            def llg_rhs_scaled(t, m, args):
+                return self._scale_t * llg_rhs_resolved(
+                    t * self._scale_t, m, *replace.values(), *args
+                )
+
+            return dfx.ODETerm(jax.jit(llg_rhs_scaled))
+
+        if self._solver_type == "imex":
+            llg_rhs_resolved_impl = self._state.resolve(
+                llg_rhs, internal_args, remap={"h": "h_impl"}
+            )
+
+            def llg_rhs_scaled_impl(t, m, args):
+                return self._scale_t * llg_rhs_resolved_impl(
+                    t * self._scale_t, m, *replace.values(), *args
+                )
+
+            term_impl = dfx.ODETerm(jax.jit(llg_rhs_scaled_impl))
+
+            llg_rhs_resolved_expl = self._state.resolve(
+                llg_rhs, internal_args, remap={"h": "h_expl"}
+            )
+
+            def llg_rhs_scaled_expl(t, m, args):
+                return self._scale_t * llg_rhs_resolved_expl(
+                    t * self._scale_t, m, *replace.values(), *args
+                )
+
+            term_expl = dfx.ODETerm(jax.jit(llg_rhs_scaled_expl))
+
+            return dfx.MultiTerm(term_expl, term_impl)
 
     def reset(self):
         """
@@ -59,11 +134,16 @@ class LLGSolverJAX(object):
         """
         logging.info_green("[LLGSolverJAX] Initialize RHS function")
 
-        internal_args = ["t", "m"] + self._parameters
+        self._term = self._setup_term()
 
-        self._func = self._state.resolve(llg_rhs, internal_args)
-        rhs = lambda t, m, args: self._scale_t * self._func(t * self._scale_t, m, *args)
-        self._term = ODETerm(jax.jit(rhs))
+        if self._solver_type == "explicit":
+            self._solver = self._solver_class()
+        else:
+            root_finder = dfx.with_stepsize_controller_tols(optx.Newton)(
+                linear_solver=lx.GMRES(rtol=1e-3, atol=1e-3, restart=50)
+            )
+            self._solver = self._solver_class(root_finder=root_finder)
+
         self._solver_state = None
 
     def relax(self, tol=2e7 * jnp.pi, dt=1e-11):
@@ -78,33 +158,31 @@ class LLGSolverJAX(object):
         :type dt: float
         """
         alpha = self._state.tensor(1.0)
-
-        func = self._state.resolve(llg_rhs, ["t", "m", "material__alpha"])
-        rhs = lambda t, m, _: self._scale_t * func(t * self._scale_t, m, alpha)
-        term = ODETerm(jax.jit(rhs))
+        term = self._setup_term({"material__alpha": alpha})
 
         logging.info_blue(
             f"[LLGSolverJAX] Relaxation started, initial energy E = {self._state.E:g} J"
         )
         t = self._scale_t * self._state.t
-        # rhs_args = [self._scale_t * self._state.t, self._state.m.tensor, None]
+        args = []  # TODO is that right?
         while (
             jnp.linalg.norm(
-                term.vector_field(t, self._state.m.tensor, None), axis=-1
+                term.vector_field(t, self._state.m.tensor, args), axis=-1
             ).max()
             / self._scale_t
             > tol
         ):
             logging.info_blue(
-                f"[LLGSolverJAX] Relaxation step (max dm/dt = {jnp.linalg.norm(term.vector_field(t, self._state.m.tensor, None), axis=-1).max() / self._scale_t:g}) 1/s"
+                f"[LLGSolverJAX] Relaxation step (max dm/dt = {jnp.linalg.norm(term.vector_field(t, self._state.m.tensor, args), axis=-1).max() / self._scale_t:g}) 1/s"
             )
-            sol = diffeqsolve(
+            sol = dfx.diffeqsolve(
                 term,
                 self._solver,
                 t0=self._state.t / self._scale_t,
                 t1=(self._state.t + dt) / self._scale_t,
                 dt0=self._dt0 / self._scale_t,
                 y0=self._state.m.tensor,
+                args=args,
                 saveat=self._saveat_step,
                 stepsize_controller=self._stepsize_controller,
                 max_steps=self._max_steps,
@@ -126,7 +204,7 @@ class LLGSolverJAX(object):
         """
         logging.info_blue(f"[LLGSolverJAX] Step: dt = {dt:g}s, t = {self._state.t:g}s")
 
-        sol = diffeqsolve(
+        sol = dfx.diffeqsolve(
             self._term,
             self._solver,
             t0=self._state.t / self._scale_t,
@@ -155,8 +233,8 @@ class LLGSolverJAX(object):
         TODO args
         """
         t_scaled = t / self._scale_t
-        saveat = SaveAt(ts=t_scaled)
-        sol = diffeqsolve(
+        saveat = dfx.SaveAt(ts=t_scaled)
+        sol = dfx.diffeqsolve(
             self._term,
             self._solver,
             t0=t_scaled[0],
