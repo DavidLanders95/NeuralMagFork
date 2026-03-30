@@ -107,17 +107,15 @@ def demag_g(x, y, z, dx, dy, dz, dX, dY, dZ, p):
     return res
 
 
-def h_cell(N_demag, mcell, material__Ms, rho):
-    dim = [i for i in range(3) if mcell.shape[i] > 1]
-    s = [mcell.shape[i] * 2 for i in dim]
+def h_cell(N_demag, m, material__Ms, rho):
+    dim = [i for i in range(3) if m.shape[i] > 1]
+    s = [m.shape[i] * 2 for i in dim]
 
-    hx = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[mcell.dtype])
-    hy = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[mcell.dtype])
-    hz = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[mcell.dtype])
+    hx = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[m.dtype])
+    hy = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[m.dtype])
+    hz = torch.zeros_like(N_demag[0][0], dtype=complex_dtype[m.dtype])
     for ax in range(3):
-        m_pad_fft1D = torch.fft.rfftn(
-            rho * material__Ms * mcell[:, :, :, ax], dim=dim, s=s
-        )
+        m_pad_fft1D = torch.fft.rfftn(rho * material__Ms * m[:, :, :, ax], dim=dim, s=s)
         hx += N_demag[0][ax] * m_pad_fft1D
         hy += N_demag[1][ax] * m_pad_fft1D
         hz += N_demag[2][ax] * m_pad_fft1D
@@ -128,9 +126,9 @@ def h_cell(N_demag, mcell, material__Ms, rho):
 
     return torch.stack(
         [
-            hx[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]],
-            hy[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]],
-            hz[: mcell.shape[0], : mcell.shape[1], : mcell.shape[2]],
+            hx[: m.shape[0], : m.shape[1], : m.shape[2]],
+            hy[: m.shape[0], : m.shape[1], : m.shape[2]],
+            hz[: m.shape[0], : m.shape[1], : m.shape[2]],
         ],
         dim=3,
     )
