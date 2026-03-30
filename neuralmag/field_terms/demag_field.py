@@ -3,7 +3,7 @@
 
 from scipy import constants
 
-from neuralmag.common import VectorFunction, config
+from neuralmag.common import VectorCellFunction, VectorFunction, config
 from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
@@ -47,7 +47,14 @@ class DemagField(FieldTerm):
 
     def register(self, state, name=None):
         super().register(state, name)
-        if state.mesh.dim == 2:
+        m_spaces = state.m.spaces
+        if set(m_spaces) == {"c"}:
+            setattr(
+                state,
+                self.attr_name("h", name),
+                VectorCellFunction(state, tensor=config.backend.demag_field.h_cell),
+            )
+        elif state.mesh.dim == 2:
             setattr(
                 state,
                 self.attr_name("h", name),
@@ -69,7 +76,8 @@ class DemagField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim, _options):
+        m_spaces = (_options or {}).get("m_spaces", "n" * dim)
         rho = Variable("rho", "c" * dim)
         Ms = Variable("material__Ms", "c" * dim)
-        h_demag = Variable("h_demag", "n" * dim, (3,))
+        h_demag = Variable("h_demag", m_spaces, (3,))
         return -0.5 * constants.mu_0 * Ms * m.dot(h_demag) * dV()

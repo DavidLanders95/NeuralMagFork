@@ -76,6 +76,9 @@ class FieldTerm(CodeClass):
         dim = state.mesh.dim
         m_spaces = state.m.spaces
 
+        if set(m_spaces) == {"c"}:
+            self._options = {**(self._options or {}), "m_spaces": m_spaces}
+
         if hasattr(self, "e_expr") and self.e_expr is not None:
             self.save_and_load_code(self._n_gauss, dim, self._options, m_spaces)
         if not hasattr(self, "h"):
