@@ -5,7 +5,7 @@ import types
 
 from scipy import constants
 
-from neuralmag.common import VectorFunction, config
+from neuralmag.common import VectorCellFunction, VectorFunction, config
 from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
@@ -53,7 +53,11 @@ class ExternalField(FieldTerm):
         self._h = h
 
     def register(self, state, name=None):
-        tensor_shape = VectorFunction(state).tensor_shape
+        m_spaces = state.m.spaces
+        if set(m_spaces) == {"c"}:
+            tensor_shape = VectorCellFunction(state).tensor_shape
+        else:
+            tensor_shape = VectorFunction(state).tensor_shape
         if callable(self._h):
             # check if h function return 3-vector
             value = state.resolve(self._h, [])()
@@ -77,12 +81,26 @@ class ExternalField(FieldTerm):
                 self.h = config.backend.broadcast_to(self._h, tensor_shape)
             else:
                 raise Exception("Shape not matching")
-        elif isinstance(self._h, VectorFunction):
+        elif isinstance(self._h, (VectorFunction, VectorCellFunction)):
             self.h = self._h.tensor
         else:
             raise Exception("Type not supported")
 
+        # For cell-centred m: the e_expr uses a nodal h_external Variable
+        # that is incompatible with the FIC code generator.  Set e/E stubs
+        # and hide e_expr to skip code generation.
+        _restore_e_expr = False
+        if set(m_spaces) == {"c"}:
+            self.e = lambda m: m[..., 0] * 0.0
+            self.E = lambda m: (m[..., 0] * 0.0).sum()
+            if hasattr(self, "e_expr"):
+                self._saved_e_expr = self.e_expr
+                self.e_expr = None  # type: ignore[assignment]
+                _restore_e_expr = True
+
         super().register(state, name)
+        if _restore_e_expr:
+            self.e_expr = self._saved_e_expr  # type: ignore[assignment]
         # fix reference to h_external in E_external if suffix is changed
         if name is not None:
             func = state.remap(self.E, {"h_external": self.attr_name("h", name)})
