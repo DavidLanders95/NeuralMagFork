@@ -76,7 +76,7 @@ class DemagField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim, _options):
-        m_spaces = (_options or {}).get("m_spaces", "n" * dim)
+        m_spaces = _options["m_spaces"]
         rho = Variable("rho", "c" * dim)
         Ms = Variable("material__Ms", "c" * dim)
         h_demag = Variable("h_demag", m_spaces, (3,))

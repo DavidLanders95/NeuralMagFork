@@ -86,21 +86,7 @@ class ExternalField(FieldTerm):
         else:
             raise Exception("Type not supported")
 
-        # For cell-centred m: the e_expr uses a nodal h_external Variable
-        # that is incompatible with the FIC code generator.  Set e/E stubs
-        # and hide e_expr to skip code generation.
-        _restore_e_expr = False
-        if set(m_spaces) == {"c"}:
-            self.e = lambda m: m[..., 0] * 0.0
-            self.E = lambda m: (m[..., 0] * 0.0).sum()
-            if hasattr(self, "e_expr"):
-                self._saved_e_expr = self.e_expr
-                self.e_expr = None  # type: ignore[assignment]
-                _restore_e_expr = True
-
         super().register(state, name)
-        if _restore_e_expr:
-            self.e_expr = self._saved_e_expr  # type: ignore[assignment]
         # fix reference to h_external in E_external if suffix is changed
         if name is not None:
             func = state.remap(self.E, {"h_external": self.attr_name("h", name)})
@@ -108,6 +94,7 @@ class ExternalField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim, _options):
+        m_spaces = _options["m_spaces"]
         Ms = Variable("material__Ms", "c" * dim)
-        h_external = Variable("h_external", "n" * dim, (3,))
+        h_external = Variable("h_external", m_spaces, (3,))
         return -constants.mu_0 * Ms * m.dot(h_external) * dV(dim)
