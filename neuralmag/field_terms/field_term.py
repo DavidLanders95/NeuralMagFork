@@ -50,7 +50,7 @@ class FieldTerm(CodeClass):
 
     def __init__(self, n_gauss=None):
         self._n_gauss = n_gauss or config.fem["n_gauss"]
-        self._options = None
+        self._options = {}
 
     def __init_subclass__(cls, **kwargs):
         if getattr(cls, "default_name") is None:
@@ -76,8 +76,6 @@ class FieldTerm(CodeClass):
         dim = state.mesh.dim
         m_spaces = state.m.spaces
 
-        if self._options is None:
-            self._options = {}
         self._options["m_spaces"] = m_spaces
 
         if hasattr(self, "e_expr") and self.e_expr is not None:

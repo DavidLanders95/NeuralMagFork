@@ -63,7 +63,7 @@ class LIField(FieldTerm):
     def __init__(self, LI: str, **kwargs):
         super().__init__(**kwargs)
         self.default_name = f"LI_{LI}"
-        self._options = {"LI": LI}
+        self._options["LI"] = LI
         self._validate_LI()
 
     def _validate_LI(self):
