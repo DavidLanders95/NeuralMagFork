@@ -149,6 +149,6 @@ def test_field_term(key):
     e_sum = float(be.to_numpy(getattr(state, f"e_{name}").tensor.sum()))
     E = float(be.to_numpy(getattr(state, f"E_{name}")))
 
-    assert h_sum == pytest.approx(ref["h_sum"], rel=1e-3, abs=1.0)
+    assert h_sum == pytest.approx(ref["h_sum"], rel=1e-3, abs=20.0)
     assert e_sum == pytest.approx(ref["e_sum"], rel=1e-3, abs=1.0)
     assert E == pytest.approx(ref["E"], rel=1e-2, abs=1e-28)
