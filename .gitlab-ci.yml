@@ -29,7 +29,7 @@ variables:
 
 .gpu_template:
   extends: .test_template
-  image: mambaorg/micromamba:jammy-cuda-12.3.1
+  image: mambaorg/micromamba:jammy-cuda-12.2.2
   before_script:
     - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION"
     - python --version  # For debugging
