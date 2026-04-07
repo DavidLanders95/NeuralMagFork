@@ -6,6 +6,7 @@ Examples
    
    LI
    DMI-in-1D-stripe
+   composite-chiral-magnet
    domain-wall-depinning
    skyrmion-disk
    standard-problem-3
