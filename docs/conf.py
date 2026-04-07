@@ -30,8 +30,12 @@ html_theme = "pydata_sphinx_theme"
 html_sidebars = {
     "**": ["sidebar-nav-bs"],
     "index": [],
-    "getting_started": [],
-    "nodal_fd": [],
+    "user_guide/introduction": [],
+    "user_guide/getting_started": [],
+    "user_guide/discretization": [],
+    "user_guide/form_compiler": [],
+    "user_guide/dynamic_attributes": [],
+    "user_guide/domains": [],
 }
 
 html_show_sourcelink = False
