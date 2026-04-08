@@ -15,7 +15,7 @@ and supports CPU and GPU execution out of the box.
 What you get
 ------------
 
-* Nodal finite-element discretization on a regular cuboid grid, plus a
+* Nodal finite-difference discretization on a regular cuboid grid, plus a
   cell-centred *FIC* variant that reuses the same form compiler — see
   :doc:`user_guide/discretization`.
 * Built-in field contributions: external field, exchange, demagnetization,
@@ -36,7 +36,7 @@ Where to go next
 * **Setting up a multi-material or topology-optimization problem?** See
   :doc:`user_guide/domains` and :doc:`user_guide/dynamic_attributes`.
 * **Curious about the math?** :doc:`user_guide/discretization` covers the
-  nodal FEM and FIC schemes; :doc:`user_guide/form_compiler` explains how
+  nodal finite-difference and FIC schemes; :doc:`user_guide/form_compiler` explains how
   the SymPy-based form compiler works under the hood.
 * **Looking for an API?** See the :doc:`reference/index`.
 * **Looking for a working script?** Browse the :doc:`examples/index`.

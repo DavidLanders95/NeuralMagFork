@@ -10,7 +10,7 @@ demagnetization kernel; they differ only in *where* the magnetization lives:
 ==================  ==========================  ================================
 Scheme              ``m`` lives on              Field ``h`` is computed on
 ==================  ==========================  ================================
-Nodal FEM           nodes (trilinear basis)     nodes
+Nodal FD            nodes (trilinear basis)     nodes
 FIC (cell-centred)  cells (piecewise constant)  nodes, projected back to cells
 ==================  ==========================  ================================
 
@@ -45,8 +45,8 @@ to ``n_*``). Material parameters such as :math:`A_\text{ex}` or
 
 .. _disc_nodal:
 
-Nodal FEM scheme (default)
---------------------------
+Nodal finite-difference scheme (default)
+----------------------------------------
 
 The default scheme is the *nodal finite-difference* method introduced for
 NeuralMag by Abert et al. (*npj Comput. Mater.* **11**, 193, 2025). Despite the
@@ -108,7 +108,7 @@ Demag
 For the demagnetization field NeuralMag uses the FFT-accelerated convolution
 of `magnum.np <https://gitlab.com/magnum.np/magnum.np>`_, the same well
 benchmarked kernel as in classical FD codes. Combining the speed of FFT
-demag with the interface accuracy of the nodal FEM scheme is the central
+demag with the interface accuracy of the nodal finite-difference scheme is the central
 practical reason to prefer NeuralMag over a pure FD code.
 
 .. admonition:: When to prefer the nodal scheme
@@ -125,7 +125,7 @@ FIC — cell-centred variant
 --------------------------
 
 FIC stores the magnetization at **cell centres** but computes the effective
-field with the *same* nodal FEM machinery as above. The bridge between the
+field with the *same* nodal finite-difference machinery as above. The bridge between the
 two layouts is a pair of mass-lumped :math:`L^2` projections that the form
 compiler generates from very short symbolic expressions.
 
@@ -141,7 +141,7 @@ Conceptually, every effective-field evaluation runs three steps:
    for the nodal coefficients :math:`\vec m_n`, with mass lumping (single-point
    quadrature, ``n_gauss = 1``) so the system is diagonal.
 
-2. **Standard nodal FEM** computation of the field :math:`\vec H_n` from
+2. **Standard nodal finite-difference** computation of the field :math:`\vec H_n` from
    :math:`\vec m_n`, exactly as in :ref:`disc_nodal`.
 
 3. **Node → cell projection** of the resulting field, using the dual
@@ -184,10 +184,10 @@ A short rule of thumb:
 ==================================================  ==========
 Situation                                           Use
 ==================================================  ==========
-Standard problems / smooth fields                   nodal FEM
+Standard problems / smooth fields                   nodal FD
 Topology optimization (cell-based design vars)      FIC
 Sharp material interfaces, voxel data               FIC
-Comparing against existing FE micromagnetic codes   nodal FEM
+Comparing against existing FE micromagnetic codes   nodal FD
 ==================================================  ==========
 
 If you switch later you only need to change ``state.m`` from a
