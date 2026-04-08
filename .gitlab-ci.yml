@@ -34,6 +34,10 @@ variables:
     - micromamba install -y -n base -c conda-forge "python=$PYTHON_VERSION"
     - python --version  # For debugging
     - nvidia-smi  # Nvidia GPU information
+    - |
+      if [ "$NM_BACKEND" = "torch" ]; then
+        pip install torch --index-url https://download.pytorch.org/whl/cu121
+      fi
     - pip install .[dev,$NM_BACKEND]
     - |
       if [ "$NM_BACKEND" = "torch" ]; then

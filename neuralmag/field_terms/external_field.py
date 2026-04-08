@@ -5,7 +5,7 @@ import types
 
 from scipy import constants
 
-from neuralmag.common import VectorFunction, config
+from neuralmag.common import VectorCellFunction, VectorFunction, config
 from neuralmag.common.engine import Variable, dV
 from neuralmag.field_terms.field_term import FieldTerm
 
@@ -53,7 +53,11 @@ class ExternalField(FieldTerm):
         self._h = h
 
     def register(self, state, name=None):
-        tensor_shape = VectorFunction(state).tensor_shape
+        m_spaces = state.m.spaces
+        if set(m_spaces) == {"c"}:
+            tensor_shape = VectorCellFunction(state).tensor_shape
+        else:
+            tensor_shape = VectorFunction(state).tensor_shape
         if callable(self._h):
             # check if h function return 3-vector
             value = state.resolve(self._h, [])()
@@ -77,7 +81,7 @@ class ExternalField(FieldTerm):
                 self.h = config.backend.broadcast_to(self._h, tensor_shape)
             else:
                 raise Exception("Shape not matching")
-        elif isinstance(self._h, VectorFunction):
+        elif isinstance(self._h, (VectorFunction, VectorCellFunction)):
             self.h = self._h.tensor
         else:
             raise Exception("Type not supported")
@@ -90,6 +94,7 @@ class ExternalField(FieldTerm):
 
     @staticmethod
     def e_expr(m, dim, _options):
+        m_spaces = _options["m_spaces"]
         Ms = Variable("material__Ms", "c" * dim)
-        h_external = Variable("h_external", "n" * dim, (3,))
+        h_external = Variable("h_external", m_spaces, (3,))
         return -constants.mu_0 * Ms * m.dot(h_external) * dV(dim)

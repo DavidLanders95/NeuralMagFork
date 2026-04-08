@@ -3,62 +3,105 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Introduction
-============
+NeuralMag
+=========
 
-NeuralMag is a micromagnetic simulation software using the nodal finite-difference discretization scheme, designed specifically with inverse problems in mind.
-It uses either `JAX <https://jax.readthedocs.io/en/latest/>` or `PyTorch <https://pytorch.org/>` as a numerical backend for tensor operations and automatic differentiation, enabling computations on both CPU and GPU systems.
-At the moment NeuralMag implements the most common micromagnetic effective-field contributions 
+NeuralMag is a differentiable micromagnetic simulator built around a
+`SymPy <https://www.sympy.org/>`_ form compiler, designed specifically with
+inverse problems in mind. It runs on top of `JAX
+<https://jax.readthedocs.io/en/latest/>`_ or `PyTorch <https://pytorch.org/>`_
+and supports CPU and GPU execution out of the box.
 
-* external field
-* exchange field
-* demagnetization field
-* uniaxial/cubic anisotropy
-* DMI (interface and bulk)
-* interlayer exchange
+What you get
+------------
 
-as well as a differentiable time-domain solver for the Landau-Lifshitz-Gilbert equation.
+* Nodal finite-difference discretization on a regular cuboid grid, plus a
+  cell-centred *FIC* variant that reuses the same form compiler — see
+  :doc:`user_guide/discretization`.
+* Built-in field contributions: external field, exchange, demagnetization,
+  uniaxial / cubic anisotropy, interface and bulk DMI, and interlayer
+  exchange.
+* A differentiable Landau–Lifshitz–Gilbert time integrator and a small set
+  of loggers.
+* A *purely functional* state interface: material parameters, applied
+  fields, even the geometry mask can be lambdas of other state attributes,
+  which makes ``jax.grad`` / ``torch.autograd`` loops natural — see
+  :doc:`user_guide/dynamic_attributes`.
 
-NeuralMag is designed in a modular fashion resulting in a very high flexibility for the problem definition.
-For instance, all simulation parameters (e.g. material parameters) can be functions of space, time or any other simulation parameter.
+Where to go next
+----------------
 
-At the heart of NeuralMag is a form compiler powered by `SymPy <https://www.sympy.org/>`_ that translates arbitrary functionals and linear weak forms into vectorized PyTorch code.
-This allows to easily add new effective-field contributions by simply stating the corresponding energy as a sympy expression.
+* **New here?** Read :doc:`user_guide/introduction` for the mental model and
+  then walk through the :doc:`user_guide/getting_started` notebook.
+* **Setting up a multi-material or topology-optimization problem?** See
+  :doc:`user_guide/domains` and :doc:`user_guide/dynamic_attributes`.
+* **Curious about the math?** :doc:`user_guide/discretization` covers the
+  nodal finite-difference and FIC schemes; :doc:`user_guide/form_compiler` explains how
+  the SymPy-based form compiler works under the hood.
+* **Looking for an API?** See the :doc:`reference/index`.
+* **Looking for a working script?** Browse the :doc:`examples/index`.
 
-Download and Install
+Download and install
 --------------------
 
-NeuralMag is a Python package and requires Python >=3.8 (>=3.10 for JAX backend). To install the latest version with either run
+NeuralMag is a Python package and requires Python ≥ 3.8 (≥ 3.10 for the
+JAX backend). Install with one of
 
 .. code::
 
-    pip install "neuralmag[jax]"
-
-
-to install NeuralMag with JAX as a backend or
+   pip install "neuralmag[jax]"
 
 .. code::
 
-    pip install "neuralmag[torch]"
+   pip install "neuralmag[torch]"
 
-to install NeuralMag with PyTorch as a backend. You can also install NeuralMag with both
-backends and switch choose the backend at runtime.
+You can also install both backends and choose between them at runtime via
+the ``NM_BACKEND`` environment variable.
 
+How to cite
+-----------
+
+If you use NeuralMag in scientific work, please cite the accompanying paper:
+
+   C. Abert, F. Bruckner, A. Voronov, M. Lang, S. A. Pathak, S. Holt,
+   R. Kraft, R. Allayarov, P. Flauger, S. Koraltan, T. Schrefl, A. Chumak,
+   H. Fangohr, D. Suess, *"NeuralMag: an open-source nodal finite-difference
+   code for inverse micromagnetics"*, npj Comput. Mater. **11**, 193 (2025),
+   `doi:10.1038/s41524-025-01688-1
+   <https://doi.org/10.1038/s41524-025-01688-1>`_.
+
+BibTeX:
+
+.. code-block:: bibtex
+
+   @article{Abert2025NeuralMag,
+     author  = {Abert, Claas and Bruckner, Florian and Voronov, Andrii and
+                Lang, Martin and Pathak, Swapneel Amit and Holt, Sam and
+                Kraft, Roman and Allayarov, Rustam and Flauger, Paul and
+                Koraltan, Sabri and Schrefl, Thomas and Chumak, Andrii and
+                Fangohr, Hans and Suess, Dieter},
+     title   = {{NeuralMag}: an open-source nodal finite-difference code for
+                inverse micromagnetics},
+     journal = {npj Computational Materials},
+     volume  = {11},
+     pages   = {193},
+     year    = {2025},
+     doi     = {10.1038/s41524-025-01688-1},
+   }
 
 Contribute
 ----------
 
-Thank you for considering contributing to our project!
-We welcome any contributions, whether they are in the form of bug fixes, feature enhancements, documentation improvements, or any other kind of enhancement.
-NeuralMag is licensed under the `MIT License] <https://opensource.org/license/MIT>`_.
-By contributing to this project, you agree to license your contributions under the terms of the MIT License.
+Contributions of any kind — bug fixes, new field terms, documentation
+improvements — are very welcome. NeuralMag is licensed under the
+`MIT License <https://opensource.org/license/MIT>`_; by contributing you
+agree to license your contribution under the same terms.
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    :hidden:
 
-   getting_started
-   nodal_fd
+   user_guide/index
    reference/index
    examples/index
 
@@ -67,4 +110,3 @@ Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`

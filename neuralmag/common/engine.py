@@ -109,14 +109,15 @@ def integrate(expr, dims, n=3):
     integrand = expr
     for i, dim in enumerate(dims):
         if dim is None:
-            integral = 0
+            integral = None
             for j in range(n):
-                integral += (
+                term = (
                     w[j]
                     * cs_dx[i]
                     / 2
                     * integrand.subs(cs_x[i], (1 + x[j]) * cs_dx[i] / 2)
                 )
+                integral = term if integral is None else integral + term
         else:
             integral = integrand.subs(cs_x[i], 0.0)
         integrand = integral
@@ -126,7 +127,11 @@ def integrate(expr, dims, n=3):
 
 def compile_functional(expr, n_gauss=3):
     # extract all integral measures with parameters and check consistency
-    measure_symbols = [s for s in expr.free_symbols if re.match(r"^_dX:(.*)_$", s.name)]
+    measure_symbols = [
+        s
+        for s in expr.free_symbols
+        if hasattr(s, "name") and re.match(r"^_dX:(.*)_$", s.name)
+    ]
     integrals = sp.collect(expr, measure_symbols, exact=True, evaluate=False)
     assert 1 not in integrals
 
@@ -148,7 +153,7 @@ def compile_functional(expr, n_gauss=3):
         symbs = [
             symb
             for symb in iexpr.free_symbols
-            if re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
+            if hasattr(symb, "name") and re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
         ]
 
         if len(symbs) == 0:
@@ -206,7 +211,9 @@ def linear_form_cmds(expr, n_gauss=3):
     v = {}
 
     # collect all test functions in expr
-    for symb in sorted(list(expr.free_symbols), key=lambda s: s.name):
+    for symb in sorted(
+        [s for s in expr.free_symbols if hasattr(s, "name")], key=lambda s: s.name
+    ):
         match = re.match(r"^_v:(.*:.*:.*)_$", symb.name)
         if match:
             v[symb] = match[1].split(":")

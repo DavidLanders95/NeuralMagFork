@@ -69,6 +69,37 @@ to install NeuralMag with PyTorch as a backend. You can also install NeuralMag w
 backends and choose the backend at runtime.
 
 
+How to cite
+===========
+
+If you use NeuralMag in scientific work, please cite the accompanying paper:
+
+C. Abert, F. Bruckner, A. Voronov, M. Lang, S. A. Pathak, S. Holt, R. Kraft,
+R. Allayarov, P. Flauger, S. Koraltan, T. Schrefl, A. Chumak, H. Fangohr,
+D. Suess, *"NeuralMag: an open-source nodal finite-difference code for inverse
+micromagnetics"*, npj Comput. Mater. **11**, 193 (2025).
+[doi:10.1038/s41524-025-01688-1](https://doi.org/10.1038/s41524-025-01688-1)
+
+BibTeX:
+
+```bibtex
+@article{Abert2025NeuralMag,
+  author  = {Abert, Claas and Bruckner, Florian and Voronov, Andrii and
+             Lang, Martin and Pathak, Swapneel Amit and Holt, Sam and
+             Kraft, Roman and Allayarov, Rustam and Flauger, Paul and
+             Koraltan, Sabri and Schrefl, Thomas and Chumak, Andrii and
+             Fangohr, Hans and Suess, Dieter},
+  title   = {{NeuralMag}: an open-source nodal finite-difference code for
+             inverse micromagnetics},
+  journal = {npj Computational Materials},
+  volume  = {11},
+  pages   = {193},
+  year    = {2025},
+  doi     = {10.1038/s41524-025-01688-1},
+}
+```
+
+
 Contribute
 ==========
 

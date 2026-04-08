@@ -56,13 +56,20 @@ class LLGSolverTorch(nn.Module):
     """
 
     def __init__(
-        self, state, scale_t=1e-9, parameters=None, max_steps=None, solver_options=None
+        self,
+        state,
+        scale_t=1e-9,
+        parameters=None,
+        max_steps=None,
+        rtol=1e-5,
+        atol=1e-5,
+        solver_options=None,
     ):
         super().__init__()
         self._state = state
         self._scale_t = scale_t
         self._parameter_names = parameters or []
-        self._solver_options = {"method": "dopri5", "atol": 1e-5, "rtol": 1e-5}
+        self._solver_options = {"method": "dopri5", "atol": atol, "rtol": rtol}
         self._solver_options.update(solver_options or {})
 
         # solver options

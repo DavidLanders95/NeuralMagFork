@@ -11,7 +11,7 @@ be = config.backend
 def test_valid_initialization():
     """Test valid LI field initialization."""
     field = LIField("xyz")
-    assert field._options == "xyz"
+    assert field._options["LI"] == "xyz"
     assert field.default_name == "LI_xyz"
 
 
@@ -75,7 +75,7 @@ def test_valid_li_combinations():
 
     for li in valid_combinations:
         field = LIField(li)
-        assert field._options == li
+        assert field._options["LI"] == li
         assert field.default_name == f"LI_{li}"
 
 
