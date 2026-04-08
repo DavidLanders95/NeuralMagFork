@@ -38,6 +38,20 @@ def _make_state(disc):
         m[1, 0, 0, :] = 0
         m[1, 0, 0, 0] = 1
         state.m = VectorFunction(state, tensor=state.tensor(m))
+    elif disc == "fic1d":
+        mesh = Mesh((2,), (1e-9, 1e-9, 1e-9))
+        state = State(mesh)
+        m = np.zeros((2, 3))
+        m[0, 0] = -1
+        m[1, 1] = 1
+        state.m = VectorCellFunction(state, tensor=state.tensor(m))
+    elif disc == "fic2d":
+        mesh = Mesh((2, 2), (1e-9, 1e-9, 1e-9))
+        state = State(mesh)
+        m = np.zeros((2, 2, 3))
+        m[0, :, 0] = -1
+        m[1, :, 1] = 1
+        state.m = VectorCellFunction(state, tensor=state.tensor(m))
     elif disc == "fic":
         mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9))
         state = State(mesh)
@@ -81,6 +95,8 @@ REFS = {
         "e_sum": 657500032.0,
         "E": 1.96e-19,
     },
+    (ExchangeField, "fic1d"): {"h_sum": 0.0, "e_sum": 12000000.0, "E": 1.2e-20},
+    (ExchangeField, "fic2d"): {"h_sum": 0.0, "e_sum": 24000000.0, "E": 2.4e-20},
     (ExchangeField, "fic"): {"h_sum": 0.0, "e_sum": 48000000.0, "E": 4.8e-20},
     (BulkDMIField, "fem1d"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
     (BulkDMIField, "fem2d"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
@@ -89,10 +105,14 @@ REFS = {
         "e_sum": -1041666.75,
         "E": -3.333e-22,
     },
+    (BulkDMIField, "fic1d"): {"h_sum": -994718.375, "e_sum": 0.0, "E": 0.0},
+    (BulkDMIField, "fic2d"): {"h_sum": -1989437.0, "e_sum": 0.0, "E": 0.0},
     (BulkDMIField, "fic"): {"h_sum": -3978874.0, "e_sum": 0.0, "E": 0.0},
     (InterfaceDMIField, "fem1d"): {"h_sum": 1989436.75, "e_sum": 0.0, "E": 0.0},
     (InterfaceDMIField, "fem2d"): {"h_sum": 5968310.5, "e_sum": 0.0, "E": 0.0},
     (InterfaceDMIField, "fem3d"): {"h_sum": 19010176.0, "e_sum": 0.0, "E": 0.0},
+    (InterfaceDMIField, "fic1d"): {"h_sum": 994718.375, "e_sum": 0.0, "E": 0.0},
+    (InterfaceDMIField, "fic2d"): {"h_sum": 1989436.75, "e_sum": 0.0, "E": 0.0},
     (InterfaceDMIField, "fic"): {"h_sum": 3978873.5, "e_sum": 0.0, "E": 0.0},
     (UniaxialAnisotropyField, "fem1d"): {
         "h_sum": 2652582.5,
@@ -109,6 +129,16 @@ REFS = {
         "e_sum": -6626156.5,
         "E": -2.407e-21,
     },
+    (UniaxialAnisotropyField, "fic1d"): {
+        "h_sum": 1989436.875,
+        "e_sum": -666666.75,
+        "E": -6.667e-22,
+    },
+    (UniaxialAnisotropyField, "fic2d"): {
+        "h_sum": 3978873.5,
+        "e_sum": -1333333.5,
+        "E": -1.333e-21,
+    },
     (UniaxialAnisotropyField, "fic"): {
         "h_sum": 7957747.0,
         "e_sum": -2666667.0,
@@ -117,6 +147,8 @@ REFS = {
     (ExternalField, "fem1d"): {"h_sum": 18.0, "e_sum": -2.6808252, "E": -2.011e-27},
     (ExternalField, "fem2d"): {"h_sum": 54.0, "e_sum": -8.0424767, "E": -4.021e-27},
     (ExternalField, "fem3d"): {"h_sum": 162.0, "e_sum": -23.196583, "E": -7.791e-27},
+    (ExternalField, "fic1d"): {"h_sum": 12.0, "e_sum": -1.0053096, "E": -1.005e-27},
+    (ExternalField, "fic2d"): {"h_sum": 24.0, "e_sum": -2.0106192, "E": -2.011e-27},
     (ExternalField, "fic"): {"h_sum": 48.0, "e_sum": -4.0212388, "E": -4.021e-27},
 }
 
@@ -136,7 +168,7 @@ def test_field_term(key):
 
     # ExternalField needs explicit h vector
     if field_cls is ExternalField:
-        if disc == "fic":
+        if disc.startswith("fic"):
             h = VectorCellFunction(state).fill([1.0, 2.0, 3.0])
         else:
             h = VectorFunction(state).fill([1.0, 2.0, 3.0])

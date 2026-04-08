@@ -49,10 +49,23 @@ class DemagField(FieldTerm):
         super().register(state, name)
         m_spaces = state.m.spaces
         if set(m_spaces) == {"c"}:
+            dim = state.mesh.dim
+            h_cell = config.backend.demag_field.h_cell
+            if dim < 3:
+                pad = (None,) * (3 - dim)
+
+                def h_func(N_demag, m, material__Ms, rho):
+                    m = m[(...,) + pad + (slice(None),)]
+                    rho = rho[(...,) + pad]
+                    Ms = material__Ms[(...,) + pad]
+                    h = h_cell(N_demag, m, Ms, rho)
+                    return h[(slice(None),) * dim + (0,) * (3 - dim) + (slice(None),)]
+            else:
+                h_func = h_cell
             setattr(
                 state,
                 self.attr_name("h", name),
-                VectorCellFunction(state, tensor=config.backend.demag_field.h_cell),
+                VectorCellFunction(state, tensor=h_func),
             )
         elif state.mesh.dim == 2:
             setattr(
