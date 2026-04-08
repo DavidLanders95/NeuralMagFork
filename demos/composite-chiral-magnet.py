@@ -121,8 +121,9 @@ def analytical_profile(x, p):
 mesh = nm.Mesh((N,), (dx, dx, dx), origin=(-L, 0, 0))
 state = nm.State(mesh)
 
-# cell-centre and node coordinates along x
-x_c = state.coordinates(numpy=True)[0]
+# cell-centre and node coordinates along x (x_c as backend tensor so the
+# conditions fed to state.add_domain are valid for both jax and torch)
+x_c = state.coordinates()[0]
 x_n = -L + np.arange(N + 1) * dx
 
 
