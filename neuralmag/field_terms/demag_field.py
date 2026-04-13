@@ -41,14 +41,45 @@ class DemagField(FieldTerm):
     default_name = "demag"
     h = None
 
-    def __init__(self, p=20, **kwargs):
+    def __init__(self, p=20, batch_size=1, **kwargs):
         super().__init__(**kwargs)
         self._p = p
+        self._batch_size = batch_size
 
     def register(self, state, name=None):
         super().register(state, name)
         m_spaces = state.m.spaces
-        if set(m_spaces) == {"c"}:
+        pbc = state.mesh.pbc
+        is_true_pbc = all(pbc[i] == float("inf") for i in range(state.mesh.dim))
+
+        if is_true_pbc:
+            if state.mesh.dim < 3:
+                raise ValueError(
+                    f"True PBC demag field requires a 3D mesh, got {state.mesh.dim}D."
+                )
+            if set(m_spaces) == {"c"}:
+                setattr(
+                    state,
+                    self.attr_name("h", name),
+                    VectorCellFunction(
+                        state,
+                        tensor=config.backend.demag_field.h_cell_pbc,
+                    ),
+                )
+            elif set(m_spaces) == {"n"}:
+                setattr(
+                    state,
+                    self.attr_name("h", name),
+                    VectorFunction(
+                        state,
+                        tensor=config.backend.demag_field.h3d_pbc,
+                    ),
+                )
+            else:
+                raise ValueError(
+                    f"Unsupported discretization '{m_spaces}' for true PBC demag."
+                )
+        elif set(m_spaces) == {"c"}:
             dim = state.mesh.dim
             h_cell = config.backend.demag_field.h_cell
             if dim < 3:
@@ -67,25 +98,33 @@ class DemagField(FieldTerm):
                 self.attr_name("h", name),
                 VectorCellFunction(state, tensor=h_func),
             )
-        elif state.mesh.dim == 2:
-            setattr(
-                state,
-                self.attr_name("h", name),
-                VectorFunction(state, tensor=config.backend.demag_field.h2d),
-            )
-        elif state.mesh.dim == 3:
-            setattr(
-                state,
-                self.attr_name("h", name),
-                VectorFunction(state, tensor=config.backend.demag_field.h3d),
-            )
+        elif set(m_spaces) == {"n"}:
+            if any(pbc[i] > 0 for i in range(state.mesh.dim)):
+                raise ValueError(
+                    "Pseudo PBC demag is only supported for cell-centred discretization."
+                )
+            if state.mesh.dim == 2:
+                setattr(
+                    state,
+                    self.attr_name("h", name),
+                    VectorFunction(state, tensor=config.backend.demag_field.h2d),
+                )
+            elif state.mesh.dim == 3:
+                setattr(
+                    state,
+                    self.attr_name("h", name),
+                    VectorFunction(state, tensor=config.backend.demag_field.h3d),
+                )
+            else:
+                raise
         else:
             raise
         # fix reference to h_demag in E_demag if suffix is changed
         if name is not None:
             func = state.remap(self.E, {"h_demag": self.attr_name("h", name)})
             setattr(state, self.attr_name("E", name), func)
-        config.backend.demag_field.init_N(state, self._p)
+        if not is_true_pbc:
+            config.backend.demag_field.init_N(state, self._p, self._batch_size)
 
     @staticmethod
     def e_expr(m, dim, _options):

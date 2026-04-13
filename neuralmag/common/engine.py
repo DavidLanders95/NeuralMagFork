@@ -125,7 +125,27 @@ def integrate(expr, dims, n=3):
     return integral
 
 
-def compile_functional(expr, n_gauss=3):
+def _roll_expr(name, arr_idx, rolls):
+    """
+    Wrap a variable reference with ``roll()`` calls for PBC dimensions.
+
+    :param name: Variable name
+    :param arr_idx: Index string (e.g. ``"...,0"``)
+    :param rolls: List of ``(shift, axis)`` tuples
+    :return: Complete variable reference string
+    """
+    if not rolls:
+        return f"{name}[{arr_idx}]"
+    shifts = tuple(s for s, _ in rolls)
+    axes = tuple(a for _, a in rolls)
+    if len(rolls) == 1:
+        rolled = f"roll({name}, {shifts[0]}, {axes[0]})"
+    else:
+        rolled = f"roll({name}, {shifts}, {axes})"
+    return f"{rolled}[{arr_idx}]"
+
+
+def compile_functional(expr, n_gauss=3, pbc=None):
     # extract all integral measures with parameters and check consistency
     measure_symbols = [
         s
@@ -179,10 +199,16 @@ def compile_functional(expr, n_gauss=3):
             variables.add(name)
 
             sidx = []
+            rolls = []
             for i, space in enumerate(spaces):
                 if space == "n":
                     if args["dims"][i] is None:
-                        sidx.append([":-1", "1:"][idx[i]])
+                        if pbc and pbc[i]:
+                            sidx.append(":")
+                            if idx[i] == 1:
+                                rolls.append((-1, i))
+                        else:
+                            sidx.append([":-1", "1:"][idx[i]])
                     else:
                         sidx.append(str(args["dims"][i]))
                         if isinstance(args["dims"][i], str):
@@ -198,7 +224,7 @@ def compile_functional(expr, n_gauss=3):
 
             # contract leading sequence of ":,: to ...
             arr_idx = re.sub(r"^(:,)*:($|,)", r"...\2", ",".join(sidx))
-            cmd = cmd.replace(symb.name, f"{name}[{arr_idx}]")
+            cmd = cmd.replace(symb.name, _roll_expr(name, arr_idx, rolls))
 
         args["cmd"] = re.sub(r"_(dx\[\d\])_", r"\1", cmd)
         cmds.append(args)
@@ -206,7 +232,7 @@ def compile_functional(expr, n_gauss=3):
     return cmds, variables
 
 
-def linear_form_cmds(expr, n_gauss=3):
+def linear_form_cmds(expr, n_gauss=3, pbc=None):
     cmds = []
     v = {}
 
@@ -227,17 +253,23 @@ def linear_form_cmds(expr, n_gauss=3):
     variables = set()
     for vsymb in tqdm(v, desc="Generating..."):
         vexpr = expr.xreplace(dict([(s, 1.0) if s == vsymb else (s, 0.0) for s in v]))
-        terms, vvars = compile_functional(vexpr, n_gauss)
+        terms, vvars = compile_functional(vexpr, n_gauss, pbc=pbc)
         variables = variables.union(vvars)
         vspaces, vshape, vidx = v[vsymb]
 
         for term in terms:
             # TODO why call it term here and args in compile_function?
             sidx = []
+            assembly_rolls = []
             for i, space in enumerate(vspaces):
                 if space == "n":
                     if term["dims"][i] is None:
-                        sidx.append([":-1", "1:"][vidx[i]])
+                        if pbc and pbc[i]:
+                            sidx.append(":")
+                            if vidx[i] == 1:
+                                assembly_rolls.append((1, i))
+                        else:
+                            sidx.append([":-1", "1:"][vidx[i]])
                     else:
                         sidx.append(str(term["dims"][i]))
                 elif space == "c":
@@ -249,7 +281,16 @@ def linear_form_cmds(expr, n_gauss=3):
             if shape == (3,):
                 sidx.append(str(vidx[-1]))
 
-            cmds.append((",".join(sidx), term["cmd"]))
+            rhs = term["cmd"]
+            if assembly_rolls:
+                shifts = tuple(s for s, _ in assembly_rolls)
+                axes = tuple(a for _, a in assembly_rolls)
+                if len(assembly_rolls) == 1:
+                    rhs = f"roll({rhs}, {shifts[0]}, {axes[0]})"
+                else:
+                    rhs = f"roll({rhs}, {shifts}, {axes})"
+
+            cmds.append((",".join(sidx), rhs))
 
     return cmds, variables
 

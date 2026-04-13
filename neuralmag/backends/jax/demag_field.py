@@ -112,7 +112,25 @@ def demag_g(x, y, z, dx, dy, dz, dX, dY, dZ, p):
 
 def h_cell(N_demag, m, material__Ms, rho):
     dim = [i for i in range(3) if m.shape[i] > 1]
-    s = [m.shape[i] * 2 for i in dim]
+
+    if len(dim) == 0:
+        hx = jnp.zeros_like(m[:, :, :, 0])
+        hy = jnp.zeros_like(m[:, :, :, 0])
+        hz = jnp.zeros_like(m[:, :, :, 0])
+        for ax in range(3):
+            mx = rho * material__Ms * m[:, :, :, ax]
+            hx += N_demag[0][ax] * mx
+            hy += N_demag[1][ax] * mx
+            hz += N_demag[2][ax] * mx
+        return jnp.stack([hx, hy, hz], axis=3)
+
+    N_shape = N_demag[0][0].shape
+    s = [
+        N_shape[i]
+        if i != dim[-1]
+        else (2 * m.shape[i] if N_shape[i] == m.shape[i] + 1 else m.shape[i])
+        for i in dim
+    ]
 
     hx = jnp.zeros(N_demag[0][0].shape, dtype=complex_dtype[m.dtype])
     hy = jnp.zeros(N_demag[0][0].shape, dtype=complex_dtype[m.dtype])
@@ -124,9 +142,9 @@ def h_cell(N_demag, m, material__Ms, rho):
         hy += N_demag[1][ax] * m_pad_fft1D
         hz += N_demag[2][ax] * m_pad_fft1D
 
-    hx = jnp.fft.irfftn(hx, axes=dim)
-    hy = jnp.fft.irfftn(hy, axes=dim)
-    hz = jnp.fft.irfftn(hz, axes=dim)
+    hx = jnp.fft.irfftn(hx, axes=dim, s=s)
+    hy = jnp.fft.irfftn(hy, axes=dim, s=s)
+    hz = jnp.fft.irfftn(hz, axes=dim, s=s)
 
     return jnp.stack(
         [
@@ -207,41 +225,141 @@ def h3d(N_demag, m, material__Ms, rho):
     return h / jnp.expand_dims(mass, -1)
 
 
-def init_N_component(state, perm, func, p):
+def h_cell_pbc(m, material__Ms, rho, dx):
+    """True PBC demag field via k-space Poisson solver (cell-centred)."""
+    n = m.shape[:3]
+    dim = [i for i in range(3) if n[i] > 1]
+    Ms = jnp.expand_dims(rho * material__Ms, -1)
+
+    kx = (2.0 * pi * jnp.arange(n[0]) / n[0]).reshape(-1, 1, 1)
+    ky = (2.0 * pi * jnp.arange(n[1]) / n[1]).reshape(1, -1, 1)
+    kz = (2.0 * pi * jnp.arange(n[2]) / n[2]).reshape(1, 1, -1)
+
+    M_fft = jnp.fft.fftn(Ms * m, axes=dim)
+
+    div_M = (
+        (1.0 - jnp.exp(-1j * kx)) * M_fft[..., 0] / dx[0]
+        + (1.0 - jnp.exp(-1j * ky)) * M_fft[..., 1] / dx[1]
+        + (1.0 - jnp.exp(-1j * kz)) * M_fft[..., 2] / dx[2]
+    )
+
+    laplacian = (
+        4.0 / dx[0] ** 2 * jnp.sin(kx / 2.0) ** 2
+        + 4.0 / dx[1] ** 2 * jnp.sin(ky / 2.0) ** 2
+        + 4.0 / dx[2] ** 2 * jnp.sin(kz / 2.0) ** 2
+    )
+    laplacian = laplacian.at[0, 0, 0].set(1.0)
+
+    u_fft = -div_M / laplacian
+    u_fft = u_fft.at[0, 0, 0].set(0.0)
+
+    h_fft = jnp.stack(
+        [
+            (1.0 - jnp.exp(1j * kx)) * u_fft / dx[0],
+            (1.0 - jnp.exp(1j * ky)) * u_fft / dx[1],
+            (1.0 - jnp.exp(1j * kz)) * u_fft / dx[2],
+        ],
+        axis=3,
+    )
+
+    return jnp.fft.ifftn(h_fft, axes=dim).real
+
+
+def h3d_pbc(m, material__Ms, rho, dx):
+    """True PBC demag field for nodal discretization (node→cell→node)."""
+    mcell = (
+        m
+        + jnp.roll(m, -1, 0)
+        + jnp.roll(m, -1, 1)
+        + jnp.roll(m, (-1, -1), (0, 1))
+        + jnp.roll(m, -1, 2)
+        + jnp.roll(m, (-1, -1), (0, 2))
+        + jnp.roll(m, (-1, -1), (1, 2))
+        + jnp.roll(m, (-1, -1, -1), (0, 1, 2))
+    ) / 8.0
+
+    hcell = h_cell_pbc(mcell, material__Ms, rho, dx)
+
+    Ms_hcell = jnp.expand_dims(rho * material__Ms, -1) * hcell
+    h = (
+        Ms_hcell
+        + jnp.roll(Ms_hcell, 1, 0)
+        + jnp.roll(Ms_hcell, 1, 1)
+        + jnp.roll(Ms_hcell, (1, 1), (0, 1))
+        + jnp.roll(Ms_hcell, 1, 2)
+        + jnp.roll(Ms_hcell, (1, 1), (0, 2))
+        + jnp.roll(Ms_hcell, (1, 1), (1, 2))
+        + jnp.roll(Ms_hcell, (1, 1, 1), (0, 1, 2))
+    )
+
+    RhoMs = rho * material__Ms
+    mass = (
+        RhoMs
+        + jnp.roll(RhoMs, 1, 0)
+        + jnp.roll(RhoMs, 1, 1)
+        + jnp.roll(RhoMs, (1, 1), (0, 1))
+        + jnp.roll(RhoMs, 1, 2)
+        + jnp.roll(RhoMs, (1, 1), (0, 2))
+        + jnp.roll(RhoMs, (1, 1), (1, 2))
+        + jnp.roll(RhoMs, (1, 1, 1), (0, 1, 2))
+    )
+
+    return h / jnp.expand_dims(mass, -1)
+
+
+def init_N_component(state, perm, func, p, batch_size=1):
     n = state.mesh.n + tuple([1] * (3 - state.mesh.dim))
+    pbc = state.mesh.pbc + tuple([0] * (3 - state.mesh.dim))
     dx = np.array(state.mesh.dx)
     dx /= dx.min()  # rescale dx to avoid NaNs when using single precision
 
-    shape = [i * 2 if i > 1 else i for i in n]
-    ij = [jfft.fftfreq(n, 1 / n, dtype=jnp.float64) for n in shape]
+    shape = tuple(
+        1 if n[i] == 1 else (n[i] if pbc[i] > 0 else 2 * n[i]) for i in range(3)
+    )
+    ij = [jfft.fftfreq(s, 1 / s, dtype=jnp.float64) for s in shape]
     ij = jnp.meshgrid(*ij, indexing="ij")
     x, y, z = [ij[ind] * dx[ind] for ind in perm]
     Lx = [n[ind] * dx[ind] for ind in perm]
     dx = [dx[ind] for ind in perm]
 
-    # TODO enable pseudo PBCs
-    # offsets = [state.arange(-state.mesh.pbc[ind], state.mesh.pbc[ind]+1) for ind in perm] # offset of pseudo PBC images
-    # offsets = torch.stack(torch.meshgrid(*offsets, indexing="ij"), dim=-1).flatten(end_dim=-2)
-    # Nc = state.zeros(shape)
-    # for offset in offsets:
-    #    Nc += func(x + offset[0]*Lx[0], y + offset[1]*Lx[1], z + offset[2]*Lx[2], *dx, *dx, self._p)
-    Nc = func(x, y, z, *dx, *dx, p)
+    offsets = [np.arange(-pbc[ind], pbc[ind] + 1) for ind in perm]
+    offsets = np.stack(np.meshgrid(*offsets, indexing="ij"), axis=-1).reshape(-1, 3)
+
+    Nc = jnp.zeros(shape, dtype=jnp.float64)
+    for i in range(0, len(offsets), batch_size):
+        chunk = jnp.array(offsets[i : i + batch_size]).reshape(-1, 1, 1, 1, 3)
+        xx = x[None] + chunk[..., 0] * Lx[0]
+        yy = y[None] + chunk[..., 1] * Lx[1]
+        zz = z[None] + chunk[..., 2] * Lx[2]
+        Nc += func(xx, yy, zz, *dx, *dx, p).sum(0)
 
     dim = [i for i in range(3) if n[i] > 1]
     if len(dim) > 0:
         Nc = jnp.fft.rfftn(Nc, axes=dim)
-    return Nc.real.clone()
+    return Nc.real.copy()
 
 
-def init_N(state, p):
+def init_N(state, p, batch_size=1):
     logging.info_green("[DemagField]: Set up demag tensor")
 
     with jax.enable_x64():
-        Nxx = init_N_component(state, [0, 1, 2], demag_f, p).astype(state.dtype)
-        Nxy = init_N_component(state, [0, 1, 2], demag_g, p).astype(state.dtype)
-        Nxz = init_N_component(state, [0, 2, 1], demag_g, p).astype(state.dtype)
-        Nyy = init_N_component(state, [1, 2, 0], demag_f, p).astype(state.dtype)
-        Nyz = init_N_component(state, [1, 2, 0], demag_g, p).astype(state.dtype)
-        Nzz = init_N_component(state, [2, 0, 1], demag_f, p).astype(state.dtype)
+        Nxx = init_N_component(state, [0, 1, 2], demag_f, p, batch_size).astype(
+            state.dtype
+        )
+        Nxy = init_N_component(state, [0, 1, 2], demag_g, p, batch_size).astype(
+            state.dtype
+        )
+        Nxz = init_N_component(state, [0, 2, 1], demag_g, p, batch_size).astype(
+            state.dtype
+        )
+        Nyy = init_N_component(state, [1, 2, 0], demag_f, p, batch_size).astype(
+            state.dtype
+        )
+        Nyz = init_N_component(state, [1, 2, 0], demag_g, p, batch_size).astype(
+            state.dtype
+        )
+        Nzz = init_N_component(state, [2, 0, 1], demag_f, p, batch_size).astype(
+            state.dtype
+        )
 
     state.N_demag = [[Nxx, Nxy, Nxz], [Nxy, Nyy, Nyz], [Nxz, Nyz, Nzz]]

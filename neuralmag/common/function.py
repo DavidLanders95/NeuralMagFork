@@ -52,13 +52,16 @@ class Function(CodeClass):
             if space == "c":
                 tensor_shape.append(state.mesh.n[i])
             elif space == "n":
-                tensor_shape.append(state.mesh.n[i] + 1)
+                if state.mesh.pbc[i]:
+                    tensor_shape.append(state.mesh.n[i])
+                else:
+                    tensor_shape.append(state.mesh.n[i] + 1)
             else:
                 raise Exception(f"Function space '{space}' not supported")
 
         self._tensor_shape = tuple(tensor_shape) + shape
 
-        self.save_and_load_code(spaces, shape)
+        self.save_and_load_code(spaces, shape, state.mesh.pbc)
 
         self._avg = None
         self._avg_on_domain = None
@@ -197,23 +200,25 @@ class Function(CodeClass):
             )
 
     @classmethod
-    def _generate_code(cls, spaces, shape):
-        code = config.backend.CodeBlock()
+    def _generate_code(cls, spaces, shape, pbc=None):
+        code = config.backend.CodeBlock(pbc=pbc)
         dim = len(spaces)
 
         # generate avg method
         f = en.Variable("f", spaces, shape)
         with code.add_function("avg", ["rho", "dx", "f"]) as func:
-            terms, _ = en.compile_functional(1 * en.dV(dim))
+            terms, _ = en.compile_functional(1 * en.dV(dim), pbc=pbc)
             func.assign_sum("vol", *[term["cmd"] for term in terms])
 
             if shape == ():
-                terms, variables = en.compile_functional(f * en.dV(dim))
+                terms, variables = en.compile_functional(f * en.dV(dim), pbc=pbc)
                 func.assign_sum("fint", *[term["cmd"] for term in terms])
             elif shape == (3,):
                 func.zeros_like("fint", "f", (3,))
                 for i in range(3):
-                    terms, _ = en.compile_functional(f.dot(en.cs_e[i]) * en.dV(dim))
+                    terms, _ = en.compile_functional(
+                        f.dot(en.cs_e[i]) * en.dV(dim), pbc=pbc
+                    )
                     func.assign_sum("fint", *[term["cmd"] for term in terms], index=i)
 
             func.retrn("fint / vol")

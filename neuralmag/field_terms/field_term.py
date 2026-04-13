@@ -75,8 +75,10 @@ class FieldTerm(CodeClass):
         """
         dim = state.mesh.dim
         m_spaces = state.m.spaces
+        pbc = state.mesh.pbc
 
         self._options["m_spaces"] = m_spaces
+        self._options["pbc"] = pbc
 
         if hasattr(self, "e_expr") and self.e_expr is not None:
             self.save_and_load_code(self._n_gauss, dim, self._options, m_spaces)
@@ -122,7 +124,8 @@ class FieldTerm(CodeClass):
 
     @classmethod
     def _generate_code(cls, n_gauss, dim, options, m_spaces="n"):
-        code = config.backend.CodeBlock()
+        pbc = options.get("pbc")
+        code = config.backend.CodeBlock(pbc=pbc)
         # The symbolic ``m`` used by the form compiler is always nodal so the
         # generated cmds index ``m`` at node positions. The runtime argument
         # ``m`` may live in cell space (FIC mode); ``f.to_node("m")`` projects
@@ -137,11 +140,13 @@ class FieldTerm(CodeClass):
             else:
                 field_expr = en.gateaux_derivative(cls.e_expr(m, dim, options), m)
 
-            cmds1, vars1 = en.linear_form_cmds(field_expr, n_gauss)
+            cmds1, vars1 = en.linear_form_cmds(field_expr, n_gauss, pbc=pbc)
 
             v = en.Variable("v", "n" * dim)
             Ms = en.Variable("material__Ms", "c" * dim)
-            cmds2, vars2 = en.linear_form_cmds(-constants.mu_0 * Ms * v * en.dV(dim))
+            cmds2, vars2 = en.linear_form_cmds(
+                -constants.mu_0 * Ms * v * en.dV(dim), pbc=pbc
+            )
 
             all_vars = sorted(vars1 | vars2 | {"m"})
             with code.add_function("h", all_vars, var_spaces=var_spaces) as f:
@@ -162,8 +167,10 @@ class FieldTerm(CodeClass):
         if not hasattr(cls, "e"):
             v = en.Variable("v", "n" * dim)
 
-            cmds1, vars1 = en.linear_form_cmds(v * cls.e_expr(m, dim, options), n_gauss)
-            cmds2, vars2 = en.linear_form_cmds(v * en.dV(dim))
+            cmds1, vars1 = en.linear_form_cmds(
+                v * cls.e_expr(m, dim, options), n_gauss, pbc=pbc
+            )
+            cmds2, vars2 = en.linear_form_cmds(v * en.dV(dim), pbc=pbc)
 
             all_vars = sorted(vars1 | vars2 | {"m"})
             with code.add_function("e", all_vars, var_spaces=var_spaces) as f:
@@ -183,7 +190,7 @@ class FieldTerm(CodeClass):
 
         if not hasattr(cls, "E"):
             terms, variables = en.compile_functional(
-                cls.e_expr(m, dim, options), n_gauss
+                cls.e_expr(m, dim, options), n_gauss, pbc=pbc
             )
             with code.add_function("E", sorted(variables), var_spaces=var_spaces) as f:
                 f.to_node("m")

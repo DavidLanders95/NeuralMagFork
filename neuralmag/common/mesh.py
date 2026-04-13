@@ -23,6 +23,10 @@ class Mesh(object):
     :type dx: tuple
     :param origin: Coordinate of the bottom-left corner of the mesh
     :type origin: tuple
+    :param pbc: Periodic boundary conditions per direction. ``0`` means open
+        boundary, a positive integer selects pseudo-PBC with that many image
+        copies, and ``float("inf")`` selects true PBC.
+    :type pbc: tuple
 
     :Example:
         .. code-block::
@@ -34,11 +38,12 @@ class Mesh(object):
             mesh_2d = Mesh((100, 25), (5e-9, 5e-9, 3e-9))
     """
 
-    def __init__(self, n, dx, origin=(0, 0, 0)):
+    def __init__(self, n, dx, origin=(0, 0, 0), pbc=(0, 0, 0)):
         self.n = tuple(n)
         self.dim = len(n)
         self.dx = tuple(dx)
         self.origin = tuple(origin)
+        self.pbc = tuple(pbc)
         logging.info_green(
             f"[Mesh] {self.dim}D, {' x '.join([str(x) for x in self.n])} (size = {' x '.join(['{:,g}'.format(x) for x in self.dx])})"
         )
@@ -65,19 +70,22 @@ class Mesh(object):
         return reduce(lambda x, y: x * y, self.n)
 
     @property
+    def is_pbc(self):
+        """
+        ``True`` if all spatial dimensions have true periodic boundary
+        conditions (``pbc[i] == float("inf")``).
+        """
+        return all(self.pbc[i] == float("inf") for i in range(self.dim))
+
+    @property
     def num_nodes(self):
         """
         The total number of simulation nodes
         """
-        # TODO better use a loop here?
-        if self.dim == 3:
-            return (self.n[0] + 1) * (self.n[1] + 1) * (self.n[2] + 1)
-        elif self.dim == 2:
-            return (self.n[0] + 1) * (self.n[1] + 1)
-        elif self.dim == 1:
-            return self.n[0] + 1
-        else:
-            raise RuntimeError(f"Mesh dimension '{self.dim}' not supported")
+        result = 1
+        for i in range(self.dim):
+            result *= self.n[i] if self.pbc[i] else self.n[i] + 1
+        return result
 
     def __str__(self):
         return f"{'x'.join(str(x) for x in self.n)}_{self.dx[0]:g}x{self.dx[1]:g}x{self.dx[2]:g}"

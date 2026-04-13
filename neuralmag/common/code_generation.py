@@ -8,7 +8,7 @@ from neuralmag.common import engine as en
 _projection_cache = {}
 
 
-def compile_projection(direction, dim, trailing_shape, src_name):
+def compile_projection(direction, dim, trailing_shape, src_name, pbc=None):
     """
     Compile the mass-lumped projection between cell- and node-based
     representations.
@@ -17,9 +17,10 @@ def compile_projection(direction, dim, trailing_shape, src_name):
     :param dim: mesh topological dimension
     :param trailing_shape: ``()`` for scalar fields or ``(3,)`` for vectors
     :param src_name: name of the source variable embedded in the returned cmds
+    :param pbc: periodic boundary condition tuple
     :return: ``(field_cmds, field_vars, mass_cmds, mass_vars)``
     """
-    key = (direction, dim, trailing_shape, src_name)
+    key = (direction, dim, trailing_shape, src_name, pbc)
     if key in _projection_cache:
         return _projection_cache[key]
 
@@ -32,10 +33,10 @@ def compile_projection(direction, dim, trailing_shape, src_name):
         form = v.dot(src) * en.dV(dim)
     else:
         form = v * src * en.dV(dim)
-    field_cmds, field_vars = en.linear_form_cmds(form, 1)
+    field_cmds, field_vars = en.linear_form_cmds(form, 1, pbc=pbc)
 
     v_s = en.Variable("v", tgt_spaces)
-    mass_cmds, mass_vars = en.linear_form_cmds(v_s * en.dV(dim), 1)
+    mass_cmds, mass_vars = en.linear_form_cmds(v_s * en.dV(dim), 1, pbc=pbc)
 
     _projection_cache[key] = (field_cmds, field_vars, mass_cmds, mass_vars)
     return _projection_cache[key]
@@ -53,6 +54,7 @@ class CodeFunctionBase(object):
     def __init__(self, block, name, variables, var_spaces=None):
         self._block = block
         self._name = name
+        self._pbc = block._pbc
         # argument list: deduped, insertion order preserved
         self._variables = list(dict.fromkeys(variables))
         # registry of arg-name -> (spaces, trailing_shape); populated when the
@@ -120,9 +122,14 @@ class CodeFunctionBase(object):
         ref_name, (ref_spaces, _) = self._reference_for(dim)
         parts = []
         for i in range(dim):
-            delta = (1 if target_spaces[i] == "n" else 0) - (
-                1 if ref_spaces[i] == "n" else 0
-            )
+            # With PBC, node and cell spaces have the same size (n[i]),
+            # so the delta between them is 0.
+            if self._pbc and self._pbc[i]:
+                delta = 0
+            else:
+                delta = (1 if target_spaces[i] == "n" else 0) - (
+                    1 if ref_spaces[i] == "n" else 0
+                )
             if delta == 0:
                 parts.append(f"{ref_name}.shape[{i}]")
             elif delta > 0:
@@ -192,7 +199,7 @@ class CodeFunctionBase(object):
 
     def _emit_projection(self, name, direction, dim, trailing):
         field_cmds, field_vars, mass_cmds, mass_vars = compile_projection(
-            direction, dim, trailing, name
+            direction, dim, trailing, name, pbc=self._pbc
         )
         self._ensure_vars(field_vars | mass_vars)
 
@@ -250,8 +257,9 @@ class CodeBlockBase(object):
     # Subclasses must set this to the CodeFunction subclass they use.
     _code_function_class = None
 
-    def __init__(self, preamble):
+    def __init__(self, preamble, pbc=None):
         self._code = preamble
+        self._pbc = pbc
 
     def add_function(self, name, variables, var_spaces=None):
         return self._code_function_class(self, name, variables, var_spaces=var_spaces)
