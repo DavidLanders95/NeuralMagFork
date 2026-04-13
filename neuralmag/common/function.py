@@ -266,7 +266,7 @@ class Function(CodeClass):
         return self._make_function("n" * dim, self._to_node_fn(self.tensor))
 
     @classmethod
-    def _generate_code(cls, spaces, shape, pbc=None):
+    def _generate_code(cls, spaces, shape, pbc):
         code = config.backend.CodeBlock(pbc=pbc)
         dim = len(spaces)
 
