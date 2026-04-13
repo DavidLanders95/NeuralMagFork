@@ -8,9 +8,7 @@ from neuralmag.common import engine as en
 _projection_cache = {}
 
 
-def compile_projection(
-    direction, dim, trailing_shape, src_name, pbc=None, weight_name=None
-):
+def compile_projection(direction, dim, trailing_shape, src_name, pbc, weight_name=None):
     """
     Compile the mass-lumped projection between cell- and node-based
     representations.
