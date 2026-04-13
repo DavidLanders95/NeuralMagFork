@@ -89,7 +89,7 @@ def test_demag_cell_pbc_uniform():
     mesh = Mesh(
         (5, 5, 5),
         (1e-9, 1e-9, 1e-9),
-        pbc=(float("inf"), float("inf"), float("inf")),
+        pbc=True,
     )
     state = State(mesh)
     state.m = VectorCellFunction(state).fill([1.0, 0.0, 0.0])
@@ -109,7 +109,7 @@ def test_demag_cell_pbc_stripes():
     mesh = Mesh(
         (nx, 2, 2),
         (1e-9, 1e-9, 1e-9),
-        pbc=(float("inf"), float("inf"), float("inf")),
+        pbc=True,
     )
     state = State(mesh)
     state.m = VectorCellFunction(state).fill([1.0, 0.0, 0.0])
@@ -135,7 +135,7 @@ def test_demag_node_pbc_uniform():
     mesh = Mesh(
         (5, 5, 5),
         (1e-9, 1e-9, 1e-9),
-        pbc=(float("inf"), float("inf"), float("inf")),
+        pbc=True,
     )
     state = State(mesh)
     state.m = VectorFunction(state).fill([1.0, 0.0, 0.0])

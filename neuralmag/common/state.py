@@ -504,6 +504,23 @@ class State(CodeClass):
 
             data = config.backend.to_numpy(field.tensor)
 
+            # pad periodic nodal dimensions by duplicating the first slice
+            if space == "n":
+                for i in range(len(field.spaces)):
+                    if self.mesh.pbc[i]:
+                        data = np.concatenate(
+                            [
+                                data,
+                                data[
+                                    tuple(
+                                        slice(None) if j != i else slice(0, 1)
+                                        for j in range(data.ndim)
+                                    )
+                                ],
+                            ],
+                            axis=i,
+                        )
+
             # extend data to length 2 in hidden dimensions in case of nodal discretization
             if space == "n":
                 missing_dims = tuple(
@@ -578,6 +595,17 @@ class State(CodeClass):
             values = values[:, 0, 0, ...]
         if self.mesh.dim == 2:
             values = values[:, :, 0, ...]
+
+        # strip duplicated boundary nodes in periodic dimensions
+        if spaces[0] == "n":
+            for i in range(self.mesh.dim):
+                if self.mesh.pbc[i]:
+                    values = values[
+                        tuple(
+                            slice(None) if j != i else slice(0, -1)
+                            for j in range(values.ndim)
+                        )
+                    ]
 
         return Function(self, spaces=spaces, shape=shape, tensor=values)
 

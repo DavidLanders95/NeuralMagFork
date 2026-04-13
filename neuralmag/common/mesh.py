@@ -23,10 +23,12 @@ class Mesh(object):
     :type dx: tuple
     :param origin: Coordinate of the bottom-left corner of the mesh
     :type origin: tuple
-    :param pbc: Periodic boundary conditions per direction. ``0`` means open
-        boundary, a positive integer selects pseudo-PBC with that many image
-        copies, and ``float("inf")`` selects true PBC.
-    :type pbc: tuple
+    :param pbc: Periodic boundary conditions. ``True`` enables true PBC in all
+        spatial dimensions, ``False`` (or ``0``) means open boundaries. A tuple
+        gives per-direction control: ``0``/``False`` = open, positive integer =
+        pseudo-PBC with that many image copies, ``True``/``float("inf")`` =
+        true PBC.
+    :type pbc: bool or tuple
 
     :Example:
         .. code-block::
@@ -43,7 +45,12 @@ class Mesh(object):
         self.dim = len(n)
         self.dx = tuple(dx)
         self.origin = tuple(origin)
-        self.pbc = tuple(pbc)
+        if isinstance(pbc, bool):
+            self.pbc = (float("inf"),) * 3 if pbc else (0, 0, 0)
+        else:
+            self.pbc = tuple(
+                float("inf") if p is True else (0 if p is False else p) for p in pbc
+            )
         logging.info_green(
             f"[Mesh] {self.dim}D, {' x '.join([str(x) for x in self.n])} (size = {' x '.join(['{:,g}'.format(x) for x in self.dx])})"
         )
@@ -68,14 +75,6 @@ class Mesh(object):
         The total number of simulation cells
         """
         return reduce(lambda x, y: x * y, self.n)
-
-    @property
-    def is_pbc(self):
-        """
-        ``True`` if all spatial dimensions have true periodic boundary
-        conditions (``pbc[i] == float("inf")``).
-        """
-        return all(self.pbc[i] == float("inf") for i in range(self.dim))
 
     @property
     def num_nodes(self):
