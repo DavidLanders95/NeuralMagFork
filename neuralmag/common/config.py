@@ -15,13 +15,8 @@ class Config:
         self._dtype = None
 
         # public config keys
-        self.torch = {
-            "compile": os.getenv("NM_TORCH_COMPILE", "True").lower()
-            in ("true", "1", "yes")
-        }
-        self.jax = {
-            "jit": os.getenv("NM_JAX_JIT", "True").lower() in ("true", "1", "yes")
-        }
+        self.torch = {"compile": os.getenv("NM_TORCH_COMPILE", "True").lower() in ("true", "1", "yes")}
+        self.jax = {"jit": os.getenv("NM_JAX_JIT", "True").lower() in ("true", "1", "yes")}
         self.fem = {"n_gauss": 3}
 
     @property
@@ -45,9 +40,7 @@ class Config:
 
     def set_backend(self, backend_name, graceful=False):
         if self._backend is not None:
-            raise RuntimeError(
-                "Backend is already set. Cannot switch backend at runtime."
-            )
+            raise RuntimeError("Backend is already set. Cannot switch backend at runtime.")
         if backend_name not in ["torch", "jax"]:
             raise ValueError(f"Unsupported backend: {backend_name}")
 

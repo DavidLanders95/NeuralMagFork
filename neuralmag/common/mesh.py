@@ -48,9 +48,7 @@ class Mesh(object):
         if isinstance(pbc, bool):
             self.pbc = (float("inf"),) * 3 if pbc else (0, 0, 0)
         else:
-            self.pbc = tuple(
-                float("inf") if p is True else (0 if p is False else p) for p in pbc
-            )
+            self.pbc = tuple(float("inf") if p is True else (0 if p is False else p) for p in pbc)
         logging.info_green(
             f"[Mesh] {self.dim}D, {' x '.join([str(x) for x in self.n])} (size = {' x '.join(['{:,g}'.format(x) for x in self.dx])})"
         )

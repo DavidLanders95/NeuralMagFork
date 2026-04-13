@@ -8,10 +8,4 @@ from neuralmag.common.logging import *
 from neuralmag.common.mesh import *
 from neuralmag.common.state import *
 
-__all__ = (
-    ["config", "engine"]
-    + logging.__all__
-    + function.__all__
-    + mesh.__all__
-    + state.__all__
-)
+__all__ = ["config", "engine"] + logging.__all__ + function.__all__ + mesh.__all__ + state.__all__

@@ -29,10 +29,10 @@ jax = ["jax[cuda]>=0.4.31", "diffrax", "optax"]
 include = ["neuralmag*"]
 
 [tool.black]
-line-length = 88
+line-length = 120
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 target-version = "py310"
 
 [tool.ruff.lint]

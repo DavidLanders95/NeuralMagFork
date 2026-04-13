@@ -88,16 +88,10 @@ def Variable(name, spaces, shape=()):
             if j is not None:
                 phi *= 1 - cs_x[i] / cs_dx[i] + 2 * j * cs_x[i] / cs_dx[i] - j
         if shape == ():
-            result.append(
-                sp.Symbol(f"_{name}:{spaces}:{shape}:{list(idx)}_", real=True) * phi
-            )
+            result.append(sp.Symbol(f"_{name}:{spaces}:{shape}:{list(idx)}_", real=True) * phi)
         elif shape == (3,):
             for l in range(3):
-                result.append(
-                    sp.Symbol(f"_{name}:{spaces}:{shape}:{list(idx) + [l]}_", real=True)
-                    * phi
-                    * cs_e[l]
-                )
+                result.append(sp.Symbol(f"_{name}:{spaces}:{shape}:{list(idx) + [l]}_", real=True) * phi * cs_e[l])
         else:
             raise Exception("Shape not supported")
     return reduce(lambda x, y: x + y, result)
@@ -111,12 +105,7 @@ def integrate(expr, dims, n=3):
         if dim is None:
             integral = None
             for j in range(n):
-                term = (
-                    w[j]
-                    * cs_dx[i]
-                    / 2
-                    * integrand.subs(cs_x[i], (1 + x[j]) * cs_dx[i] / 2)
-                )
+                term = w[j] * cs_dx[i] / 2 * integrand.subs(cs_x[i], (1 + x[j]) * cs_dx[i] / 2)
                 integral = term if integral is None else integral + term
         else:
             integral = integrand.subs(cs_x[i], 0.0)
@@ -147,11 +136,7 @@ def _roll_expr(name, arr_idx, rolls):
 
 def compile_functional(expr, n_gauss=3, pbc=None):
     # extract all integral measures with parameters and check consistency
-    measure_symbols = [
-        s
-        for s in expr.free_symbols
-        if hasattr(s, "name") and re.match(r"^_dX:(.*)_$", s.name)
-    ]
+    measure_symbols = [s for s in expr.free_symbols if hasattr(s, "name") and re.match(r"^_dX:(.*)_$", s.name)]
     integrals = sp.collect(expr, measure_symbols, exact=True, evaluate=False)
     assert 1 not in integrals
 
@@ -171,9 +156,7 @@ def compile_functional(expr, n_gauss=3, pbc=None):
 
         # find all named symbols (fields)
         symbs = [
-            symb
-            for symb in iexpr.free_symbols
-            if hasattr(symb, "name") and re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
+            symb for symb in iexpr.free_symbols if hasattr(symb, "name") and re.match(r"^_(.*:.*:.*:.*)_$", symb.name)
         ]
 
         if len(symbs) == 0:
@@ -237,9 +220,7 @@ def linear_form_cmds(expr, n_gauss=3, pbc=None):
     v = {}
 
     # collect all test functions in expr
-    for symb in sorted(
-        [s for s in expr.free_symbols if hasattr(s, "name")], key=lambda s: s.name
-    ):
+    for symb in sorted([s for s in expr.free_symbols if hasattr(s, "name")], key=lambda s: s.name):
         match = re.match(r"^_v:(.*:.*:.*)_$", symb.name)
         if match:
             v[symb] = match[1].split(":")

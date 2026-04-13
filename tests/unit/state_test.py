@@ -200,9 +200,7 @@ def test_add_domain(state):
 
     assert be.to_numpy(state.m.avg(1)) == pytest.approx([0.5312498, 0.46875, 0.0])
     assert be.to_numpy(state.m.avg(2)) == pytest.approx([-0.46875, 0.46875, 0.0])
-    assert be.to_numpy(state.m.avg(1) + state.m.avg(2)) / 2.0 == pytest.approx(
-        be.to_numpy(state.m.avg()), abs=1e-7
-    )
+    assert be.to_numpy(state.m.avg(1) + state.m.avg(2)) / 2.0 == pytest.approx(be.to_numpy(state.m.avg()), abs=1e-7)
 
 
 def test_statify_function(state):

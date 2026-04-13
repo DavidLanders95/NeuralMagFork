@@ -31,9 +31,7 @@ class Function(CodeClass):
     :type dtype: dtype
     """
 
-    def __init__(
-        self, state, spaces=None, shape=(), tensor=None, name=None, dtype=None
-    ):
+    def __init__(self, state, spaces=None, shape=(), tensor=None, name=None, dtype=None):
         self._state = state
         self._tensor = None
         self.tensor = tensor
@@ -126,9 +124,7 @@ class Function(CodeClass):
 
         if self._tensor is None:
             dtype = self._dtype or self._state.dtype
-            self._tensor = config.backend.zeros(
-                self._tensor_shape, dtype=dtype, device=self._state.device
-            )
+            self._tensor = config.backend.zeros(self._tensor_shape, dtype=dtype, device=self._state.device)
         return self._tensor
 
     @tensor.setter
@@ -200,9 +196,7 @@ class Function(CodeClass):
                     ["f", "domains", "domain_id"],
                     remap={"domain": "subdomain"},
                 )
-            return self._avg_on_domain(
-                self.tensor, self._state.domains.tensor, domain_id
-            )
+            return self._avg_on_domain(self.tensor, self._state.domains.tensor, domain_id)
 
     def _make_function(self, spaces, tensor):
         """Create a new Function with the given spaces and concrete tensor."""
@@ -213,9 +207,7 @@ class Function(CodeClass):
         elif self._shape == (3,):
             return VectorFunction(self._state, tensor=tensor)
         else:
-            return Function(
-                self._state, spaces=spaces, shape=self._shape, tensor=tensor
-            )
+            return Function(self._state, spaces=spaces, shape=self._shape, tensor=tensor)
 
     def to_cell(self, weight=None):
         """
@@ -231,12 +223,8 @@ class Function(CodeClass):
             return self
         if weight is not None:
             if self._to_cell_w_fn is None:
-                self._to_cell_w_fn = self._state.resolve(
-                    self._code.to_cell_w, ["f", "weight"]
-                )
-            return self._make_function(
-                "c" * dim, self._to_cell_w_fn(self.tensor, weight.tensor)
-            )
+                self._to_cell_w_fn = self._state.resolve(self._code.to_cell_w, ["f", "weight"])
+            return self._make_function("c" * dim, self._to_cell_w_fn(self.tensor, weight.tensor))
         if self._to_cell_fn is None:
             self._to_cell_fn = self._state.resolve(self._code.to_cell, ["f"])
         return self._make_function("c" * dim, self._to_cell_fn(self.tensor))
@@ -255,12 +243,8 @@ class Function(CodeClass):
             return self
         if weight is not None:
             if self._to_node_w_fn is None:
-                self._to_node_w_fn = self._state.resolve(
-                    self._code.to_node_w, ["f", "weight"]
-                )
-            return self._make_function(
-                "n" * dim, self._to_node_w_fn(self.tensor, weight.tensor)
-            )
+                self._to_node_w_fn = self._state.resolve(self._code.to_node_w, ["f", "weight"])
+            return self._make_function("n" * dim, self._to_node_w_fn(self.tensor, weight.tensor))
         if self._to_node_fn is None:
             self._to_node_fn = self._state.resolve(self._code.to_node, ["f"])
         return self._make_function("n" * dim, self._to_node_fn(self.tensor))
@@ -282,9 +266,7 @@ class Function(CodeClass):
             elif shape == (3,):
                 func.zeros_like("fint", "f", (3,))
                 for i in range(3):
-                    terms, _ = en.compile_functional(
-                        f.dot(en.cs_e[i]) * en.dV(dim), pbc=pbc
-                    )
+                    terms, _ = en.compile_functional(f.dot(en.cs_e[i]) * en.dV(dim), pbc=pbc)
                     func.assign_sum("fint", *[term["cmd"] for term in terms], index=i)
 
             func.retrn("fint / vol")
@@ -313,9 +295,7 @@ class Function(CodeClass):
                 if weighted:
                     var_spaces["weight"] = cell_spaces
 
-                with code.add_function(
-                    fn_name, all_vars, var_spaces=var_spaces
-                ) as func:
+                with code.add_function(fn_name, all_vars, var_spaces=var_spaces) as func:
                     func.zeros("result", tgt_sp, shape)
                     for idx, rhs in field_cmds:
                         func.add_to("result", idx, rhs)

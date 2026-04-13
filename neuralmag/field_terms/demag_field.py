@@ -59,9 +59,7 @@ class DemagField(FieldTerm):
 
         if is_true_pbc:
             if dim < 3:
-                raise ValueError(
-                    f"True PBC demag field requires a 3D mesh, got {dim}D."
-                )
+                raise ValueError(f"True PBC demag field requires a 3D mesh, got {dim}D.")
             h_cell_kernel = config.backend.demag_field.h_cell_pbc
         elif dim < 3:
             pad = (None,) * (3 - dim)
@@ -86,9 +84,7 @@ class DemagField(FieldTerm):
         elif set(m_spaces) == {"n"}:
             _cell_template = VectorCellFunction(state)
             to_cell_fn = state.resolve(state.m._code.to_cell, ["f"])
-            to_node_w_fn = state.resolve(
-                _cell_template._code.to_node_w, ["f", "weight"]
-            )
+            to_node_w_fn = state.resolve(_cell_template._code.to_node_w, ["f", "weight"])
 
             if is_true_pbc:
 

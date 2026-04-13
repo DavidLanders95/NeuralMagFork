@@ -33,11 +33,5 @@ class ExchangeField(FieldTerm):
     def e_expr(m, dim, _options):
         A = Variable("material__A", "c" * dim)
         return (
-            A
-            * (
-                m.diff(N.x).dot(m.diff(N.x))
-                + m.diff(N.y).dot(m.diff(N.y))
-                + m.diff(N.z).dot(m.diff(N.z))
-            )
-            * dV(dim)
+            A * (m.diff(N.x).dot(m.diff(N.x)) + m.diff(N.y).dot(m.diff(N.y)) + m.diff(N.z).dot(m.diff(N.z))) * dV(dim)
         )

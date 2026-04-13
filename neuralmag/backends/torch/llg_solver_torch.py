@@ -11,9 +11,9 @@ __all__ = ["LLGSolverTorch"]
 
 def llg_rhs(h, m, material__alpha):
     gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
-    return -gamma_prime * torch.linalg.cross(
-        m, h
-    ) - material__alpha * gamma_prime * torch.linalg.cross(m, torch.linalg.cross(m, h))
+    return -gamma_prime * torch.linalg.cross(m, h) - material__alpha * gamma_prime * torch.linalg.cross(
+        m, torch.linalg.cross(m, h)
+    )
 
 
 class LLGSolverTorch(nn.Module):
@@ -117,25 +117,17 @@ class LLGSolverTorch(nn.Module):
         func = self._state.resolve(llg_rhs, ["t", "m", "material__alpha"])
         rhs = lambda t, m: self._scale_t * func(t * self._scale_t, m, alpha)
 
-        logging.info_blue(
-            f"[LLGSolverTorch] Relaxation started, initial energy E = {self._state.E:g} J"
-        )
+        logging.info_blue(f"[LLGSolverTorch] Relaxation started, initial energy E = {self._state.E:g} J")
 
-        t = self._state.tensor(
-            [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
-        )
+        t = self._state.tensor([self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t])
         while rhs(t[0], self._state.m.tensor).norm(dim=-1).max() / self._scale_t > tol:
             logging.info_blue(
                 f"[LLGSolverTorch] Relaxation step (max dm/dt = {rhs(t[0], self._state.m.tensor).norm(dim=-1).max() / self._scale_t:g}) 1/s"
             )
-            m_next = odeint(
-                rhs, self._state.m.tensor, t, adjoint_params=(), **self._solver_options
-            )
+            m_next = odeint(rhs, self._state.m.tensor, t, adjoint_params=(), **self._solver_options)
             self._state.m.tensor[:] = m_next[-1]
 
-        logging.info_blue(
-            f"[LLGSolverTorch] Relaxation finished, final energy E = {self._state.E:g} J"
-        )
+        logging.info_blue(f"[LLGSolverTorch] Relaxation finished, final energy E = {self._state.E:g} J")
 
     def step(self, dt):
         """
@@ -145,12 +137,8 @@ class LLGSolverTorch(nn.Module):
         :param dt: The size of the time step
         :type dt: float
         """
-        logging.info_blue(
-            f"[LLGSolverTorch] Step: dt = {dt:g}s, t = {self._state.t:g}s"
-        )
-        t = self._state.tensor(
-            [self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t]
-        )
+        logging.info_blue(f"[LLGSolverTorch] Step: dt = {dt:g}s, t = {self._state.t:g}s")
+        t = self._state.tensor([self._state.t / self._scale_t, (self._state.t + dt) / self._scale_t])
         m_next = odeint(self, self._state.m.tensor, t, **self._solver_options)
         self._state.t.fill_(t[-1] * self._scale_t)
         self._state.m.tensor[:] = m_next[-1]
@@ -164,6 +152,4 @@ class LLGSolverTorch(nn.Module):
         :param t: List of target times
         :type t: torch.Tensor
         """
-        return odeint(
-            self, self._state.m.tensor, t / self._scale_t, **self._solver_options
-        )
+        return odeint(self, self._state.m.tensor, t / self._scale_t, **self._solver_options)

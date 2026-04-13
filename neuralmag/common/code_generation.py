@@ -132,9 +132,7 @@ class CodeFunctionBase(object):
             if self._pbc and self._pbc[i]:
                 delta = 0
             else:
-                delta = (1 if target_spaces[i] == "n" else 0) - (
-                    1 if ref_spaces[i] == "n" else 0
-                )
+                delta = (1 if target_spaces[i] == "n" else 0) - (1 if ref_spaces[i] == "n" else 0)
             if delta == 0:
                 parts.append(f"{ref_name}.shape[{i}]")
             elif delta > 0:
@@ -166,9 +164,7 @@ class CodeFunctionBase(object):
         elif set(target_spaces) == {"c"}:
             self.to_cell(name)
         else:
-            raise ValueError(
-                f"to_spaces expects homogeneous target spaces, got '{target_spaces}'"
-            )
+            raise ValueError(f"to_spaces expects homogeneous target spaces, got '{target_spaces}'")
 
     def to_node(self, name):
         """
@@ -180,9 +176,7 @@ class CodeFunctionBase(object):
         target = "n" * dim
         if current_spaces == target:
             return
-        assert current_spaces == "c" * dim, (
-            f"to_node expects fully-cell or fully-node spaces, got '{current_spaces}'"
-        )
+        assert current_spaces == "c" * dim, f"to_node expects fully-cell or fully-node spaces, got '{current_spaces}'"
         self._emit_projection(name, "c2n", dim, trailing)
         self.rebind(name, target)
 
@@ -196,16 +190,12 @@ class CodeFunctionBase(object):
         target = "c" * dim
         if current_spaces == target:
             return
-        assert current_spaces == "n" * dim, (
-            f"to_cell expects fully-cell or fully-node spaces, got '{current_spaces}'"
-        )
+        assert current_spaces == "n" * dim, f"to_cell expects fully-cell or fully-node spaces, got '{current_spaces}'"
         self._emit_projection(name, "n2c", dim, trailing)
         self.rebind(name, target)
 
     def _emit_projection(self, name, direction, dim, trailing):
-        field_cmds, field_vars, mass_cmds, mass_vars = compile_projection(
-            direction, dim, trailing, name, pbc=self._pbc
-        )
+        field_cmds, field_vars, mass_cmds, mass_vars = compile_projection(direction, dim, trailing, name, pbc=self._pbc)
         self._ensure_vars(field_vars | mass_vars)
 
         target = "n" * dim if direction == "c2n" else "c" * dim

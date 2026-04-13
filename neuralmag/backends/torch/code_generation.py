@@ -55,20 +55,14 @@ class CodeFunction(CodeFunctionBase):
     def zeros(self, name, spaces, shape=()):
         shape_str = self._shape_expr(spaces, shape)
         donor = self._donor
-        self.add_line(
-            f"{name} = torch.zeros({shape_str}, dtype={donor}.dtype, device="
-            f"{donor}.device)"
-        )
+        self.add_line(f"{name} = torch.zeros({shape_str}, dtype={donor}.dtype, device={donor}.device)")
         self._registry[name] = (spaces, shape)
 
     def zeros_like(self, var, src, shape=None):
         if shape is None:
             self.add_line(f"{var} = torch.zeros_like({src})")
         else:
-            self.add_line(
-                f"{var} = torch.zeros({shape}, dtype = {src}.dtype, device ="
-                f" {src}.device)"
-            )
+            self.add_line(f"{var} = torch.zeros({shape}, dtype = {src}.dtype, device = {src}.device)")
 
     def assign(self, lhs, rhs, index=None):
         if index is None:

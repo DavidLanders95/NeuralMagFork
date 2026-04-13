@@ -54,9 +54,7 @@ class FieldTerm(CodeClass):
 
     def __init_subclass__(cls, **kwargs):
         if getattr(cls, "default_name") is None:
-            raise TypeError(
-                f"Can't instantiate abstract class {cls.__name__} without 'default_name' attribute defined"
-            )
+            raise TypeError(f"Can't instantiate abstract class {cls.__name__} without 'default_name' attribute defined")
         return super().__init_subclass__(**kwargs)
 
     def register(self, state, name=None):
@@ -144,9 +142,7 @@ class FieldTerm(CodeClass):
 
             v = en.Variable("v", "n" * dim)
             Ms = en.Variable("material__Ms", "c" * dim)
-            cmds2, vars2 = en.linear_form_cmds(
-                -constants.mu_0 * Ms * v * en.dV(dim), pbc=pbc
-            )
+            cmds2, vars2 = en.linear_form_cmds(-constants.mu_0 * Ms * v * en.dV(dim), pbc=pbc)
 
             all_vars = sorted(vars1 | vars2 | {"m"})
             with code.add_function("h", all_vars, var_spaces=var_spaces) as f:
@@ -167,9 +163,7 @@ class FieldTerm(CodeClass):
         if not hasattr(cls, "e"):
             v = en.Variable("v", "n" * dim)
 
-            cmds1, vars1 = en.linear_form_cmds(
-                v * cls.e_expr(m, dim, options), n_gauss, pbc=pbc
-            )
+            cmds1, vars1 = en.linear_form_cmds(v * cls.e_expr(m, dim, options), n_gauss, pbc=pbc)
             cmds2, vars2 = en.linear_form_cmds(v * en.dV(dim), pbc=pbc)
 
             all_vars = sorted(vars1 | vars2 | {"m"})
@@ -189,9 +183,7 @@ class FieldTerm(CodeClass):
                 f.retrn("e")
 
         if not hasattr(cls, "E"):
-            terms, variables = en.compile_functional(
-                cls.e_expr(m, dim, options), n_gauss, pbc=pbc
-            )
+            terms, variables = en.compile_functional(cls.e_expr(m, dim, options), n_gauss, pbc=pbc)
             with code.add_function("E", sorted(variables), var_spaces=var_spaces) as f:
                 f.to_node("m")
                 f.retrn_sum(*[term["cmd"] for term in terms])

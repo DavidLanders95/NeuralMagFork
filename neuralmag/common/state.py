@@ -75,13 +75,9 @@ class State(CodeClass):
         # initialize domain management
         self.domain = lambda domains: domains > 0
         self.subdomain = lambda domains, domain_id: domains == domain_id
-        self.rho = CellFunction(
-            self, tensor=lambda domain: config.backend.np.where(domain, 1.0, self.eps)
-        )
+        self.rho = CellFunction(self, tensor=lambda domain: config.backend.np.where(domain, 1.0, self.eps))
 
-        self.domains = CellFunction(self, dtype=config.backend.integer).fill(
-            1, expand=True
-        )
+        self.domains = CellFunction(self, dtype=config.backend.integer).fill(1, expand=True)
 
         # TODO allow surface regions also for lower dimensions
         if mesh.dim == 3:
@@ -179,9 +175,7 @@ class State(CodeClass):
         :return: The tensor
         :rtype: config.backend.Tensor
         """
-        return config.backend.zeros(
-            shape, device=self.device, dtype=self.dtype, **kwargs
-        )
+        return config.backend.zeros(shape, device=self.device, dtype=self.dtype, **kwargs)
 
     def __getattr__(self, name):
         if callable(self._attr_values[name]):
@@ -243,9 +237,7 @@ class State(CodeClass):
         exclude = exclude or []
         func_names = []
         args = {}
-        for arg in set(
-            [remap.get(a, a) for a in inspect.signature(attr).parameters.keys()]
-        ) - set(exclude):
+        for arg in set([remap.get(a, a) for a in inspect.signature(attr).parameters.keys()]) - set(exclude):
             if arg in inject:
                 attr = inject[arg]
             else:
@@ -256,12 +248,8 @@ class State(CodeClass):
 
             if callable(attr):
                 func_names.append(arg)
-                subfunc_names, subargs = self._collect_func_deps(
-                    attr, exclude=exclude, remap=remap, inject=inject
-                )
-                func_names = [
-                    f for f in func_names if f not in subfunc_names
-                ] + subfunc_names
+                subfunc_names, subargs = self._collect_func_deps(attr, exclude=exclude, remap=remap, inject=inject)
+                func_names = [f for f in func_names if f not in subfunc_names] + subfunc_names
                 args.update(subargs)
             else:
                 args[arg] = attr
@@ -296,17 +284,13 @@ class State(CodeClass):
 
         func = self.remap(func, remap)
 
-        subfunc_names, args = self._collect_func_deps(
-            func, exclude=func_args, remap=remap, inject=inject
-        )
+        subfunc_names, args = self._collect_func_deps(func, exclude=func_args, remap=remap, inject=inject)
         name = func.__name__
         name = "lmda" if func.__name__ == "<lambda>" else name
 
         # setup function with all dependencies
         if subfunc_names or func_args is not None:
-            code = (
-                f"def {name}({', '.join(args if func_args is None else func_args)}):\n"
-            )
+            code = f"def {name}({', '.join(args if func_args is None else func_args)}):\n"
             globals = {}
             for subfunc_name in reversed(subfunc_names):
                 if subfunc_name in inject:
@@ -321,10 +305,7 @@ class State(CodeClass):
                     f" __{subfunc_name}({', '.join([remap.get(a, a) for a in inspect.signature(subfunc).parameters.keys()])})\n"
                 )
             globals[f"__{name}"] = func
-            code += (
-                "    return"
-                f" __{name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
-            )
+            code += f"    return __{name}({', '.join(list(inspect.signature(func).parameters.keys()))})\n"
 
             # populate globals with bound variables
             if func_args is not None:
@@ -413,9 +394,7 @@ class State(CodeClass):
                 ranges.append(
                     config.backend.linspace(
                         self.dx[i] / 2.0 + self.mesh.origin[i],
-                        self.dx[i] / 2.0
-                        + self.mesh.origin[i]
-                        + self.dx[i] * (self.mesh.n[i] - 1.0),
+                        self.dx[i] / 2.0 + self.mesh.origin[i] + self.dx[i] * (self.mesh.n[i] - 1.0),
                         self.mesh.n[i],
                         device=self.device,
                         dtype=self.dtype,
@@ -444,9 +423,7 @@ class State(CodeClass):
         # initialize full tensor zero
         if (self.domains.tensor == 1).all():
             self.domains.fill(0)
-        self.domains.tensor = config.backend.np.where(
-            condition, id, self.domains.tensor
-        )
+        self.domains.tensor = config.backend.np.where(condition, id, self.domains.tensor)
 
     def write_vti(self, fields, filename):
         """
@@ -492,13 +469,9 @@ class State(CodeClass):
 
             # check for spatial dimension and pure cell/node data
             if len(field.spaces) > 3:
-                raise AttributeError(
-                    "VTI only supports spatial dimensions smaller or equal than 3"
-                )
+                raise AttributeError("VTI only supports spatial dimensions smaller or equal than 3")
             if len(set(field.spaces)) > 1:
-                raise AttributeError(
-                    "VTI only supports pure cell/nodal function spaces"
-                )
+                raise AttributeError("VTI only supports pure cell/nodal function spaces")
             else:
                 space = field.spaces[0]
 
@@ -511,21 +484,14 @@ class State(CodeClass):
                         data = np.concatenate(
                             [
                                 data,
-                                data[
-                                    tuple(
-                                        slice(None) if j != i else slice(0, 1)
-                                        for j in range(data.ndim)
-                                    )
-                                ],
+                                data[tuple(slice(None) if j != i else slice(0, 1) for j in range(data.ndim))],
                             ],
                             axis=i,
                         )
 
             # extend data to length 2 in hidden dimensions in case of nodal discretization
             if space == "n":
-                missing_dims = tuple(
-                    np.arange(3 - len(field.spaces)) + len(field.spaces)
-                )
+                missing_dims = tuple(np.arange(3 - len(field.spaces)) + len(field.spaces))
                 data = np.expand_dims(data, missing_dims)
                 new_shape = np.array(data.shape)
                 new_shape[missing_dims,] = 2
@@ -566,9 +532,7 @@ class State(CodeClass):
         fields = {}
         data = pv.read(filename)
 
-        assert np.array_equal(
-            self.mesh.n + (1,) * (3 - self.mesh.dim), np.array(data.dimensions) - 1
-        )
+        assert np.array_equal(self.mesh.n + (1,) * (3 - self.mesh.dim), np.array(data.dimensions) - 1)
 
         if name is None:
             name = data.array_names[0]
@@ -600,12 +564,7 @@ class State(CodeClass):
         if spaces[0] == "n":
             for i in range(self.mesh.dim):
                 if self.mesh.pbc[i]:
-                    values = values[
-                        tuple(
-                            slice(None) if j != i else slice(0, -1)
-                            for j in range(values.ndim)
-                        )
-                    ]
+                    values = values[tuple(slice(None) if j != i else slice(0, -1) for j in range(values.ndim))]
 
         return Function(self, spaces=spaces, shape=shape, tensor=values)
 
@@ -619,20 +578,13 @@ class State(CodeClass):
         x = np.arange(mesh.n[0]) * mesh.dx[0] + mesh.dx[0] / 2.0 + mesh.origin[0]
         y = np.arange(mesh.n[1]) * mesh.dx[1] + mesh.dx[1] / 2.0 + mesh.origin[1]
         z = np.arange(mesh.n[2]) * mesh.dx[2] + mesh.dx[2] / 2.0 + mesh.origin[2]
-        points = (
-            np.stack(np.meshgrid(x, y, z, indexing="ij"), axis=-1).reshape(-1, 3)
-            / scale
-        )
+        points = np.stack(np.meshgrid(x, y, z, indexing="ij"), axis=-1).reshape(-1, 3) / scale
 
         containing_cells = unstructured_mesh.find_containing_cell(points)
         data = unstructured_mesh.get_array(0)[containing_cells]
-        data[
-            containing_cells == -1
-        ] = -1  # containing_cell == -1, if point is not included in any cell
+        data[containing_cells == -1] = -1  # containing_cell == -1, if point is not included in any cell
 
-        return Function(
-            self, spaces="c" * mesh.dim, tensor=self.tensor(data.reshape(mesh.n))
-        )
+        return Function(self, spaces="c" * mesh.dim, tensor=self.tensor(data.reshape(mesh.n)))
 
     @classmethod
     def _generate_code(cls, dim):
@@ -643,34 +595,22 @@ class State(CodeClass):
 
         # generate interface rho attributes
         with code.add_function("rhoxy", ["rho"]) as func:
-            func.zeros_like(
-                "rhoxy1", "rho", shape="(rho.shape[0], rho.shape[1], rho.shape[2]+1)"
-            )
-            func.zeros_like(
-                "rhoxy2", "rho", shape="(rho.shape[0], rho.shape[1], rho.shape[2]+1)"
-            )
+            func.zeros_like("rhoxy1", "rho", shape="(rho.shape[0], rho.shape[1], rho.shape[2]+1)")
+            func.zeros_like("rhoxy2", "rho", shape="(rho.shape[0], rho.shape[1], rho.shape[2]+1)")
             func.add_to("rhoxy1", ":,:,:-1", "rho")
             func.add_to("rhoxy2", ":,:,1:", "rho")
             func.retrn_maximum("rhoxy1", "rhoxy2")
 
         with code.add_function("rhoxz", ["rho"]) as func:
-            func.zeros_like(
-                "rhoxz1", "rho", shape="(rho.shape[0], rho.shape[1]+1, rho.shape[2])"
-            )
-            func.zeros_like(
-                "rhoxz2", "rho", shape="(rho.shape[0], rho.shape[1]+1, rho.shape[2])"
-            )
+            func.zeros_like("rhoxz1", "rho", shape="(rho.shape[0], rho.shape[1]+1, rho.shape[2])")
+            func.zeros_like("rhoxz2", "rho", shape="(rho.shape[0], rho.shape[1]+1, rho.shape[2])")
             func.add_to("rhoxz1", ":,:-1,:", "rho")
             func.add_to("rhoxz2", ":,1:,:", "rho")
             func.retrn_maximum("rhoxz1", "rhoxz2")
 
         with code.add_function("rhoyz", ["rho"]) as func:
-            func.zeros_like(
-                "rhoyz1", "rho", shape="(rho.shape[0]+1, rho.shape[1], rho.shape[2])"
-            )
-            func.zeros_like(
-                "rhoyz2", "rho", shape="(rho.shape[0]+1, rho.shape[1], rho.shape[2])"
-            )
+            func.zeros_like("rhoyz1", "rho", shape="(rho.shape[0]+1, rho.shape[1], rho.shape[2])")
+            func.zeros_like("rhoyz2", "rho", shape="(rho.shape[0]+1, rho.shape[1], rho.shape[2])")
             func.add_to("rhoyz1", ":-1,:,:", "rho")
             func.add_to("rhoyz2", "1:,:,:", "rho")
             func.retrn_maximum("rhoyz1", "rhoyz2")

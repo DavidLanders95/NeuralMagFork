@@ -22,11 +22,7 @@ def device_for_state(device):
 
 
 def default_device_str():
-    return (
-        f"cuda:{os.environ.get('CUDA_DEVICE', '0')}"
-        if torch.cuda.is_available()
-        else "cpu"
-    )
+    return f"cuda:{os.environ.get('CUDA_DEVICE', '0')}" if torch.cuda.is_available() else "cpu"
 
 
 def dtype_from_str(dtype):

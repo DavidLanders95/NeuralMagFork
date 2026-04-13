@@ -35,9 +35,7 @@ class FieldLogger(object):
 
     def __init__(self, filename, fields, every=1):
         # create directory if not existent
-        if not os.path.dirname(filename) == "" and not os.path.exists(
-            os.path.dirname(filename)
-        ):
+        if not os.path.dirname(filename) == "" and not os.path.exists(os.path.dirname(filename)):
             try:
                 os.makedirs(os.path.dirname(filename))
             except OSError as exc:  # Guard against race condition
@@ -54,9 +52,7 @@ class FieldLogger(object):
         self._fields = fields
         self._i = 0
         self._i_start = 0
-        self._xmlroot = cElementTree.Element(
-            "VTKFile", type="Collection", version="0.1", byte_order="LittleEndian"
-        )
+        self._xmlroot = cElementTree.Element("VTKFile", type="Collection", version="0.1", byte_order="LittleEndian")
         cElementTree.SubElement(self._xmlroot, "Collection")
 
     def log(self, state):
@@ -83,12 +79,9 @@ class FieldLogger(object):
         with open(self._filename + ".pvd", "w") as fd:
             fd.write(
                 minidom.parseString(
-                    " ".join(
-                        cElementTree.tostring(self._xmlroot)
-                        .decode()
-                        .replace("\n", "")
-                        .split()
-                    ).replace("> <", "><")
+                    " ".join(cElementTree.tostring(self._xmlroot).decode().replace("\n", "").split()).replace(
+                        "> <", "><"
+                    )
                 ).toprettyxml(indent="  ")
             )
 
@@ -145,9 +138,7 @@ class FieldLogger(object):
 
         xml = cElementTree.parse(self._filename + ".pvd").getroot()
         item = list(xml.find("Collection"))[i // self._every]
-        field = state.read_vti(
-            os.path.join(os.path.dirname(self._filename), item.attrib["file"]), field
-        )
+        field = state.read_vti(os.path.join(os.path.dirname(self._filename), item.attrib["file"]), field)
         return field, float(item.attrib["timestep"])
 
     def resume(self, i):
