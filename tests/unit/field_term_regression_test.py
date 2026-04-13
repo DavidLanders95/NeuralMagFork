@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MIT
+
 import numpy as np
 import pytest
 from scipy import constants
@@ -7,63 +9,55 @@ from neuralmag import *
 be = config.backend
 
 
+# --- Magnetization pattern ---
+
+
+def _make_m(shape):
+    """Helix-like magnetization that breaks all spatial symmetries.
+
+    Every node/cell gets a unique direction so that all field terms
+    (exchange, DMI, anisotropy) produce nonzero h, e, and E.
+    """
+    m = np.zeros(shape + (3,), dtype=np.float32)
+    for idx in np.ndindex(*shape):
+        t = sum(i * (2**d) for d, i in enumerate(idx)) * 0.7
+        v = np.array([np.cos(t), np.sin(t), 0.3 * np.sin(2 * t)])
+        m[idx] = v / np.linalg.norm(v)
+    return m
+
+
 # --- State constructors ---
 
 
 def _make_state(disc):
-    """Create a state with non-uniform magnetization for the given discretization."""
     if disc == "fem1d":
-        mesh = Mesh((2,), (1e-9, 1e-9, 1e-9))
-        state = State(mesh)
-        m = np.zeros((3, 3))
-        m[0, 0] = -1
-        m[1, 1] = 1
-        m[2, 0] = 1
-        state.m = VectorFunction(state, tensor=state.tensor(m))
+        state = State(Mesh((2,), (1e-9, 1e-9, 1e-9)))
+        state.m = VectorFunction(state, tensor=state.tensor(_make_m((3,))))
     elif disc == "fem2d":
-        mesh = Mesh((2, 2), (1e-9, 1e-9, 1e-9))
-        state = State(mesh)
-        m = np.zeros((3, 3, 3))
-        m[0, :, 0] = -1
-        m[1, :, 1] = 1
-        m[2, :, 0] = 1
-        state.m = VectorFunction(state, tensor=state.tensor(m))
+        state = State(Mesh((2, 2), (1e-9, 1e-9, 1e-9)))
+        state.m = VectorFunction(state, tensor=state.tensor(_make_m((3, 3))))
     elif disc == "fem3d":
-        mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9))
-        state = State(mesh)
-        m = np.zeros((3, 3, 3, 3))
-        m[0, :, :, 0] = -1
-        m[1, :, :, 1] = 1
-        m[2, :, :, 0] = 1
-        m[1, 0, 0, :] = 0
-        m[1, 0, 0, 0] = 1
-        state.m = VectorFunction(state, tensor=state.tensor(m))
+        state = State(Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9)))
+        state.m = VectorFunction(state, tensor=state.tensor(_make_m((3, 3, 3))))
     elif disc == "fic1d":
-        mesh = Mesh((2,), (1e-9, 1e-9, 1e-9))
-        state = State(mesh)
-        m = np.zeros((2, 3))
-        m[0, 0] = -1
-        m[1, 1] = 1
-        state.m = VectorCellFunction(state, tensor=state.tensor(m))
+        state = State(Mesh((2,), (1e-9, 1e-9, 1e-9)))
+        state.m = VectorCellFunction(state, tensor=state.tensor(_make_m((2,))))
     elif disc == "fic2d":
-        mesh = Mesh((2, 2), (1e-9, 1e-9, 1e-9))
-        state = State(mesh)
-        m = np.zeros((2, 2, 3))
-        m[0, :, 0] = -1
-        m[1, :, 1] = 1
-        state.m = VectorCellFunction(state, tensor=state.tensor(m))
+        state = State(Mesh((2, 2), (1e-9, 1e-9, 1e-9)))
+        state.m = VectorCellFunction(state, tensor=state.tensor(_make_m((2, 2))))
     elif disc == "fic":
-        mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9))
-        state = State(mesh)
-        m = np.zeros((2, 2, 2, 3))
-        m[0, :, :, 0] = -1
-        m[1, :, :, 1] = 1
-        state.m = VectorCellFunction(state, tensor=state.tensor(m))
+        state = State(Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9)))
+        state.m = VectorCellFunction(state, tensor=state.tensor(_make_m((2, 2, 2))))
+    elif disc == "fem3d_pbc":
+        state = State(Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9), pbc=True))
+        state.m = VectorFunction(state, tensor=state.tensor(_make_m((2, 2, 2))))
+    elif disc == "fic_pbc":
+        state = State(Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9), pbc=True))
+        state.m = VectorCellFunction(state, tensor=state.tensor(_make_m((2, 2, 2))))
     return state
 
 
 def _set_material(state, params):
-    """Set material parameters on state."""
     for k, v in params.items():
         if isinstance(v, list):
             setattr(state.material, k, VectorCellFunction(state).fill(v))
@@ -84,72 +78,110 @@ MATERIAL = {
 # --- Reference values: {(FieldTermClass, disc): {h_sum, e_sum, E}} ---
 
 REFS = {
-    (ExchangeField, "fem1d"): {"h_sum": 47746484.0, "e_sum": 72000000.0, "E": 4.8e-20},
-    (ExchangeField, "fem2d"): {
-        "h_sum": 143239472.0,
-        "e_sum": 216000000.0,
-        "E": 9.6e-20,
-    },
+    (ExchangeField, "fem1d"): {"h_sum": 24347980.0, "e_sum": 18302580.0, "E": 1.22e-20},
+    (ExchangeField, "fem2d"): {"h_sum": 4388404.0, "e_sum": 208698960.0, "E": 9.30e-20},
     (ExchangeField, "fem3d"): {
-        "h_sum": 429718432.0,
-        "e_sum": 657500032.0,
-        "E": 1.96e-19,
+        "h_sum": -321162432.0,
+        "e_sum": 1052602112.0,
+        "E": 3.117e-19,
     },
-    (ExchangeField, "fic1d"): {"h_sum": 0.0, "e_sum": 12000000.0, "E": 1.2e-20},
-    (ExchangeField, "fic2d"): {"h_sum": 0.0, "e_sum": 24000000.0, "E": 2.4e-20},
-    (ExchangeField, "fic"): {"h_sum": 0.0, "e_sum": 48000000.0, "E": 4.8e-20},
-    (BulkDMIField, "fem1d"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
-    (BulkDMIField, "fem2d"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
+    (ExchangeField, "fic1d"): {"h_sum": -0.75, "e_sum": 3198466.0, "E": 3.198e-21},
+    (ExchangeField, "fic2d"): {"h_sum": 1.0, "e_sum": 23044290.0, "E": 2.304e-20},
+    (ExchangeField, "fic"): {"h_sum": 1.5, "e_sum": 77500352.0, "E": 7.75e-20},
+    (ExchangeField, "fem3d_pbc"): {"h_sum": 11.0, "e_sum": 310001408.0, "E": 3.10e-19},
+    (ExchangeField, "fic_pbc"): {"h_sum": 0.849, "e_sum": -0.035, "E": -1.04e-29},
+    (BulkDMIField, "fem1d"): {"h_sum": -875867.4, "e_sum": 324308.75, "E": 2.162e-22},
+    (BulkDMIField, "fem2d"): {"h_sum": -3083332.5, "e_sum": -426271.5, "E": -1.885e-22},
     (BulkDMIField, "fem3d"): {
-        "h_sum": 1105240.75,
-        "e_sum": -1041666.75,
-        "E": -3.333e-22,
+        "h_sum": -2142686.25,
+        "e_sum": -5660799.0,
+        "E": -1.691e-21,
     },
-    (BulkDMIField, "fic1d"): {"h_sum": -994718.375, "e_sum": 0.0, "E": 0.0},
-    (BulkDMIField, "fic2d"): {"h_sum": -1989437.0, "e_sum": 0.0, "E": 0.0},
-    (BulkDMIField, "fic"): {"h_sum": -3978874.0, "e_sum": 0.0, "E": 0.0},
-    (InterfaceDMIField, "fem1d"): {"h_sum": 1989436.75, "e_sum": 0.0, "E": 0.0},
-    (InterfaceDMIField, "fem2d"): {"h_sum": 5968310.5, "e_sum": 0.0, "E": 0.0},
-    (InterfaceDMIField, "fem3d"): {"h_sum": 19010176.0, "e_sum": 0.0, "E": 0.0},
-    (InterfaceDMIField, "fic1d"): {"h_sum": 994718.375, "e_sum": 0.0, "E": 0.0},
-    (InterfaceDMIField, "fic2d"): {"h_sum": 1989436.75, "e_sum": 0.0, "E": 0.0},
-    (InterfaceDMIField, "fic"): {"h_sum": 3978873.5, "e_sum": 0.0, "E": 0.0},
+    (BulkDMIField, "fic1d"): {"h_sum": -332515.125, "e_sum": 0.0, "E": 0.0},
+    (BulkDMIField, "fic2d"): {"h_sum": -2146756.5, "e_sum": 108385.25, "E": 1.084e-22},
+    (BulkDMIField, "fic"): {"h_sum": -625226.0, "e_sum": -895176.625, "E": -8.952e-22},
+    (BulkDMIField, "fem3d_pbc"): {"h_sum": -0.029, "e_sum": 0.003, "E": 2.52e-29},
+    (BulkDMIField, "fic_pbc"): {"h_sum": 0.028, "e_sum": 0.002, "E": 1.92e-30},
+    (InterfaceDMIField, "fem1d"): {
+        "h_sum": -925960.875,
+        "e_sum": 463351.5,
+        "E": 3.089e-22,
+    },
+    (InterfaceDMIField, "fem2d"): {
+        "h_sum": -4195535.0,
+        "e_sum": -1315146.625,
+        "E": -5.972e-22,
+    },
+    (InterfaceDMIField, "fem3d"): {
+        "h_sum": -286506.5,
+        "e_sum": -475890.0,
+        "E": -3.834e-23,
+    },
+    (InterfaceDMIField, "fic1d"): {
+        "h_sum": -547138.875,
+        "e_sum": 283505.25,
+        "E": 2.835e-22,
+    },
+    (InterfaceDMIField, "fic2d"): {
+        "h_sum": 775596.75,
+        "e_sum": -233844.16,
+        "E": -2.338e-22,
+    },
+    (InterfaceDMIField, "fic"): {
+        "h_sum": -509684.75,
+        "e_sum": -64895.14,
+        "E": -6.49e-23,
+    },
+    (InterfaceDMIField, "fem3d_pbc"): {"h_sum": 0.139, "e_sum": -0.011, "E": 0.0},
+    (InterfaceDMIField, "fic_pbc"): {"h_sum": 0.002, "e_sum": -0.001, "E": 0.0},
     (UniaxialAnisotropyField, "fem1d"): {
-        "h_sum": 2652582.5,
-        "e_sum": -833333.4375,
-        "E": -6.667e-22,
+        "h_sum": 3264281.5,
+        "e_sum": -1181740.0,
+        "E": -7.768e-22,
     },
     (UniaxialAnisotropyField, "fem2d"): {
-        "h_sum": 7957746.5,
-        "e_sum": -2500000.25,
-        "E": -1.333e-21,
+        "h_sum": 7096425.0,
+        "e_sum": -2833911.0,
+        "E": -1.32e-21,
     },
     (UniaxialAnisotropyField, "fem3d"): {
-        "h_sum": 22031168.0,
-        "e_sum": -6626156.5,
-        "E": -2.407e-21,
+        "h_sum": 1921947.5,
+        "e_sum": -2968750.0,
+        "E": -9.488e-22,
     },
     (UniaxialAnisotropyField, "fic1d"): {
-        "h_sum": 1989436.875,
-        "e_sum": -666666.75,
-        "E": -6.667e-22,
+        "h_sum": 1229046.0,
+        "e_sum": -254439.6,
+        "E": -2.544e-22,
     },
     (UniaxialAnisotropyField, "fic2d"): {
-        "h_sum": 3978873.5,
-        "e_sum": -1333333.5,
-        "E": -1.333e-21,
+        "h_sum": 4841155.0,
+        "e_sum": -1634743.125,
+        "E": -1.635e-21,
     },
     (UniaxialAnisotropyField, "fic"): {
-        "h_sum": 7957747.0,
-        "e_sum": -2666667.0,
-        "E": -2.667e-21,
+        "h_sum": 1188822.5,
+        "e_sum": -980665.0,
+        "E": -9.807e-22,
     },
-    (ExternalField, "fem1d"): {"h_sum": 18.0, "e_sum": -2.6808252, "E": -2.011e-27},
-    (ExternalField, "fem2d"): {"h_sum": 54.0, "e_sum": -8.0424767, "E": -4.021e-27},
-    (ExternalField, "fem3d"): {"h_sum": 162.0, "e_sum": -23.196583, "E": -7.791e-27},
-    (ExternalField, "fic1d"): {"h_sum": 12.0, "e_sum": -1.0053096, "E": -1.005e-27},
-    (ExternalField, "fic2d"): {"h_sum": 24.0, "e_sum": -2.0106192, "E": -2.011e-27},
-    (ExternalField, "fic"): {"h_sum": 48.0, "e_sum": -4.0212388, "E": -4.021e-27},
+    (UniaxialAnisotropyField, "fem3d_pbc"): {
+        "h_sum": 1188822.5,
+        "e_sum": -980665.0,
+        "E": -9.807e-22,
+    },
+    (UniaxialAnisotropyField, "fic_pbc"): {
+        "h_sum": 1188822.5,
+        "e_sum": -44635.84,
+        "E": -4.464e-23,
+    },
+    (ExternalField, "fem1d"): {"h_sum": 18.0, "e_sum": -6.653, "E": -4.559e-27},
+    (ExternalField, "fem2d"): {"h_sum": 54.0, "e_sum": -5.378, "E": -2.431e-27},
+    (ExternalField, "fem3d"): {"h_sum": 162.0, "e_sum": -2.077, "E": 2.501e-28},
+    (ExternalField, "fic1d"): {"h_sum": 12.0, "e_sum": -3.840, "E": -3.840e-27},
+    (ExternalField, "fic2d"): {"h_sum": 24.0, "e_sum": -6.708, "E": -6.708e-27},
+    (ExternalField, "fic"): {"h_sum": 48.0, "e_sum": -1.313, "E": -1.313e-27},
+    (ExternalField, "fem3d_pbc"): {"h_sum": 48.0, "e_sum": -1.313, "E": -1.313e-27},
+    (ExternalField, "fic_pbc"): {"h_sum": 48.0, "e_sum": -1.313, "E": -1.313e-27},
 }
 
 
@@ -166,9 +198,8 @@ def test_field_term(key):
     state = _make_state(disc)
     _set_material(state, MATERIAL[field_cls])
 
-    # ExternalField needs explicit h vector
     if field_cls is ExternalField:
-        if disc.startswith("fic"):
+        if set(state.m.spaces) == {"c"}:
             h = VectorCellFunction(state).fill([1.0, 2.0, 3.0])
         else:
             h = VectorFunction(state).fill([1.0, 2.0, 3.0])

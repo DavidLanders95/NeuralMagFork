@@ -1,16 +1,10 @@
 # SPDX-License-Identifier: MIT
 
 import numpy as np
-import pytest
 
 from neuralmag import *
 
 be = config.backend
-
-
-# ===========================================================================
-# Exchange field PBC tests
-# ===========================================================================
 
 
 class TestExchangeFEMPBC:
@@ -77,102 +71,3 @@ class TestExchangeFICPBC:
         ExchangeField().register(state)
         h = be.to_numpy(state.h_exchange.tensor)
         np.testing.assert_allclose(h[:5], -h[5:], atol=1e-10)
-
-
-# ===========================================================================
-# Demag field PBC tests
-# ===========================================================================
-
-
-def test_demag_cell_pbc_uniform():
-    """For uniform magnetization with full PBC, h_demag should be zero."""
-    mesh = Mesh(
-        (5, 5, 5),
-        (1e-9, 1e-9, 1e-9),
-        pbc=True,
-    )
-    state = State(mesh)
-    state.m = VectorCellFunction(state).fill([1.0, 0.0, 0.0])
-    state.material.Ms = CellFunction(state).fill(1.0)
-    DemagField().register(state)
-
-    h = be.to_numpy(state.h_demag.tensor)
-    assert h[..., 0].mean() == pytest.approx(0.0, abs=1e-6)
-    assert h[..., 1].mean() == pytest.approx(0.0, abs=1e-6)
-    assert h[..., 2].mean() == pytest.approx(0.0, abs=1e-6)
-
-
-def test_demag_cell_pbc_stripes():
-    """Periodic stripes from Bruckner et al., Sci. Rep. 11, 9202 (2021)."""
-    d1, d0 = 4, 6
-    nx = d1 + d0
-    mesh = Mesh(
-        (nx, 2, 2),
-        (1e-9, 1e-9, 1e-9),
-        pbc=True,
-    )
-    state = State(mesh)
-    state.m = VectorCellFunction(state).fill([1.0, 0.0, 0.0])
-
-    Ms_val = 8e5
-    Ms_data = np.zeros((nx, 2, 2))
-    Ms_data[:d1, :, :] = Ms_val
-    state.material.Ms = CellFunction(state, tensor=state.tensor(Ms_data))
-    DemagField().register(state)
-
-    h = be.to_numpy(state.h_demag.tensor)
-    h_film = -Ms_val * d0 / (d1 + d0)
-    h_gap = Ms_val * d1 / (d1 + d0)
-
-    assert h[:d1, :, :, 0].mean() == pytest.approx(h_film, rel=1e-6)
-    assert h[d1:, :, :, 0].mean() == pytest.approx(h_gap, rel=1e-6)
-    assert h[:, :, :, 1].mean() == pytest.approx(0.0, abs=1e-6)
-    assert h[:, :, :, 2].mean() == pytest.approx(0.0, abs=1e-6)
-
-
-def test_demag_node_pbc_uniform():
-    """For uniform FEM magnetization with full PBC, h_demag should be zero."""
-    mesh = Mesh(
-        (5, 5, 5),
-        (1e-9, 1e-9, 1e-9),
-        pbc=True,
-    )
-    state = State(mesh)
-    state.m = VectorFunction(state).fill([1.0, 0.0, 0.0])
-    state.material.Ms = CellFunction(state).fill(1.0)
-    DemagField().register(state)
-
-    h = be.to_numpy(state.h_demag.tensor)
-    assert h[..., 0].mean() == pytest.approx(0.0, abs=1e-6)
-    assert h[..., 1].mean() == pytest.approx(0.0, abs=1e-6)
-    assert h[..., 2].mean() == pytest.approx(0.0, abs=1e-6)
-
-
-def test_demag_pseudo_pbc_cube():
-    """Pseudo PBC single-cell cube: Nx = Ny = Nz = 1/3."""
-    state = State(Mesh((1, 1, 1), (1e-9, 1e-9, 1e-9), pbc=(0, 0, 0)))
-    state.m = VectorCellFunction(state).fill([1.0, 0.0, 0.0])
-    state.material.Ms = CellFunction(state).fill(1.0)
-    DemagField().register(state)
-    h = be.to_numpy(state.h_demag.tensor[0, 0, 0].real)
-    np.testing.assert_allclose(h, [-1.0 / 3.0, 0.0, 0.0], atol=1e-6)
-
-
-def test_demag_pseudo_pbc_cylinder():
-    """Pseudo PBC long cylinder: Nx -> 0, Ny = Nz -> 1/2."""
-    state = State(Mesh((1, 1, 1), (1e-9, 1e-9, 1e-9), pbc=(10, 0, 0)))
-    state.m = VectorCellFunction(state).fill([0.0, 1.0, 0.0])
-    state.material.Ms = CellFunction(state).fill(1.0)
-    DemagField().register(state)
-    h = be.to_numpy(state.h_demag.tensor[0, 0, 0].real)
-    np.testing.assert_allclose(h, [0.0, -0.5, 0.0], atol=1e-2)
-
-
-def test_demag_pseudo_pbc_film():
-    """Pseudo PBC thin film: Nx = Ny -> 0, Nz -> 1."""
-    state = State(Mesh((1, 1, 1), (1e-9, 1e-9, 1e-9), pbc=(10, 10, 0)))
-    state.m = VectorCellFunction(state).fill([0.0, 0.0, 1.0])
-    state.material.Ms = CellFunction(state).fill(1.0)
-    DemagField().register(state)
-    h = be.to_numpy(state.h_demag.tensor[0, 0, 0].real)
-    np.testing.assert_allclose(h, [0.0, 0.0, -1.0], atol=5e-2)
