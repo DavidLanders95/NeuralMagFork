@@ -8,7 +8,9 @@ from neuralmag.common import engine as en
 _projection_cache = {}
 
 
-def compile_projection(direction, dim, trailing_shape, src_name, pbc=None):
+def compile_projection(
+    direction, dim, trailing_shape, src_name, pbc=None, weight_name=None
+):
     """
     Compile the mass-lumped projection between cell- and node-based
     representations.
@@ -18,25 +20,30 @@ def compile_projection(direction, dim, trailing_shape, src_name, pbc=None):
     :param trailing_shape: ``()`` for scalar fields or ``(3,)`` for vectors
     :param src_name: name of the source variable embedded in the returned cmds
     :param pbc: periodic boundary condition tuple
+    :param weight_name: optional name of a scalar cell-based weight variable.
+        When set, the projection computes the weighted L² projection
+        ``∫ w·v·f dV / ∫ w·v dV`` instead of ``∫ v·f dV / ∫ v dV``.
     :return: ``(field_cmds, field_vars, mass_cmds, mass_vars)``
     """
-    key = (direction, dim, trailing_shape, src_name, pbc)
+    key = (direction, dim, trailing_shape, src_name, pbc, weight_name)
     if key in _projection_cache:
         return _projection_cache[key]
 
     src_spaces = "c" * dim if direction == "c2n" else "n" * dim
     tgt_spaces = "n" * dim if direction == "c2n" else "c" * dim
 
+    w = en.Variable(weight_name, "c" * dim) if weight_name else 1
+
     v = en.Variable("v", tgt_spaces, trailing_shape)
     src = en.Variable(src_name, src_spaces, trailing_shape)
     if trailing_shape == (3,):
-        form = v.dot(src) * en.dV(dim)
+        form = w * v.dot(src) * en.dV(dim)
     else:
-        form = v * src * en.dV(dim)
+        form = w * v * src * en.dV(dim)
     field_cmds, field_vars = en.linear_form_cmds(form, 1, pbc=pbc)
 
     v_s = en.Variable("v", tgt_spaces)
-    mass_cmds, mass_vars = en.linear_form_cmds(v_s * en.dV(dim), 1, pbc=pbc)
+    mass_cmds, mass_vars = en.linear_form_cmds(w * v_s * en.dV(dim), 1, pbc=pbc)
 
     _projection_cache[key] = (field_cmds, field_vars, mass_cmds, mass_vars)
     return _projection_cache[key]

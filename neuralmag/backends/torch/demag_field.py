@@ -154,70 +154,6 @@ def h_cell(N_demag, m, material__Ms, rho):
     )
 
 
-def h2d(N_demag, m, material__Ms, rho):
-    mcell = (m[1:, 1:, :] + m[:-1, 1:, :] + m[1:, :-1, :] + m[:-1, :-1, :]).unsqueeze(
-        -2
-    ) / 4.0
-
-    # TODO behavior for unsqueezed scalars seems OK, but not so elegant?
-    Ms_hcell = (rho * material__Ms).unsqueeze(-1) * h_cell(
-        N_demag, mcell, material__Ms.unsqueeze(-1), rho.unsqueeze(-1)
-    ).squeeze(-2)
-
-    h = torch.zeros(m.shape, dtype=m.dtype, device=m.device)
-    h[:-1, :-1] += Ms_hcell
-    h[:-1, 1:] += Ms_hcell
-    h[1:, :-1] += Ms_hcell
-    h[1:, 1:] += Ms_hcell
-
-    mass = torch.zeros(h.shape[:-1], dtype=h.dtype, device=h.device)
-    mass[:-1, :-1] += rho * material__Ms
-    mass[:-1, 1:] += rho * material__Ms
-    mass[1:, :-1] += rho * material__Ms
-    mass[1:, 1:] += rho * material__Ms
-
-    return h / mass.unsqueeze(-1)
-
-
-def h3d(N_demag, m, material__Ms, rho):
-    mcell = (
-        +m[1:, 1:, 1:, :]
-        + m[:-1, 1:, 1:, :]
-        + m[1:, :-1, 1:, :]
-        + m[:-1, :-1, 1:, :]
-        + m[1:, 1:, :-1, :]
-        + m[:-1, 1:, :-1, :]
-        + m[1:, :-1, :-1, :]
-        + m[:-1, :-1, :-1, :]
-    ) / 8.0
-
-    Ms_hcell = (rho * material__Ms).unsqueeze(-1) * h_cell(
-        N_demag, mcell, material__Ms, rho
-    )
-
-    h = torch.zeros(m.shape, dtype=m.dtype, device=m.device)
-    h[:-1, :-1, :-1] += Ms_hcell
-    h[:-1, :-1, 1:] += Ms_hcell
-    h[:-1, 1:, :-1] += Ms_hcell
-    h[:-1, 1:, 1:] += Ms_hcell
-    h[1:, :-1, :-1] += Ms_hcell
-    h[1:, :-1, 1:] += Ms_hcell
-    h[1:, 1:, :-1] += Ms_hcell
-    h[1:, 1:, 1:] += Ms_hcell
-
-    mass = torch.zeros(h.shape[:-1], dtype=h.dtype, device=h.device)
-    mass[:-1, :-1, :-1] += rho * material__Ms
-    mass[:-1, :-1, 1:] += rho * material__Ms
-    mass[:-1, 1:, :-1] += rho * material__Ms
-    mass[:-1, 1:, 1:] += rho * material__Ms
-    mass[1:, :-1, :-1] += rho * material__Ms
-    mass[1:, :-1, 1:] += rho * material__Ms
-    mass[1:, 1:, :-1] += rho * material__Ms
-    mass[1:, 1:, 1:] += rho * material__Ms
-
-    return h / mass.unsqueeze(-1)
-
-
 def h_cell_pbc(m, material__Ms, rho, dx):
     """True PBC demag field via k-space Poisson solver (cell-centred)."""
     n = m.shape[:3]
@@ -262,48 +198,6 @@ def h_cell_pbc(m, material__Ms, rho, dx):
     )
 
     return torch.fft.ifftn(h_fft, dim=dim).real
-
-
-def h3d_pbc(m, material__Ms, rho, dx):
-    """True PBC demag field for nodal discretization (node→cell→node)."""
-    mcell = (
-        m
-        + torch.roll(m, -1, 0)
-        + torch.roll(m, -1, 1)
-        + torch.roll(m, (-1, -1), (0, 1))
-        + torch.roll(m, -1, 2)
-        + torch.roll(m, (-1, -1), (0, 2))
-        + torch.roll(m, (-1, -1), (1, 2))
-        + torch.roll(m, (-1, -1, -1), (0, 1, 2))
-    ) / 8.0
-
-    hcell = h_cell_pbc(mcell, material__Ms, rho, dx)
-
-    Ms_hcell = (rho * material__Ms).unsqueeze(-1) * hcell
-    h = (
-        Ms_hcell
-        + torch.roll(Ms_hcell, 1, 0)
-        + torch.roll(Ms_hcell, 1, 1)
-        + torch.roll(Ms_hcell, (1, 1), (0, 1))
-        + torch.roll(Ms_hcell, 1, 2)
-        + torch.roll(Ms_hcell, (1, 1), (0, 2))
-        + torch.roll(Ms_hcell, (1, 1), (1, 2))
-        + torch.roll(Ms_hcell, (1, 1, 1), (0, 1, 2))
-    )
-
-    RhoMs = rho * material__Ms
-    mass = (
-        RhoMs
-        + torch.roll(RhoMs, 1, 0)
-        + torch.roll(RhoMs, 1, 1)
-        + torch.roll(RhoMs, (1, 1), (0, 1))
-        + torch.roll(RhoMs, 1, 2)
-        + torch.roll(RhoMs, (1, 1), (0, 2))
-        + torch.roll(RhoMs, (1, 1), (1, 2))
-        + torch.roll(RhoMs, (1, 1, 1), (0, 1, 2))
-    )
-
-    return h / mass.unsqueeze(-1)
 
 
 def init_N_component(state, perm, func, p, batch_size=1):

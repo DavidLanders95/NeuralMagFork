@@ -3,6 +3,7 @@
 from neuralmag.common import config
 from neuralmag.common import engine as en
 from neuralmag.common.code_class import CodeClass
+from neuralmag.common.code_generation import compile_projection
 
 __all__ = ["Function", "VectorFunction", "CellFunction", "VectorCellFunction"]
 
@@ -65,6 +66,10 @@ class Function(CodeClass):
 
         self._avg = None
         self._avg_on_domain = None
+        self._to_cell_fn = None
+        self._to_cell_w_fn = None
+        self._to_node_fn = None
+        self._to_node_w_fn = None
 
     @property
     def name(self):
@@ -199,6 +204,67 @@ class Function(CodeClass):
                 self.tensor, self._state.domains.tensor, domain_id
             )
 
+    def _make_function(self, spaces, tensor):
+        """Create a new Function with the given spaces and concrete tensor."""
+        if spaces == "c" * len(spaces) and self._shape == (3,):
+            return VectorCellFunction(self._state, tensor=tensor)
+        elif spaces == "c" * len(spaces):
+            return CellFunction(self._state, tensor=tensor, shape=self._shape)
+        elif self._shape == (3,):
+            return VectorFunction(self._state, tensor=tensor)
+        else:
+            return Function(
+                self._state, spaces=spaces, shape=self._shape, tensor=tensor
+            )
+
+    def to_cell(self, weight=None):
+        """
+        Project this function to cell space via mass-lumped L² projection.
+
+        :param weight: Optional scalar cell-based weight for a weighted projection.
+        :type weight: :class:`Function`, optional
+        :return: The projected function in cell space
+        :rtype: :class:`Function`
+        """
+        dim = len(self._spaces)
+        if set(self._spaces) == {"c"}:
+            return self
+        if weight is not None:
+            if self._to_cell_w_fn is None:
+                self._to_cell_w_fn = self._state.resolve(
+                    self._code.to_cell_w, ["f", "weight"]
+                )
+            return self._make_function(
+                "c" * dim, self._to_cell_w_fn(self.tensor, weight.tensor)
+            )
+        if self._to_cell_fn is None:
+            self._to_cell_fn = self._state.resolve(self._code.to_cell, ["f"])
+        return self._make_function("c" * dim, self._to_cell_fn(self.tensor))
+
+    def to_node(self, weight=None):
+        """
+        Project this function to node space via mass-lumped L² projection.
+
+        :param weight: Optional scalar cell-based weight for a weighted projection.
+        :type weight: :class:`Function`, optional
+        :return: The projected function in node space
+        :rtype: :class:`Function`
+        """
+        dim = len(self._spaces)
+        if set(self._spaces) == {"n"}:
+            return self
+        if weight is not None:
+            if self._to_node_w_fn is None:
+                self._to_node_w_fn = self._state.resolve(
+                    self._code.to_node_w, ["f", "weight"]
+                )
+            return self._make_function(
+                "n" * dim, self._to_node_w_fn(self.tensor, weight.tensor)
+            )
+        if self._to_node_fn is None:
+            self._to_node_fn = self._state.resolve(self._code.to_node, ["f"])
+        return self._make_function("n" * dim, self._to_node_fn(self.tensor))
+
     @classmethod
     def _generate_code(cls, spaces, shape, pbc=None):
         code = config.backend.CodeBlock(pbc=pbc)
@@ -222,6 +288,44 @@ class Function(CodeClass):
                     func.assign_sum("fint", *[term["cmd"] for term in terms], index=i)
 
             func.retrn("fint / vol")
+
+        # generate to_node / to_cell projection methods
+        node_spaces = "n" * dim
+        cell_spaces = "c" * dim
+        for direction, fname in [("c2n", "to_node"), ("n2c", "to_cell")]:
+            src_sp = cell_spaces if direction == "c2n" else node_spaces
+            tgt_sp = node_spaces if direction == "c2n" else cell_spaces
+
+            for weighted in [False, True]:
+                fn_name = fname + ("_w" if weighted else "")
+                weight_name = "weight" if weighted else None
+
+                field_cmds, field_vars, mass_cmds, mass_vars = compile_projection(
+                    direction,
+                    dim,
+                    shape,
+                    "f",
+                    pbc=pbc,
+                    weight_name=weight_name,
+                )
+                all_vars = sorted(field_vars | mass_vars)
+                var_spaces = {"f": (src_sp, shape)}
+                if weighted:
+                    var_spaces["weight"] = cell_spaces
+
+                with code.add_function(
+                    fn_name, all_vars, var_spaces=var_spaces
+                ) as func:
+                    func.zeros("result", tgt_sp, shape)
+                    for idx, rhs in field_cmds:
+                        func.add_to("result", idx, rhs)
+                    func.zeros("mass", tgt_sp)
+                    for idx, rhs in mass_cmds:
+                        func.add_to("mass", idx, rhs)
+                    if shape == (3,):
+                        func.retrn("result / mass.reshape(mass.shape + (1,))")
+                    else:
+                        func.retrn("result / mass")
 
         return code
 

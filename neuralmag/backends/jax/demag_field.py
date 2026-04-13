@@ -156,75 +156,6 @@ def h_cell(N_demag, m, material__Ms, rho):
     )
 
 
-@jax.jit
-def h2d(N_demag, m, material__Ms, rho):
-    mcell = (
-        jnp.expand_dims(
-            m[1:, 1:, :] + m[:-1, 1:, :] + m[1:, :-1, :] + m[:-1, :-1, :], -2
-        )
-        / 4.0
-    )
-
-    # TODO behavior for unsqueezed scalars seems OK, but not so elegant?
-    Ms_hcell = jnp.expand_dims(rho * material__Ms, -1) * h_cell(
-        N_demag, mcell, jnp.expand_dims(material__Ms, -1), jnp.expand_dims(rho, -1)
-    ).squeeze(-2)
-
-    h = jnp.zeros(m.shape, dtype=m.dtype)
-    h = h.at[:-1, :-1].add(Ms_hcell)
-    h = h.at[:-1, 1:].add(Ms_hcell)
-    h = h.at[1:, :-1].add(Ms_hcell)
-    h = h.at[1:, 1:].add(Ms_hcell)
-
-    mass = jnp.zeros(h.shape[:-1], dtype=h.dtype)
-    mass = mass.at[:-1, :-1].add(rho * material__Ms)
-    mass = mass.at[:-1, 1:].add(rho * material__Ms)
-    mass = mass.at[1:, :-1].add(rho * material__Ms)
-    mass = mass.at[1:, 1:].add(rho * material__Ms)
-
-    return h / jnp.expand_dims(mass, -1)
-
-
-@jax.jit
-def h3d(N_demag, m, material__Ms, rho):
-    mcell = (
-        +m[1:, 1:, 1:, :]
-        + m[:-1, 1:, 1:, :]
-        + m[1:, :-1, 1:, :]
-        + m[:-1, :-1, 1:, :]
-        + m[1:, 1:, :-1, :]
-        + m[:-1, 1:, :-1, :]
-        + m[1:, :-1, :-1, :]
-        + m[:-1, :-1, :-1, :]
-    ) / 8.0
-
-    Ms_hcell = jnp.expand_dims(rho * material__Ms, -1) * h_cell(
-        N_demag, mcell, material__Ms, rho
-    )
-
-    h = jnp.zeros(m.shape, dtype=m.dtype)
-    h = h.at[:-1, :-1, :-1].add(Ms_hcell)
-    h = h.at[:-1, :-1, 1:].add(Ms_hcell)
-    h = h.at[:-1, 1:, :-1].add(Ms_hcell)
-    h = h.at[:-1, 1:, 1:].add(Ms_hcell)
-    h = h.at[1:, :-1, :-1].add(Ms_hcell)
-    h = h.at[1:, :-1, 1:].add(Ms_hcell)
-    h = h.at[1:, 1:, :-1].add(Ms_hcell)
-    h = h.at[1:, 1:, 1:].add(Ms_hcell)
-
-    mass = jnp.zeros(h.shape[:-1], dtype=h.dtype)
-    mass = mass.at[:-1, :-1, :-1].add(rho * material__Ms)
-    mass = mass.at[:-1, :-1, 1:].add(rho * material__Ms)
-    mass = mass.at[:-1, 1:, :-1].add(rho * material__Ms)
-    mass = mass.at[:-1, 1:, 1:].add(rho * material__Ms)
-    mass = mass.at[1:, :-1, :-1].add(rho * material__Ms)
-    mass = mass.at[1:, :-1, 1:].add(rho * material__Ms)
-    mass = mass.at[1:, 1:, :-1].add(rho * material__Ms)
-    mass = mass.at[1:, 1:, 1:].add(rho * material__Ms)
-
-    return h / jnp.expand_dims(mass, -1)
-
-
 def h_cell_pbc(m, material__Ms, rho, dx):
     """True PBC demag field via k-space Poisson solver (cell-centred)."""
     n = m.shape[:3]
@@ -263,48 +194,6 @@ def h_cell_pbc(m, material__Ms, rho, dx):
     )
 
     return jnp.fft.ifftn(h_fft, axes=dim).real
-
-
-def h3d_pbc(m, material__Ms, rho, dx):
-    """True PBC demag field for nodal discretization (node→cell→node)."""
-    mcell = (
-        m
-        + jnp.roll(m, -1, 0)
-        + jnp.roll(m, -1, 1)
-        + jnp.roll(m, (-1, -1), (0, 1))
-        + jnp.roll(m, -1, 2)
-        + jnp.roll(m, (-1, -1), (0, 2))
-        + jnp.roll(m, (-1, -1), (1, 2))
-        + jnp.roll(m, (-1, -1, -1), (0, 1, 2))
-    ) / 8.0
-
-    hcell = h_cell_pbc(mcell, material__Ms, rho, dx)
-
-    Ms_hcell = jnp.expand_dims(rho * material__Ms, -1) * hcell
-    h = (
-        Ms_hcell
-        + jnp.roll(Ms_hcell, 1, 0)
-        + jnp.roll(Ms_hcell, 1, 1)
-        + jnp.roll(Ms_hcell, (1, 1), (0, 1))
-        + jnp.roll(Ms_hcell, 1, 2)
-        + jnp.roll(Ms_hcell, (1, 1), (0, 2))
-        + jnp.roll(Ms_hcell, (1, 1), (1, 2))
-        + jnp.roll(Ms_hcell, (1, 1, 1), (0, 1, 2))
-    )
-
-    RhoMs = rho * material__Ms
-    mass = (
-        RhoMs
-        + jnp.roll(RhoMs, 1, 0)
-        + jnp.roll(RhoMs, 1, 1)
-        + jnp.roll(RhoMs, (1, 1), (0, 1))
-        + jnp.roll(RhoMs, 1, 2)
-        + jnp.roll(RhoMs, (1, 1), (0, 2))
-        + jnp.roll(RhoMs, (1, 1), (1, 2))
-        + jnp.roll(RhoMs, (1, 1, 1), (0, 1, 2))
-    )
-
-    return h / jnp.expand_dims(mass, -1)
 
 
 def init_N_component(state, perm, func, p, batch_size=1):
