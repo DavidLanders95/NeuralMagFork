@@ -32,8 +32,16 @@ class CodeClass(object):
                 f"[{self.__class__.__name__}] Generate {config.backend.name} core methods"
             )
             code = str(self._generate_code(*args))
+            args_hash = hashlib.md5(pickle.dumps(args)).hexdigest()
+            header = (
+                "# NeuralMag generated code\n"
+                f"# class:   {self.__class__.__name__}\n"
+                f"# backend: {config.backend.name}\n"
+                f"# hash:    {args_hash}\n"
+                f"# args:    {', '.join(repr(a) for a in args)}\n\n"
+            )
             with open(code_file_path, "w") as f:
-                f.write(code)
+                f.write(header + code)
 
         # import code
         module_spec = importlib.util.spec_from_file_location("code", code_file_path)
