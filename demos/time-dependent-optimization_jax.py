@@ -110,9 +110,7 @@ opt_state = optim.init(state.angles)
 
 # ### Perform optimization loop
 
-logger = nm.ScalarLogger(
-    "time-dependent-optimization_jax/log.dat", ["step", "phi", "theta", "loss"]
-)
+logger = nm.ScalarLogger("time-dependent-optimization_jax/log.dat", ["step", "phi", "theta", "loss"])
 for step in tqdm(range(100)):
     state.step = step
     state.loss, state.angles, opt_state = make_step(state.angles, opt_state)

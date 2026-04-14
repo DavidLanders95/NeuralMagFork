@@ -138,9 +138,7 @@ state.material.Ms = nm.CellFunction(state).fill_by_domain([0.0, Ms, Ms])
 state.material.A = nm.CellFunction(state).fill_by_domain([0.0, A, rho * A])
 state.material.Db = nm.CellFunction(state).fill_by_domain([0.0, D, 0.0])
 state.material.Ku = nm.CellFunction(state).fill_by_domain([0.0, Kc, Ku])
-state.material.Ku_axis = nm.VectorCellFunction(state).fill_by_domain(
-    [[0, 0, 0], [1, 0, 0], [0, 1, 0]]
-)
+state.material.Ku_axis = nm.VectorCellFunction(state).fill_by_domain([[0, 0, 0], [1, 0, 0], [0, 1, 0]])
 state.material.alpha = 1.0
 
 

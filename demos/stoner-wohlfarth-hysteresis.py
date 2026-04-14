@@ -37,9 +37,7 @@ state.m = nm.VectorFunction(state).fill((-1, 0, 0))
 nm.ExchangeField().register(state, "exchange")
 nm.UniaxialAnisotropyField().register(state, "aniso")
 Hc = 2 * 1e5 / (constants.mu_0 * 8e5)
-nm.ExternalField(
-    lambda t: state.tensor([1.5 * (t - 10e-9) / 10e-9 * Hc, 0, 0])
-).register(state, "external")
+nm.ExternalField(lambda t: state.tensor([1.5 * (t - 10e-9) / 10e-9 * Hc, 0, 0])).register(state, "external")
 nm.TotalField("exchange", "aniso", "external").register(state)
 
 

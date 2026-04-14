@@ -66,9 +66,7 @@ def minimise_system_energy(L, m_init):
     lex = (A / Km) ** 0.5  # exchange length
     dx = L * lex / N
 
-    mesh = nm.Mesh(
-        (N, N, N), (dx, dx, dx), origin=(-L * lex / 2, -L * lex / 2, -L * lex / 2)
-    )
+    mesh = nm.Mesh((N, N, N), (dx, dx, dx), origin=(-L * lex / 2, -L * lex / 2, -L * lex / 2))
     state = nm.State(mesh)
 
     state.material.Ms = Ms

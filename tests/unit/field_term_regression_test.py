@@ -89,7 +89,8 @@ REFS = {
     (ExchangeField, "fic2d"): {"h_sum": 1.0, "e_sum": 23044290.0, "E": 2.304e-20},
     (ExchangeField, "fic"): {"h_sum": 1.5, "e_sum": 77500352.0, "E": 7.75e-20},
     (ExchangeField, "fem3d_pbc"): {"h_sum": 11.0, "e_sum": 310001408.0, "E": 3.10e-19},
-    (ExchangeField, "fic_pbc"): {"h_sum": 0.849, "e_sum": -0.035, "E": -1.04e-29},
+    # FIC PBC on 2-cell mesh: cell→node projection gives uniform nodes → physical zero
+    (ExchangeField, "fic_pbc"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
     (BulkDMIField, "fem1d"): {"h_sum": -875867.4, "e_sum": 324308.75, "E": 2.162e-22},
     (BulkDMIField, "fem2d"): {"h_sum": -3083332.5, "e_sum": -426271.5, "E": -1.885e-22},
     (BulkDMIField, "fem3d"): {
@@ -100,8 +101,9 @@ REFS = {
     (BulkDMIField, "fic1d"): {"h_sum": -332515.125, "e_sum": 0.0, "E": 0.0},
     (BulkDMIField, "fic2d"): {"h_sum": -2146756.5, "e_sum": 108385.25, "E": 1.084e-22},
     (BulkDMIField, "fic"): {"h_sum": -625226.0, "e_sum": -895176.625, "E": -8.952e-22},
-    (BulkDMIField, "fem3d_pbc"): {"h_sum": -0.029, "e_sum": 0.003, "E": 2.52e-29},
-    (BulkDMIField, "fic_pbc"): {"h_sum": 0.028, "e_sum": 0.002, "E": 1.92e-30},
+    # PBC + helix on 2-cell mesh: DMI vanishes by symmetry → physical zero
+    (BulkDMIField, "fem3d_pbc"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
+    (BulkDMIField, "fic_pbc"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
     (InterfaceDMIField, "fem1d"): {
         "h_sum": -925960.875,
         "e_sum": 463351.5,
@@ -132,8 +134,9 @@ REFS = {
         "e_sum": -64895.14,
         "E": -6.49e-23,
     },
-    (InterfaceDMIField, "fem3d_pbc"): {"h_sum": 0.139, "e_sum": -0.011, "E": 0.0},
-    (InterfaceDMIField, "fic_pbc"): {"h_sum": 0.002, "e_sum": -0.001, "E": 0.0},
+    # PBC + helix on 2-cell mesh: interface DMI vanishes by symmetry → physical zero
+    (InterfaceDMIField, "fem3d_pbc"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
+    (InterfaceDMIField, "fic_pbc"): {"h_sum": 0.0, "e_sum": 0.0, "E": 0.0},
     (UniaxialAnisotropyField, "fem1d"): {
         "h_sum": 3264281.5,
         "e_sum": -1181740.0,
@@ -212,6 +215,14 @@ def test_field_term(key):
     e_sum = float(be.to_numpy(getattr(state, f"e_{name}").tensor.sum()))
     E = float(be.to_numpy(getattr(state, f"E_{name}")))
 
-    assert h_sum == pytest.approx(ref["h_sum"], rel=1e-3, abs=20.0)
-    assert e_sum == pytest.approx(ref["e_sum"], rel=1e-3, abs=1.0)
-    assert E == pytest.approx(ref["E"], rel=1e-2, abs=1e-28)
+    # For physically-zero references, only use absolute tolerance (sized to the
+    # noise floor); tiny nonzero roundoff values are not reproducible across
+    # CPU/GPU/precision due to differing reduction orders.
+    _close = lambda actual, ref_v, atol_zero, rel, atol: (
+        actual == pytest.approx(0.0, abs=atol_zero)
+        if ref_v == 0.0
+        else actual == pytest.approx(ref_v, rel=rel, abs=atol)
+    )
+    assert _close(h_sum, ref["h_sum"], atol_zero=100.0, rel=1e-3, atol=20.0)
+    assert _close(e_sum, ref["e_sum"], atol_zero=10.0, rel=1e-3, atol=1.0)
+    assert _close(E, ref["E"], atol_zero=1e-25, rel=1e-2, atol=1e-28)

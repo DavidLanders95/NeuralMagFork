@@ -85,9 +85,7 @@ p.show()
 # register effective field contributions
 nm.ExchangeField().register(state, "exchange")
 nm.InterlayerExchangeField(1, 2).register(state, "rkky")
-nm.ExternalField(
-    lambda t: t * state.tensor([0, 5.0 / constants.mu_0 / 5e-9, 0])
-).register(state, "external")
+nm.ExternalField(lambda t: t * state.tensor([0, 5.0 / constants.mu_0 / 5e-9, 0])).register(state, "external")
 nm.UniaxialAnisotropyField().register(state, "aniso")
 nm.TotalField("exchange", "rkky", "external", "aniso").register(state)
 
@@ -101,9 +99,7 @@ state.m_bottom = lambda m: nm.config.backend.mean(m[:, :, :2, :], axis=(0, 1, 2)
 # ### Perform time integration to simulate hysteresis
 
 llg = nm.LLGSolver(state)
-logger = nm.ScalarLogger(
-    "synthetic_antiferromagnet/log.dat", ["h_external", "m_bottom"]
-)
+logger = nm.ScalarLogger("synthetic_antiferromagnet/log.dat", ["h_external", "m_bottom"])
 while state.t < 5e-9:
     logger.log(state)
     llg.step(1e-10)
