@@ -18,6 +18,22 @@ def test_h():
     assert be.to_numpy((state.h_demag.tensor * state.m.tensor).sum() / 6**3) == pytest.approx(-1 / 3)
 
 
+def test_h_single_cell():
+    """Single-cell open-BC cube: Nx = Ny = Nz = 1/3."""
+    dx = (1e-9, 1e-9, 1e-9)
+    for m_dir, expected in [
+        ([1, 0, 0], [-1 / 3, 0, 0]),
+        ([0, 1, 0], [0, -1 / 3, 0]),
+        ([0, 0, 1], [0, 0, -1 / 3]),
+    ]:
+        state = State(Mesh((1, 1, 1), dx))
+        state.m = VectorCellFunction(state).fill(m_dir)
+        state.material.Ms = CellFunction(state).fill(1.0)
+        DemagField().register(state)
+        h = be.to_numpy(state.h_demag.tensor[0, 0, 0])
+        np.testing.assert_allclose(h, expected, atol=1e-6)
+
+
 def test_h_2d():
     """2D open-BC: approximate demagnetization factor."""
     mesh = Mesh((5, 5), (1e-9, 1e-9, 5e-9))

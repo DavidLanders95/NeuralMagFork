@@ -93,17 +93,6 @@ def demag_g(x, y, z, dx, dy, dz, dX, dY, dZ, p):
 def h_cell(N_demag, m, material__Ms, rho):
     dim = [i for i in range(3) if m.shape[i] > 1]
 
-    if len(dim) == 0:
-        hx = torch.zeros_like(m[:, :, :, 0])
-        hy = torch.zeros_like(m[:, :, :, 0])
-        hz = torch.zeros_like(m[:, :, :, 0])
-        for ax in range(3):
-            mx = rho * material__Ms * m[:, :, :, ax]
-            hx += N_demag[0][ax] * mx
-            hy += N_demag[1][ax] * mx
-            hz += N_demag[2][ax] * mx
-        return torch.stack([hx, hy, hz], dim=3)
-
     N_shape = N_demag[0][0].shape
     # Derive FFT size from N_demag shape. For the last (rfftn) axis the
     # stored size is n//2+1 for open BC (2n padded) or n for PBC.
