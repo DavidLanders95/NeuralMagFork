@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: MIT
 
-VERSION = "0.9.3"
+VERSION = "0.9.4"
 
 import neuralmag.common.logging as logging
 from neuralmag.common import *

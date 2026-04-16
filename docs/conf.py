@@ -7,9 +7,9 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = "NeuralMag"
-copyright = "2022-2025, NeuralMag Team"
+copyright = "2022-2026, NeuralMag Team"
 author = "NeuralMag Team"
-release = "0.9.3"
+release = "0.9.4"
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

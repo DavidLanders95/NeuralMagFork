@@ -1,3 +1,6 @@
+0.9.4 [2026-04-16]
+* Add periodic boundary conditions
+* Add FIC discretization
 0.9.3 [2025-08-26]
 * Add domain management
 0.9.2 [2025-05-14]
