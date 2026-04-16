@@ -25,7 +25,12 @@ class DemagField(FieldTerm):
 
       \Delta u = \nabla \cdot (M_s \vec{m})
 
-    with open boundary conditions.
+    with open boundary conditions by default. Periodic boundary conditions
+    can be enabled on the :class:`~neuralmag.Mesh` via ``pbc``: true PBC
+    (requires a 3D mesh) switches the convolution to the periodic kernel of
+    Bruckner et al., *Sci. Rep.* **11**, 9202 (2021); pseudo-PBC reuses the
+    open-boundary kernel with image copies. See the :ref:`PBC user guide
+    <pbc>` for details.
 
 
     :param p: Distance threshhold at which the demag tensor is approximated

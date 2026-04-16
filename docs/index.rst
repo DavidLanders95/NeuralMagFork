@@ -38,6 +38,8 @@ Where to go next
 * **Curious about the math?** :doc:`user_guide/discretization` covers the
   nodal finite-difference and FIC schemes; :doc:`user_guide/form_compiler` explains how
   the SymPy-based form compiler works under the hood.
+* **Simulating extended or periodic systems?** See :doc:`user_guide/pbc`
+  for true and pseudo-periodic boundary conditions.
 * **Looking for an API?** See the :doc:`reference/index`.
 * **Looking for a working script?** Browse the :doc:`examples/index`.
 

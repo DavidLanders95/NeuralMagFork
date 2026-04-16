@@ -27,7 +27,7 @@ class Mesh(object):
         spatial dimensions, ``False`` (or ``0``) means open boundaries. A tuple
         gives per-direction control: ``0``/``False`` = open, positive integer =
         pseudo-PBC with that many image copies, ``True``/``float("inf")`` =
-        true PBC.
+        true PBC. See the :ref:`PBC user guide <pbc>` for details.
     :type pbc: bool or tuple
 
     :Example:
