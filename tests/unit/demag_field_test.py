@@ -65,6 +65,26 @@ def test_rename():
     assert be.to_numpy(state.E_d) == pytest.approx(2.6179938794166683e-32)
 
 
+def test_partial_true_pbc_raises():
+    """Partial true PBC must raise ValueError for DemagField."""
+    mesh = Mesh((4, 4, 4), (1e-9, 1e-9, 1e-9), pbc=(True, True, 0))
+    state = State(mesh)
+    state.m = VectorCellFunction(state).fill([1, 0, 0])
+    state.material.Ms = CellFunction(state).fill(1.0)
+    with pytest.raises(ValueError, match="partial true PBC"):
+        DemagField().register(state)
+
+
+def test_partial_true_pbc_2d_raises():
+    """2D mesh with one true-PBC direction must raise ValueError."""
+    mesh = Mesh((4, 4), (1e-9, 1e-9, 1e-9), pbc=(True, 0, 0))
+    state = State(mesh)
+    state.m = VectorCellFunction(state).fill([1, 0, 0])
+    state.material.Ms = CellFunction(state).fill(1.0)
+    with pytest.raises(ValueError, match="partial true PBC"):
+        DemagField().register(state)
+
+
 def test_h_cell_pbc_uniform():
     """Uniform magnetization with full PBC: h_demag should be zero."""
     state = State(Mesh((5, 5, 5), (1e-9, 1e-9, 1e-9), pbc=True))

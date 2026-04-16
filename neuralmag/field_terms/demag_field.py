@@ -30,8 +30,10 @@ class DemagField(FieldTerm):
     (requires a 3D mesh with all three directions set to ``True``/``inf``)
     switches the convolution to the periodic kernel of Bruckner et al.,
     *Sci. Rep.* **11**, 9202 (2021); pseudo-PBC reuses the open-boundary
-    kernel with image copies. See the :ref:`PBC user guide <pbc>` for
-    details.
+    kernel with image copies. Partial true PBC (e.g. ``pbc=(True, True, 0)``)
+    is **not supported** and raises a ``ValueError`` — use pseudo-PBC
+    (positive integer) for the periodic directions instead.
+    See the :ref:`PBC user guide <pbc>` for details.
 
 
     :param p: Distance threshhold at which the demag tensor is approximated
@@ -60,6 +62,16 @@ class DemagField(FieldTerm):
         dim = state.mesh.dim
         pbc = state.mesh.pbc
         is_true_pbc = all(pbc[i] == float("inf") for i in range(dim))
+
+        if not is_true_pbc and any(pbc[i] == float("inf") for i in range(dim)):
+            inf_dirs = [i for i in range(dim) if pbc[i] == float("inf")]
+            raise ValueError(
+                f"DemagField does not support partial true PBC. "
+                f"Direction(s) {inf_dirs} use true PBC (inf) while the remaining "
+                f"directions do not. Either set all directions to true PBC "
+                f"(pbc=True) or use pseudo-PBC (positive integer) for the "
+                f"periodic directions."
+            )
 
         h_cell = config.backend.demag_field.h_cell
 

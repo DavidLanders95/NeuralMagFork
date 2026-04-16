@@ -30,8 +30,8 @@ Enabling PBC
 
    from neuralmag import Mesh
 
-   # Thin-film stripe, periodic in-plane (true PBC)
-   mesh = Mesh((64, 64, 4), (5e-9, 5e-9, 5e-9), pbc=(True, True, 0))
+   # Thin-film stripe, periodic in-plane (pseudo-PBC with 5 image copies)
+   mesh = Mesh((64, 64, 4), (5e-9, 5e-9, 5e-9), pbc=(5, 5, 0))
 
    # Long nanowire, pseudo-PBC in x with two image copies per side
    mesh = Mesh((128, 8, 8), (2e-9, 2e-9, 2e-9), pbc=(2, 0, 0))
@@ -75,10 +75,10 @@ Effect on field terms
 * **Demagnetization**: the field term checks whether **all three** spatial
   directions are set to true PBC (``all(mesh.pbc[i] == inf)``) and only then
   swaps in the periodic kernel (``h_cell_pbc``). Setting true PBC in only one
-  or two directions is not supported for the demagnetization field — use
-  pseudo-PBC (positive integer) for those directions instead. For any other
-  ``pbc`` setting, the open-boundary kernel is used together with image copies
-  (pseudo-PBC).
+  or two directions raises a ``ValueError`` — use pseudo-PBC (positive
+  integer) for those directions instead. For any other ``pbc`` setting (all
+  open or pseudo-PBC), the open-boundary kernel is used together with image
+  copies.
 * **DMI, anisotropy, external field, interlayer exchange**: local
   contributions — unaffected by the choice of boundary conditions.
 
@@ -88,9 +88,10 @@ Limitations
 * **True PBC for the demagnetization field requires a 3D mesh with all
   three directions set to** ``True`` **/** ``inf``. The periodic kernel only
   activates when every direction is truly periodic; partial true PBC (e.g.
-  ``pbc=(True, True, 0)``) falls back to the open-boundary kernel with image
-  copies. Using ``pbc=True`` on a 1D or 2D mesh together with
-  :class:`DemagField` raises a ``ValueError``.
+  ``pbc=(True, True, 0)``) raises a ``ValueError``. Use pseudo-PBC (positive
+  integer) for directions that should be periodic while others remain open.
+  Using ``pbc=True`` on a 1D or 2D mesh together with :class:`DemagField`
+  also raises a ``ValueError``.
 * **Node count differs under PBC.** For a periodic direction ``i``, the
   number of independent nodes is ``n[i]`` instead of ``n[i] + 1``. This is
   handled transparently by :class:`~neuralmag.Function` /
