@@ -41,6 +41,38 @@ def state2d():
 
 
 @pytest.fixture
+def state_pbc():
+    mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9), pbc=True)
+    state = State(mesh)
+
+    m_data = np.zeros((2, 2, 2, 3))
+    m_data[0, :, :, 0] = -1
+    m_data[1, :, :, 1] = 1
+
+    state.m = VectorFunction(state, tensor=state.tensor(m_data))
+
+    state.material.Ms = 1 / constants.mu_0
+
+    return state
+
+
+@pytest.fixture
+def state_pbc_mixed():
+    mesh = Mesh((2, 2, 2), (1e-9, 1e-9, 1e-9), pbc=(True, False, False))
+    state = State(mesh)
+
+    m_data = np.zeros((2, 3, 3, 3))
+    m_data[0, :, :, 0] = -1
+    m_data[1, :, :, 1] = 1
+
+    state.m = VectorFunction(state, tensor=state.tensor(m_data))
+
+    state.material.Ms = 1 / constants.mu_0
+
+    return state
+
+
+@pytest.fixture
 def state1d():
     mesh = Mesh((2,), (1e-9, 1e-9, 1e-9))
     state = State(mesh)

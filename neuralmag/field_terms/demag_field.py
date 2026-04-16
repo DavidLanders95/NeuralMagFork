@@ -25,12 +25,22 @@ class DemagField(FieldTerm):
 
       \Delta u = \nabla \cdot (M_s \vec{m})
 
-    with open boundary conditions.
+    with open boundary conditions by default. Periodic boundary conditions
+    can be enabled on the :class:`~neuralmag.Mesh` via ``pbc``: true PBC
+    (requires a 3D mesh with all three directions set to ``True``/``inf``)
+    switches the convolution to the periodic kernel of Bruckner et al.,
+    *Sci. Rep.* **11**, 9202 (2021); pseudo-PBC reuses the open-boundary
+    kernel with image copies. Partial true PBC (e.g. ``pbc=(True, True, 0)``)
+    is **not supported** and raises a ``ValueError`` — use pseudo-PBC
+    (positive integer) for the periodic directions instead.
+    See the :ref:`PBC user guide <pbc>` for details.
 
 
     :param p: Distance threshhold at which the demag tensor is approximated
               by a dipole field given in numbers of cells. Defaults to 20.
     :type p: int
+    :param batch_size: Batch size for pseudo-PBC image offset computation.
+    :type batch_size: int
     :param n_gauss: Degree of Gauss quadrature used in the form compiler.
     :type n_gauss: int
 
@@ -41,51 +51,88 @@ class DemagField(FieldTerm):
     default_name = "demag"
     h = None
 
-    def __init__(self, p=20, **kwargs):
+    def __init__(self, p=20, batch_size=1, **kwargs):
         super().__init__(**kwargs)
         self._p = p
+        self._batch_size = batch_size
 
     def register(self, state, name=None):
         super().register(state, name)
         m_spaces = state.m.spaces
-        if set(m_spaces) == {"c"}:
-            dim = state.mesh.dim
-            h_cell = config.backend.demag_field.h_cell
+        dim = state.mesh.dim
+        pbc = state.mesh.pbc
+        is_true_pbc = all(pbc[i] == float("inf") for i in range(dim))
+
+        if not is_true_pbc and any(pbc[i] == float("inf") for i in range(dim)):
+            inf_dirs = [i for i in range(dim) if pbc[i] == float("inf")]
+            raise ValueError(
+                f"DemagField does not support partial true PBC. "
+                f"Direction(s) {inf_dirs} use true PBC (inf) while the remaining "
+                f"directions do not. Either set all directions to true PBC "
+                f"(pbc=True) or use pseudo-PBC (positive integer) for the "
+                f"periodic directions."
+            )
+
+        h_cell = config.backend.demag_field.h_cell
+
+        if is_true_pbc:
             if dim < 3:
-                pad = (None,) * (3 - dim)
+                raise ValueError(f"True PBC demag field requires a 3D mesh, got {dim}D.")
+            h_cell_kernel = config.backend.demag_field.h_cell_pbc
+        elif dim < 3:
+            pad = (None,) * (3 - dim)
+            crop = (slice(None),) * dim + (0,) * (3 - dim)
+
+            def h_cell_kernel(N_demag, m, material__Ms, rho):
+                return h_cell(
+                    N_demag,
+                    m[(...,) + pad + (slice(None),)],
+                    material__Ms[(...,) + pad],
+                    rho[(...,) + pad],
+                )[crop + (slice(None),)]
+        else:
+            h_cell_kernel = h_cell
+
+        if set(m_spaces) == {"c"}:
+            setattr(
+                state,
+                self.attr_name("h", name),
+                VectorCellFunction(state, tensor=h_cell_kernel),
+            )
+        elif set(m_spaces) == {"n"}:
+            _cell_template = VectorCellFunction(state)
+            to_cell_fn = state.resolve(state.m._code.to_cell, ["f"])
+            to_node_w_fn = state.resolve(_cell_template._code.to_node_w, ["f", "weight"])
+
+            if is_true_pbc:
+
+                def h_func(m, material__Ms, rho, dx):
+                    m_cell = to_cell_fn(m)
+                    hc = h_cell_kernel(m_cell, material__Ms, rho, dx)
+                    return to_node_w_fn(hc, material__Ms)
+
+            else:
 
                 def h_func(N_demag, m, material__Ms, rho):
-                    m = m[(...,) + pad + (slice(None),)]
-                    rho = rho[(...,) + pad]
-                    Ms = material__Ms[(...,) + pad]
-                    h = h_cell(N_demag, m, Ms, rho)
-                    return h[(slice(None),) * dim + (0,) * (3 - dim) + (slice(None),)]
-            else:
-                h_func = h_cell
+                    m_cell = to_cell_fn(m)
+                    hc = h_cell_kernel(N_demag, m_cell, material__Ms, rho)
+                    return to_node_w_fn(hc, material__Ms)
+
             setattr(
                 state,
                 self.attr_name("h", name),
-                VectorCellFunction(state, tensor=h_func),
-            )
-        elif state.mesh.dim == 2:
-            setattr(
-                state,
-                self.attr_name("h", name),
-                VectorFunction(state, tensor=config.backend.demag_field.h2d),
-            )
-        elif state.mesh.dim == 3:
-            setattr(
-                state,
-                self.attr_name("h", name),
-                VectorFunction(state, tensor=config.backend.demag_field.h3d),
+                VectorFunction(state, tensor=h_func),
             )
         else:
-            raise
+            raise ValueError(f"Unsupported discretization '{m_spaces}' for demag.")
+
         # fix reference to h_demag in E_demag if suffix is changed
         if name is not None:
             func = state.remap(self.E, {"h_demag": self.attr_name("h", name)})
             setattr(state, self.attr_name("E", name), func)
-        config.backend.demag_field.init_N(state, self._p)
+
+        if not is_true_pbc:
+            config.backend.demag_field.init_N(state, self._p, self._batch_size)
 
     @staticmethod
     def e_expr(m, dim, _options):

@@ -30,9 +30,7 @@ state.m = nm.VectorFunction(state).fill((0, 0, 1))
 # ## Create dynamic attribute for material density $\rho(\vec{x})$
 # We create a dynamical attribute `state.rho` that takes a scalar field `state.rho_m` and overrides the upper two layers of cells to be air.
 
-state.rho = nm.CellFunction(
-    state, tensor=lambda rho_m: rho_m.at[:, :, 10:].set(state.eps)
-)
+state.rho = nm.CellFunction(state, tensor=lambda rho_m: rho_m.at[:, :, 10:].set(state.eps))
 state.rho_m = nm.CellFunction(state).fill(1.0)
 
 
@@ -63,9 +61,7 @@ learning_rate = 1e3
 
 for i in range(100):
     grad = grad_loss(state.rho_m.tensor)
-    state.rho_m.tensor = jnp.clip(
-        state.rho_m.tensor - grad * learning_rate, state.eps, 1.0
-    )
+    state.rho_m.tensor = jnp.clip(state.rho_m.tensor - grad * learning_rate, state.eps, 1.0)
 
 
 # ## Write result and visualize

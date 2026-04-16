@@ -82,9 +82,7 @@ class LIField(FieldTerm):
 
         for char in self._options["LI"]:
             if char not in valid_components:
-                raise ValueError(
-                    f"LI contains invalid character '{char}'. Valid characters are 'x', 'y', and 'z'."
-                )
+                raise ValueError(f"LI contains invalid character '{char}'. Valid characters are 'x', 'y', and 'z'.")
 
     @staticmethod
     def e_expr(m, dim, options):

@@ -20,9 +20,7 @@ def device_from_str(device):
 
 
 def device_for_state(device):
-    logging.warning(
-        "[NeuralMag] JAX backend doesn't support setting device per State. Falling back to default device."
-    )
+    logging.warning("[NeuralMag] JAX backend doesn't support setting device per State. Falling back to default device.")
     return None
 
 
@@ -38,9 +36,7 @@ def dtype_from_str(dtype):
 
 
 def dtype_for_state(dtype):
-    logging.warning(
-        "[NeuralMag] JAX backend doesn't support setting dtype per State. Falling back to default dtype."
-    )
+    logging.warning("[NeuralMag] JAX backend doesn't support setting dtype per State. Falling back to default dtype.")
     return config.dtype
 
 

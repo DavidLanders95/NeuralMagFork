@@ -83,5 +83,9 @@ class CodeFunction(CodeFunctionBase):
 class CodeBlock(CodeBlockBase):
     _code_function_class = CodeFunction
 
-    def __init__(self, plain=False):
-        super().__init__("import jax.numpy as jnp\n\n" if not plain else "")
+    def __init__(self, plain=False, pbc=None):
+        preamble = "import jax.numpy as jnp\n" if not plain else ""
+        if pbc and any(pbc):
+            preamble += "roll = jnp.roll\n"
+        preamble += "\n"
+        super().__init__(preamble, pbc=pbc)

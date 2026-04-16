@@ -26,9 +26,9 @@ def test_h():
     state.rho = CellFunction(state, tensor=state.tensor(rho_data))
 
     InterlayerExchangeField(2, 3).register(state)
-    assert be.to_numpy(state.h_iexchange.tensor[:, :, 3, :]).mean(
-        axis=(0, 1)
-    ) == pytest.approx([2 * 0.005 / 1e-9, 0, 0])
-    assert be.to_numpy(state.h_iexchange.tensor[:, :, 2, :]).mean(
-        axis=(0, 1)
-    ) == pytest.approx([0, 2 * 0.005 / 1e-9, 0])
+    assert be.to_numpy(state.h_iexchange.tensor[:, :, 3, :]).mean(axis=(0, 1)) == pytest.approx(
+        [2 * 0.005 / 1e-9, 0, 0]
+    )
+    assert be.to_numpy(state.h_iexchange.tensor[:, :, 2, :]).mean(axis=(0, 1)) == pytest.approx(
+        [0, 2 * 0.005 / 1e-9, 0]
+    )

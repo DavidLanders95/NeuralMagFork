@@ -89,9 +89,7 @@ m_target = nm.VectorFunction(state).fill((0.5**0.5, 0, 0.5**0.5)).tensor
 
 # ### Perform optimization loop
 
-logger = nm.ScalarLogger(
-    "time-dependent-optimization_torch/log.dat", ["step", "phi", "theta", "loss"]
-)
+logger = nm.ScalarLogger("time-dependent-optimization_torch/log.dat", ["step", "phi", "theta", "loss"])
 for step in tqdm(range(100)):
     state.step = step
 

@@ -9,12 +9,8 @@ __all__ = ["InterlayerExchangeField"]
 
 def swap(m, iidx):
     result = config.backend.zeros_like(m)
-    result = config.backend.assign(
-        result, m[:, :, iidx[1], :], (slice(None), slice(None), iidx[0], slice(None))
-    )
-    result = config.backend.assign(
-        result, m[:, :, iidx[0], :], (slice(None), slice(None), iidx[1], slice(None))
-    )
+    result = config.backend.assign(result, m[:, :, iidx[1], :], (slice(None), slice(None), iidx[0], slice(None)))
+    result = config.backend.assign(result, m[:, :, iidx[0], :], (slice(None), slice(None), iidx[1], slice(None)))
     return result
 
 
@@ -60,9 +56,7 @@ class InterlayerExchangeField(FieldTerm):
     def register(self, state, name=None):
         super().register(state, name)
 
-        state.iidx = config.backend.tensor(
-            self._iidx, device=state.device, dtype=config.backend.integer
-        )
+        state.iidx = config.backend.tensor(self._iidx, device=state.device, dtype=config.backend.integer)
         # state.im_other = (swap, "node", (3,))
         state.im_other = VectorFunction(state, tensor=swap)
 

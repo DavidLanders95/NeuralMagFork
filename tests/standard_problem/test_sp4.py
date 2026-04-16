@@ -33,9 +33,7 @@ def s_state():
 @pytest.mark.slow
 def test_sp4_field_switch_1(s_state):
     s_state.material.alpha = 0.02
-    s_state.h_external = VectorFunction(s_state).fill(
-        (-19576.05800030313, 3421.8312764757497, 0.0)
-    )
+    s_state.h_external = VectorFunction(s_state).fill((-19576.05800030313, 3421.8312764757497, 0.0))
 
     llg = LLGSolver(s_state)
 
@@ -44,13 +42,9 @@ def test_sp4_field_switch_1(s_state):
         llg.step(1.0e-11)
         logger.log(s_state)
 
-    data_oommf = np.genfromtxt(
-        "tests/unit/data/oommf_sp4_fieldswitch_1.csv", delimiter=",", names=True
-    )
+    data_oommf = np.genfromtxt("tests/unit/data/oommf_sp4_fieldswitch_1.csv", delimiter=",", names=True)
 
-    data = np.genfromtxt(
-        "data/log.dat", delimiter="    ", comments="#", names=["t", "m_x", "m_y", "m_z"]
-    )
+    data = np.genfromtxt("data/log.dat", delimiter="    ", comments="#", names=["t", "m_x", "m_y", "m_z"])
 
     difference = data["m_y"] - np.interp(data["t"], data_oommf["t"], data_oommf["m_y"])
 
@@ -70,9 +64,7 @@ def test_sp4_field_switch_1(s_state):
 @pytest.mark.slow
 def test_sp4_field_switch_2(s_state):
     s_state.material.alpha = 0.02
-    s_state.h_external = VectorFunction(s_state).fill(
-        (-28250.00239881142, -5013.380707394703, 0.0)
-    )
+    s_state.h_external = VectorFunction(s_state).fill((-28250.00239881142, -5013.380707394703, 0.0))
 
     llg = LLGSolver(s_state)
 
@@ -81,13 +73,9 @@ def test_sp4_field_switch_2(s_state):
         llg.step(1.0e-11)
         logger.log(s_state)
 
-    data_oommf = np.genfromtxt(
-        "tests/unit/data/oommf_sp4_fieldswitch_2.csv", delimiter=",", names=True
-    )
+    data_oommf = np.genfromtxt("tests/unit/data/oommf_sp4_fieldswitch_2.csv", delimiter=",", names=True)
 
-    data = np.genfromtxt(
-        "data/log.dat", delimiter="    ", comments="#", names=["t", "m_x", "m_y", "m_z"]
-    )
+    data = np.genfromtxt("data/log.dat", delimiter="    ", comments="#", names=["t", "m_x", "m_y", "m_z"])
 
     difference = data["m_y"] - np.interp(data["t"], data_oommf["t"], data_oommf["m_y"])
 

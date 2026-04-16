@@ -36,9 +36,7 @@ class ScalarLogger(object):
 
     def __init__(self, filename, columns, every=1):
         # create directory if not existent
-        if not os.path.dirname(filename) == "" and not os.path.exists(
-            os.path.dirname(filename)
-        ):
+        if not os.path.dirname(filename) == "" and not os.path.exists(os.path.dirname(filename)):
             try:
                 os.makedirs(os.path.dirname(filename))
             except OSError as exc:  # Guard against race condition
@@ -69,9 +67,7 @@ class ScalarLogger(object):
         :type column: str, Callable
         """
         if self._file is not None:
-            raise RuntimeError(
-                "You cannot add columns after first log row has been written."
-            )
+            raise RuntimeError("You cannot add columns after first log row has been written.")
         self._columns.append(column)
 
     def log(self, state):
@@ -158,9 +154,7 @@ class ScalarLogger(object):
         :rtype: int
         """
         if self._file is not None:
-            raise RuntimeError(
-                "Cannot resume from log file that is already open for writing."
-            )
+            raise RuntimeError("Cannot resume from log file that is already open for writing.")
 
         i = 0
         with open(self._filename, "r") as f:
@@ -203,9 +197,7 @@ class ScalarLogger(object):
                 # print(f.tell())
                 char = f.read(1)
                 if char != b"\n" and f.tell() == end:
-                    raise RuntimeError(
-                        "Cannot resume: logfile does not end with a newline."
-                    )
+                    raise RuntimeError("Cannot resume: logfile does not end with a newline.")
                     # print ("No change: file does not end with a newline")
                     # exit(1)
                 if char == b"\n":

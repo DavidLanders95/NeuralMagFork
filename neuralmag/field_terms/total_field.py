@@ -37,26 +37,17 @@ class TotalField(FieldTerm):
 
     def register(self, state, name=None):
         code = f"def h_total({', '.join([self.attr_name('h', name) for name in self._field_names])}):\n"
-        code += (
-            "    return"
-            f" {' + '.join([self.attr_name('h', name) for name in self._field_names])}"
-        )
+        code += f"    return {' + '.join([self.attr_name('h', name) for name in self._field_names])}"
         compiled_code = compile(code, "<string>", "exec")
         h_func = types.FunctionType(compiled_code.co_consts[0], {}, "h_total")
 
         code = f"def e_total({', '.join([self.attr_name('e', name) for name in self._field_names])}):\n"
-        code += (
-            "    return"
-            f" {' + '.join([self.attr_name('e', name) for name in self._field_names])}"
-        )
+        code += f"    return {' + '.join([self.attr_name('e', name) for name in self._field_names])}"
         compiled_code = compile(code, "<string>", "exec")
         e_func = types.FunctionType(compiled_code.co_consts[0], {}, "e_total")
 
         code = f"def E_total({', '.join([self.attr_name('E', name) for name in self._field_names])}):\n"
-        code += (
-            "    return"
-            f" {' + '.join([self.attr_name('E', name) for name in self._field_names])}"
-        )
+        code += f"    return {' + '.join([self.attr_name('E', name) for name in self._field_names])}"
         compiled_code = compile(code, "<string>", "exec")
         E_func = types.FunctionType(compiled_code.co_consts[0], {}, "E_total")
 

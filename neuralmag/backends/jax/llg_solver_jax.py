@@ -22,9 +22,7 @@ dfx.MultiTerm.vector_field = vector_field
 
 def llg_rhs(h, m, material__alpha):
     gamma_prime = 221276.14725379366 / (1.0 + material__alpha**2)
-    return -gamma_prime * jnp.cross(m, h) - material__alpha * gamma_prime * jnp.cross(
-        m, jnp.cross(m, h)
-    )
+    return -gamma_prime * jnp.cross(m, h) - material__alpha * gamma_prime * jnp.cross(m, jnp.cross(m, h))
 
 
 class LLGSolverJAX(object):
@@ -97,32 +95,22 @@ class LLGSolverJAX(object):
             llg_rhs_resolved = self._state.resolve(llg_rhs, internal_args)
 
             def llg_rhs_scaled(t, m, args):
-                return self._scale_t * llg_rhs_resolved(
-                    t * self._scale_t, m, *replace.values(), *args
-                )
+                return self._scale_t * llg_rhs_resolved(t * self._scale_t, m, *replace.values(), *args)
 
             return dfx.ODETerm(jax.jit(llg_rhs_scaled))
 
         if self._solver_type == "imex":
-            llg_rhs_resolved_impl = self._state.resolve(
-                llg_rhs, internal_args, remap={"h": "h_impl"}
-            )
+            llg_rhs_resolved_impl = self._state.resolve(llg_rhs, internal_args, remap={"h": "h_impl"})
 
             def llg_rhs_scaled_impl(t, m, args):
-                return self._scale_t * llg_rhs_resolved_impl(
-                    t * self._scale_t, m, *replace.values(), *args
-                )
+                return self._scale_t * llg_rhs_resolved_impl(t * self._scale_t, m, *replace.values(), *args)
 
             term_impl = dfx.ODETerm(jax.jit(llg_rhs_scaled_impl))
 
-            llg_rhs_resolved_expl = self._state.resolve(
-                llg_rhs, internal_args, remap={"h": "h_expl"}
-            )
+            llg_rhs_resolved_expl = self._state.resolve(llg_rhs, internal_args, remap={"h": "h_expl"})
 
             def llg_rhs_scaled_expl(t, m, args):
-                return self._scale_t * llg_rhs_resolved_expl(
-                    t * self._scale_t, m, *replace.values(), *args
-                )
+                return self._scale_t * llg_rhs_resolved_expl(t * self._scale_t, m, *replace.values(), *args)
 
             term_expl = dfx.ODETerm(jax.jit(llg_rhs_scaled_expl))
 
@@ -160,18 +148,10 @@ class LLGSolverJAX(object):
         alpha = self._state.tensor(1.0)
         term = self._setup_term({"material__alpha": alpha})
 
-        logging.info_blue(
-            f"[LLGSolverJAX] Relaxation started, initial energy E = {self._state.E:g} J"
-        )
+        logging.info_blue(f"[LLGSolverJAX] Relaxation started, initial energy E = {self._state.E:g} J")
         t = self._scale_t * self._state.t
         args = []  # TODO is that right?
-        while (
-            jnp.linalg.norm(
-                term.vector_field(t, self._state.m.tensor, args), axis=-1
-            ).max()
-            / self._scale_t
-            > tol
-        ):
+        while jnp.linalg.norm(term.vector_field(t, self._state.m.tensor, args), axis=-1).max() / self._scale_t > tol:
             logging.info_blue(
                 f"[LLGSolverJAX] Relaxation step (max dm/dt = {jnp.linalg.norm(term.vector_field(t, self._state.m.tensor, args), axis=-1).max() / self._scale_t:g}) 1/s"
             )
@@ -189,9 +169,7 @@ class LLGSolverJAX(object):
             )
             self._state.m.tensor = sol.ys[-1]
 
-        logging.info_blue(
-            f"[LLGSolverJAX] Relaxation finished, final energy E = {self._state.E:g} J"
-        )
+        logging.info_blue(f"[LLGSolverJAX] Relaxation finished, final energy E = {self._state.E:g} J")
 
     def step(self, dt, *args):
         """

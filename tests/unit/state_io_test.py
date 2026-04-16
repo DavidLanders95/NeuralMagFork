@@ -111,3 +111,38 @@ def test_rw_vector_cell_function_1d(state1d, tmp_path):
     assert g.spaces == "c"
     assert g.state.mesh.dim == 1
     assert be.to_numpy(g.avg()) == pytest.approx((1.0, 2.0, 3.0))
+
+
+def test_rw_function_pbc(state_pbc, tmp_path):
+    f = Function(state_pbc).fill(2.0)
+    state_pbc.write_vti(f, tmp_path / "f.vti")
+    g = state_pbc.read_vti(tmp_path / "f.vti")
+    assert g.spaces == "nnn"
+    assert g.tensor_shape == f.tensor_shape
+    assert be.to_numpy(g.avg()) == pytest.approx(2.0)
+
+
+def test_rw_vector_function_pbc(state_pbc, tmp_path):
+    f = VectorFunction(state_pbc).fill((1.0, 2.0, 3.0))
+    state_pbc.write_vti(f, tmp_path / "f.vti")
+    g = state_pbc.read_vti(tmp_path / "f.vti")
+    assert g.spaces == "nnn"
+    assert g.tensor_shape == f.tensor_shape
+    assert be.to_numpy(g.avg()) == pytest.approx((1.0, 2.0, 3.0))
+
+
+def test_rw_cell_function_pbc(state_pbc, tmp_path):
+    f = CellFunction(state_pbc).fill(2.0)
+    state_pbc.write_vti(f, tmp_path / "f.vti")
+    g = state_pbc.read_vti(tmp_path / "f.vti")
+    assert g.spaces == "ccc"
+    assert be.to_numpy(g.avg()) == pytest.approx(2.0)
+
+
+def test_rw_vector_function_pbc_mixed(state_pbc_mixed, tmp_path):
+    f = VectorFunction(state_pbc_mixed).fill((1.0, 2.0, 3.0))
+    state_pbc_mixed.write_vti(f, tmp_path / "f.vti")
+    g = state_pbc_mixed.read_vti(tmp_path / "f.vti")
+    assert g.spaces == "nnn"
+    assert g.tensor_shape == f.tensor_shape
+    assert be.to_numpy(g.avg()) == pytest.approx((1.0, 2.0, 3.0))

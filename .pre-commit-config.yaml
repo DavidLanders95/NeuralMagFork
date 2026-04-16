@@ -13,8 +13,9 @@ repos:
     args:
     - --fix
     - --exit-non-zero-on-fix
+    exclude: tests/unit/field_term_regression_test\.py
   - id: ruff-format
-    exclude: demos
+    exclude: demos|tests/unit/field_term_regression_test\.py
 
 - repo: https://github.com/nbQA-dev/nbQA
   rev: 1.9.1

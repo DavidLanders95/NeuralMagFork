@@ -13,6 +13,7 @@ management whenever you need them.
    introduction
    getting_started
    discretization
+   pbc
    form_compiler
    dynamic_attributes
    domains
