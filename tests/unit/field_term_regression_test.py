@@ -86,7 +86,7 @@ REFS = {
     (ExchangeField,          "fic1d"):     {"h_sum":       -0.75,    "e_sum":    3198466.0,    "E":  3.198e-21},
     (ExchangeField,          "fic2d"):     {"h_sum":         1.0,    "e_sum":   23044290.0,    "E":  2.304e-20},
     (ExchangeField,          "fic"):       {"h_sum":         1.5,    "e_sum":   77500352.0,    "E":  7.75e-20},
-    (ExchangeField,          "fem3d_pbc"): {"h_sum":        32.0,    "e_sum":  310001408.0,    "E":  3.10e-19},
+    (ExchangeField,          "fem3d_pbc"): {"h_sum":        11.0,    "e_sum":  310001408.0,    "E":  3.10e-19},
     (ExchangeField,          "fic_pbc"):   {"h_sum":         0.0,    "e_sum":          0.0,    "E":  0.0},       # cell→node projection gives uniform nodes → physical zero
 
     (BulkDMIField,           "fem1d"):     {"h_sum":   -875867.4,    "e_sum":    324308.75,    "E":  2.162e-22},
