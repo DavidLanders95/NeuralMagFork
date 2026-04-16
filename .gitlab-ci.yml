@@ -107,62 +107,6 @@ test_py3_11_cpu_jax:
     PYTHON_VERSION: "3.11"
     NM_BACKEND: "jax"
 
-test_py3_10_gpu_torch:
-  extends: .gpu_template
-  variables:
-    PYTHON_VERSION: "3.10"
-    NM_BACKEND: "torch"
-  when: manual
-
-test_py3_10_gpu_jax:
-  extends: .gpu_template
-  variables:
-    PYTHON_VERSION: "3.10"
-    NM_BACKEND: "jax"
-  when: manual
-
-test_py3_10_cpu_torch:
-  extends: .cpu_template
-  variables:
-    PYTHON_VERSION: "3.10"
-    NM_BACKEND: "torch"
-  when: manual
-
-test_py3_10_cpu_jax:
-  extends: .cpu_template
-  variables:
-    PYTHON_VERSION: "3.10"
-    NM_BACKEND: "jax"
-  when: manual
-
-test_py3_9_gpu_torch:
-  extends: .gpu_template
-  variables:
-    PYTHON_VERSION: "3.9"
-    NM_BACKEND: "torch"
-  when: manual
-
-test_py3_9_cpu_torch:
-  extends: .cpu_template
-  variables:
-    PYTHON_VERSION: "3.9"
-    NM_BACKEND: "torch"
-  when: manual
-
-test_py3_8_gpu_torch:
-  extends: .gpu_template
-  variables:
-    PYTHON_VERSION: "3.8"
-    NM_BACKEND: "torch"
-  when: manual
-
-test_py3_8_cpu_torch:
-  extends: .cpu_template
-  variables:
-    PYTHON_VERSION: "3.8"
-    NM_BACKEND: "torch"
-  when: manual
-
 
 docs:
   extends: .cpu_template

@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "neuralmag"
-version = "0.9.3"
+version = "0.9.4"
 description = "NeuralMag is a micromagnetic GPU code implementing the nodal FD discretization"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
 
 authors = [
 { name = "Claas Abert", email = "claas.abert@univie.ac.at" },
@@ -23,7 +23,7 @@ dependencies = ["numpy", "sympy", "pyvista", "scipy", "tqdm"]
 [project.optional-dependencies]
 dev = ["pytest", "pre-commit", "nbsphinx", "pydata-sphinx-theme", "jupyterlab", "nbval", "black", "isort"]
 torch = ["torch", "torchdiffeq"]
-jax = ["jax[cuda]>=0.4.31", "diffrax", "optax"]
+jax = ["jax[cuda]>=0.8.0", "diffrax", "optax"]
 
 [tool.setuptools.packages.find]
 include = ["neuralmag*"]
@@ -33,7 +33,7 @@ line-length = 120
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py311"
 extend-exclude = ["tests/unit/field_term_regression_test.py"]
 
 [tool.ruff.lint]
