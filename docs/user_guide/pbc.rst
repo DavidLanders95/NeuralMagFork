@@ -72,20 +72,25 @@ Effect on field terms
 * **Exchange** (both nodal FD and FIC): neighbour stencils wrap around in
   every periodic direction. Both true and pseudo-PBC are supported; the
   exchange operator itself does not distinguish between them.
-* **Demagnetization**: the field term detects
-  ``all(mesh.pbc[i] == inf)`` at registration time and swaps in the periodic
-  kernel (``h_cell_pbc``). For any other ``pbc`` setting, the open-boundary
-  kernel is used together with image copies (pseudo-PBC).
+* **Demagnetization**: the field term checks whether **all three** spatial
+  directions are set to true PBC (``all(mesh.pbc[i] == inf)``) and only then
+  swaps in the periodic kernel (``h_cell_pbc``). Setting true PBC in only one
+  or two directions is not supported for the demagnetization field — use
+  pseudo-PBC (positive integer) for those directions instead. For any other
+  ``pbc`` setting, the open-boundary kernel is used together with image copies
+  (pseudo-PBC).
 * **DMI, anisotropy, external field, interlayer exchange**: local
   contributions — unaffected by the choice of boundary conditions.
 
 Limitations
 -----------
 
-* **True PBC for the demagnetization field requires a 3D mesh.** Using
-  ``pbc=True`` on a 1D or 2D mesh together with :class:`DemagField` raises a
-  ``ValueError``. If you need an effectively 2D setup, use a 3D mesh with a
-  single cell in the out-of-plane direction and ``pbc=(True, True, 0)``.
+* **True PBC for the demagnetization field requires a 3D mesh with all
+  three directions set to** ``True`` **/** ``inf``. The periodic kernel only
+  activates when every direction is truly periodic; partial true PBC (e.g.
+  ``pbc=(True, True, 0)``) falls back to the open-boundary kernel with image
+  copies. Using ``pbc=True`` on a 1D or 2D mesh together with
+  :class:`DemagField` raises a ``ValueError``.
 * **Node count differs under PBC.** For a periodic direction ``i``, the
   number of independent nodes is ``n[i]`` instead of ``n[i] + 1``. This is
   handled transparently by :class:`~neuralmag.Function` /
