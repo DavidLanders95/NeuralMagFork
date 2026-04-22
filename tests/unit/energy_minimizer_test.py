@@ -12,13 +12,13 @@ def _normalized(state, value):
     return vector / be.np.linalg.norm(vector)
 
 
-def _make_uniaxial_state():
+def _make_uniaxial_state(vector=(1.0, 0.0, 0.2)):
     state = State(Mesh((1, 1, 1), (2e-9, 2e-9, 2e-9)))
     state.material.Ms = 8e5
     state.material.Ku = 2e5
     state.material.Ku_axis = [0, 0, 1]
     state.material.alpha = 1.0
-    state.m = VectorFunction(state).fill(_normalized(state, [1.0, 0.0, 0.2]))
+    state.m = VectorFunction(state).fill(_normalized(state, vector))
     UniaxialAnisotropyField().register(state, "")
     return state
 
@@ -52,3 +52,50 @@ def test_minimize_matches_llg_relaxation_for_uniaxial_state():
 
     assert be.to_numpy(state_min.m.avg()) == pytest.approx(be.to_numpy(state_llg.m.avg()), abs=1e-3)
     assert be.to_numpy(state_min.E) == pytest.approx(be.to_numpy(state_llg.E), rel=1e-4)
+
+
+def test_minimize_many_matches_looped_uniaxial_solves():
+    if be.name != "jax":
+        pytest.skip()
+
+    vectors = ([1.0, 0.0, 0.2], [-1.0, 0.0, -0.1])
+    template_state = _make_uniaxial_state(vectors[0])
+    solver = EnergyMinimizer(template_state, tol=1e-2, max_iter=200)
+
+    m_batch = be.np.stack([_make_uniaxial_state(vector).m.tensor for vector in vectors], axis=0)
+    m_final, info = solver.minimize_many(m_batch, return_info=True)
+
+    looped_states = []
+    looped_iterations = []
+    for vector in vectors:
+        state = _make_uniaxial_state(vector)
+        single = EnergyMinimizer(state, tol=1e-2, max_iter=200)
+        single.minimize()
+        looped_states.append(be.to_numpy(state.m.tensor))
+        looped_iterations.append(single.n_iter)
+
+    assert np.asarray(be.to_numpy(info["converged"])).tolist() == [True, True]
+    assert be.to_numpy(m_final) == pytest.approx(np.stack(looped_states, axis=0), abs=1e-6)
+    assert be.to_numpy(info["n_iter"]) == pytest.approx(np.asarray(looped_iterations))
+
+
+def test_minimize_many_can_reach_distinct_uniaxial_minima():
+    if be.name != "jax":
+        pytest.skip()
+
+    template_state = _make_uniaxial_state([1.0, 0.0, 0.2])
+    solver = EnergyMinimizer(template_state, tol=1e-2, max_iter=200)
+    m_batch = be.np.stack(
+        [
+            _make_uniaxial_state([1.0, 0.0, 0.2]).m.tensor,
+            _make_uniaxial_state([-1.0, 0.0, -0.2]).m.tensor,
+        ],
+        axis=0,
+    )
+
+    m_final, info = solver.minimize_many(m_batch, return_info=True)
+    avg_z = np.asarray(be.to_numpy(m_final))[..., 2].reshape(2, -1).mean(axis=-1)
+
+    assert np.asarray(be.to_numpy(info["converged"])).tolist() == [True, True]
+    assert avg_z[0] == pytest.approx(1.0, abs=1e-6)
+    assert avg_z[1] == pytest.approx(-1.0, abs=1e-6)
