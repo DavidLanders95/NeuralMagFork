@@ -30,15 +30,31 @@
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pyvista as pv
 
 import neuralmag as nm
+from _static_method_compare import SOLVER_LABELS, compare_static_methods, print_static_method_summary
 
 nm.config.dtype = "float64"
+pv.set_jupyter_backend("static")
 
-mesh = nm.Mesh((20, 20), (1e-9, 1e-9, 1e-9))
-state = nm.State(mesh)
+METHODS = ("llg", "bb")
 
-state.m = nm.VectorFunction(state).fill((0, 0, 1))
+def plot_li_comparison(comparison, output_prefix):
+	plotter = pv.Plotter(shape=(1, len(METHODS)))
+	for column, method in enumerate(METHODS):
+		comparison[method]["state"].write_vti(["m"], f"{output_prefix}-{method}.vti")
+		grid = pv.read(f"{output_prefix}-{method}.vti")
+		grid["m_z"] = grid["m"][:, 2]
+		glyphs = grid.glyph(orient="m", scale="m", factor=2e-9)
+
+		plotter.subplot(0, column)
+		plotter.add_text(SOLVER_LABELS[method], font_size=12)
+		plotter.add_mesh(glyphs, scalars="m_z", lighting=True, smooth_shading=True)
+		plotter.show_axes()
+
+	plotter.link_views()
+	plotter.show()
 
 
 # ### Defining Energy Terms
@@ -47,80 +63,55 @@ state.m = nm.VectorFunction(state).fill((0, 0, 1))
 #
 # To add a Lifshitz invariant, specify the indices $i,j,k$ as a string (e.g., "xzx") to `nm.LIField`, and set the corresponding DMI constant `Dijk` in the material.
 
-state.material.Ms = 0.86e6
-state.material.alpha = 1
-state.material.A = 1.3e-11
-nm.ExchangeField().register(state, "exchange")
+def build_xzx_state():
+	mesh = nm.Mesh((20, 20), (1e-9, 1e-9, 1e-9))
+	state = nm.State(mesh)
+
+	state.m = nm.VectorFunction(state).fill((0, 0, 1))
+	state.material.Ms = 0.86e6
+	state.material.alpha = 1
+	state.material.A = 1.3e-11
+	nm.ExchangeField().register(state, "exchange")
+
+	state.material.Dxzx = 15e-3
+	nm.LIField("xzx").register(state, "li_xzx")
+
+	nm.TotalField("exchange", "li_xzx").register(state)
+	return state
 
 
-state.material.Dxzx = 15e-3
-nm.LIField("xzx").register(state, "li_xzx")
-
-nm.TotalField("exchange", "li_xzx").register(state)
-
-
-# relax to energetic minimum
-llg = nm.LLGSolver(state)
-llg.relax(1e9)
-state.write_vti(["m"], "LI/m.vti")
+comparison_xzx = compare_static_methods(build_xzx_state, methods=METHODS, llg_runner=lambda solver: solver.relax(1e9))
+print_static_method_summary("LI xzx example", comparison_xzx)
 
 
 # ### Visualization
-
-import pyvista as pv
-
-pv.set_jupyter_backend("static")
-
-grid = pv.read("LI/m.vti")
-grid["m_z"] = grid["m"][:, 2]  # z component
-
-glyphs = grid.glyph(orient="m", scale="m", factor=2e-9)
-
-# Plot
-plotter = pv.Plotter()
-plotter.add_mesh(glyphs, scalars="m_z", lighting=True, smooth_shading=True)
-plotter.show_axes()
-plotter.show()
+plot_li_comparison(comparison_xzx, "LI/m-xzx")
 
 
 # ## Another Example: Different Invariant
 #
 # Let's try a different Lifshitz invariant, "xzy". This should give us a helix propagating the the $y$ direction.
 
-state.m = nm.VectorFunction(state).fill((0, 0, 1))
+def build_xzy_state():
+	mesh = nm.Mesh((20, 20), (1e-9, 1e-9, 1e-9))
+	state = nm.State(mesh)
 
-state.material.Ms = 0.86e6
-state.material.alpha = 1
-state.material.A = 1.3e-11
-nm.ExchangeField().register(state, "exchange")
+	state.m = nm.VectorFunction(state).fill((0, 0, 1))
+	state.material.Ms = 0.86e6
+	state.material.alpha = 1
+	state.material.A = 1.3e-11
+	nm.ExchangeField().register(state, "exchange")
 
+	state.material.Dxzy = 15e-3
+	nm.LIField("xzy").register(state, "li_xzy")
 
-state.material.Dxzy = 15e-3
-nm.LIField("xzy").register(state, "li_xzy")
-
-nm.TotalField("exchange", "li_xzy").register(state)
-
-
-# relax to energetic minimum
-llg = nm.LLGSolver(state)
-llg.relax(1e9)
-state.write_vti(["m"], "LI/m.vti")
+	nm.TotalField("exchange", "li_xzy").register(state)
+	return state
 
 
-import pyvista as pv
-
-pv.set_jupyter_backend("static")
-
-grid = pv.read("LI/m.vti")
-grid["m_z"] = grid["m"][:, 2]  # z component
-
-glyphs = grid.glyph(orient="m", scale="m", factor=2e-9)
-
-# Plot
-plotter = pv.Plotter()
-plotter.add_mesh(glyphs, scalars="m_z", lighting=True, smooth_shading=True)
-plotter.show_axes()
-plotter.show()
+comparison_xzy = compare_static_methods(build_xzy_state, methods=METHODS, llg_runner=lambda solver: solver.relax(1e9))
+print_static_method_summary("LI xzy example", comparison_xzy)
+plot_li_comparison(comparison_xzy, "LI/m-xzy")
 
 
 # ## Using this for particular crystallographic groups

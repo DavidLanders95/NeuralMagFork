@@ -37,56 +37,59 @@ import pyvista as pv
 from scipy import constants
 
 import neuralmag as nm
+from _static_method_compare import SOLVER_LABELS, compare_static_methods, print_static_method_summary
 
 pv.set_jupyter_backend("static")
+
+METHODS = ("llg", "bb")
+SELECTED_METHOD = "bb"
 
 
 # ### Setup mesh and state
 #
 # In the first stage, we need to setup the mesh and the simulation state. We chose a cell size of $5 \times 5 \times 3 \,\text{nm}^3$ resulting in $100 \times 25 \times 1$ cells simulate for the geometry defined for this standard problem.
 
-mesh = nm.Mesh([100, 25, 1], [5e-9, 5e-9, 3e-9], [0.0, 0.0, 0.0])
-state = nm.State(mesh)
+def build_relaxed_state():
+    mesh = nm.Mesh([100, 25, 1], [5e-9, 5e-9, 3e-9], [0.0, 0.0, 0.0])
+    state = nm.State(mesh)
 
+    state.material.Ms = 8e5
+    state.material.A = 1.3e-11
+    state.material.alpha = 0.02
 
-# ### Setup material parameters and define initial magnetization
-# In the next step, we set the material parameters $M_s$, $A$ and $\alpha$ according to the requirements of the standard problem.
+    state.m = nm.VectorFunction(state).fill((0.5**0.5, 0.5**0.5, 0))
 
-state.material.Ms = 8e5
-state.material.A = 1.3e-11
-state.material.alpha = 0.02
-
-
-# We have to provide an initial magnetisation configuration that is going to be relaxed subsequently. We choose the uniform configuration in xy-direction that is know to relax into the requires s-state.
-
-state.m = nm.VectorFunction(state).fill((0.5**0.5, 0.5**0.5, 0))
-
-
-# ### Register effectiv-field contributions
-# Now we initialize the effecitive field contributions that are required for the relaxation of the initial magnetization. Namely, we set up a total field consisting of the exchange field and the demagnetization field.
-
-nm.ExchangeField().register(state, "exchange")
-nm.DemagField().register(state, "demag")
-nm.TotalField("exchange", "demag").register(state)
+    nm.ExchangeField().register(state, "exchange")
+    nm.DemagField().register(state, "demag")
+    nm.TotalField("exchange", "demag").register(state)
+    return state
 
 
 # ### Minimize energy to find the initial stable state
 # We initialze the LLG solver and use the ```relax``` method in order relax the system into the stable s-state configuration.
 
-llg = nm.LLGSolver(state)
-llg.relax()
-state.write_vti(["m"], "standard-problem-4/s-state.vti")
+comparison = compare_static_methods(build_relaxed_state, methods=METHODS)
+print_static_method_summary("Standard problem 4 initial s-state", comparison)
 
-# Plot the flower state
-mesh = pv.read("standard-problem-4/s-state.vti")
-glyphs = mesh.glyph(orient="m", scale="m", factor=1e-8)
-p = pv.Plotter()
-p.add_mesh(glyphs, color="white", lighting=True, smooth_shading=True)
-p.show()
+for method, values in comparison.items():
+    values["state"].write_vti(["m"], f"standard-problem-4/s-state-{method}.vti")
+
+plotter = pv.Plotter(shape=(1, len(METHODS)))
+for column, method in enumerate(METHODS):
+    mesh = pv.read(f"standard-problem-4/s-state-{method}.vti")
+    glyphs = mesh.glyph(orient="m", scale="m", factor=1e-8)
+    plotter.subplot(0, column)
+    plotter.add_text(SOLVER_LABELS[method], font_size=12)
+    plotter.add_mesh(glyphs, color="white", lighting=True, smooth_shading=True)
+
+plotter.link_views()
+plotter.show()
+
+state = comparison[SELECTED_METHOD]["state"]
 
 
 # ### Apply external field
-# In the next step we initialize the an external field to switch the magnetization as defined in the standard problem. In order to include this additional field, we update the total field and reset the LLG solver.
+# In the next step we initialize the an external field to switch the magnetization as defined in the standard problem. The equilibrium state can come from either the damped-LLG relaxer or the BB minimizer, but the switching dynamics themselves are still simulated with the LLG solver.
 
 # Setup Zeeman field
 h_ext = nm.VectorFunction(state).fill(
@@ -98,8 +101,8 @@ nm.ExternalField(h_ext).register(state, "external")
 # Update total field
 nm.TotalField("exchange", "demag", "external").register(state)
 
-# Reset LLGSolver
-llg.reset()
+# Initialize LLGSolver for dynamics
+llg = nm.LLGSolver(state)
 
 
 # ### Simulate switching

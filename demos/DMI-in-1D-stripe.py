@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 import neuralmag as nm
+from _static_method_compare import SOLVER_LABELS, compare_static_methods, print_static_method_summary
 
 nm.config.dtype = "float64"
 
@@ -19,48 +20,41 @@ nm.config.dtype = "float64"
 # ### Create mesh and state
 # Next we set up a state with a 1D mesh object (a mesh with nodes only in the x-direction).
 
-mesh = nm.Mesh((100,), (1e-9, 1e-9, 1e-9))
-state = nm.State(mesh)
+def build_state():
+    mesh = nm.Mesh((100,), (1e-9, 1e-9, 1e-9))
+    state = nm.State(mesh)
+
+    state.material.Ms = 0.86e6
+    state.material.A = 1.3e-11
+    state.material.Ku = 0.4e6
+    state.material.Ku_axis = [0, 0, 1]
+    state.material.Di = 3e-3
+    state.material.Di_axis = [0, 0, 1]
+    state.material.alpha = 1.0
+
+    state.m = nm.VectorFunction(state).fill((0, 0, 1))
+
+    nm.InterfaceDMIField().register(state, "dmi")
+    nm.ExchangeField().register(state, "exchange")
+    nm.UniaxialAnisotropyField().register(state, "aniso")
+    nm.TotalField("aniso", "dmi", "exchange").register(state)
+
+    return state
 
 
-# ### Material parameters and initial magnetization
-# The material parameters are set up according to the proposed problem and set an initial magnetization in the z-direction.
-#
-
-state.material.Ms = 0.86e6
-state.material.A = 1.3e-11
-state.material.Ku = 0.4e6
-state.material.Ku_axis = [0, 0, 1]
-state.material.Di = 3e-3
-state.material.Di_axis = [0, 0, 1]
-state.material.alpha = 1.0
-
-state.m = nm.VectorFunction(state).fill((0, 0, 1))
-
-
-# ### Effective field
-#
-# Next, we set up the effective field which is comprised of contributions from interface DMI, exchange and uniaxial anisotropy. For this example, we do no explicitly account for the demgnetization field, but rather use an effective anisotropy that also accounts for the shape anisotropy.
-#
-# After initializing the effective field, we relax the system into an energetic equilibrium.
-
-# initialize effective field
-nm.InterfaceDMIField().register(state, "dmi")
-nm.ExchangeField().register(state, "exchange")
-nm.UniaxialAnisotropyField().register(state, "aniso")
-nm.TotalField("aniso", "dmi", "exchange").register(state)
-
-# relax to energetic minimum
-llg = nm.LLGSolver(state)
-llg.relax(1e9)
+comparison = compare_static_methods(build_state, llg_runner=lambda solver: solver.relax(1e9))
+print_static_method_summary("DMI benchmark problem in 1D", comparison)
 
 
 # ## Visualization
 # We extract the magnetization data from the discretized magnetization field stored in ```state.m.tensor``` and compare it with the analytical solution presented in the original work by Cortés-Ortuño et al.
 
-data = np.zeros((state.m.tensor.shape[0], 4))
-data[:, 0] = np.arange(data.shape[0])
-data[:, (1, 2, 3)] = state.m.tensor[:, :]
+data = {}
+for method, values in comparison.items():
+    m = nm.config.backend.to_numpy(values["state"].m.tensor)
+    data[method] = np.zeros((m.shape[0], 4))
+    data[method][:, 0] = np.arange(m.shape[0])
+    data[method][:, (1, 2, 3)] = m[:, :]
 
 ref = np.array(
     [
@@ -93,9 +87,9 @@ ref = np.array(
     ]
 )
 
-
-plt.plot(data[:, 0], data[:, 1], label="NeuralMag")
-plt.plot(data[::4, 0], ref, label="Reference")
+plt.plot(data["llg"][:, 0], data["llg"][:, 1], label=SOLVER_LABELS["llg"])
+plt.plot(data["bb"][:, 0], data["bb"][:, 1], "--", label=SOLVER_LABELS["bb"])
+plt.plot(data["llg"][::4, 0], ref, label="Reference")
 plt.legend()
 plt.xlabel("x [nm]")
 plt.ylabel("m_x")

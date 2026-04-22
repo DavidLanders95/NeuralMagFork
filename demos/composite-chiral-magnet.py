@@ -29,6 +29,7 @@ from scipy.integrate import solve_ivp
 from scipy.optimize import brentq
 
 import neuralmag as nm
+from _static_method_compare import SOLVER_LABELS, compare_static_methods, print_static_method_summary
 
 nm.config.dtype = "float64"
 
@@ -118,12 +119,35 @@ def analytical_profile(x, p):
 #
 # We use a 1D nodal mesh with $N=600$ cells centred at the origin. The NeuralMag `State` holds all field quantities that live on this mesh.
 
-mesh = nm.Mesh((N,), (dx, dx, dx), origin=(-L, 0, 0))
-state = nm.State(mesh)
+def build_state():
+    mesh = nm.Mesh((N,), (dx, dx, dx), origin=(-L, 0, 0))
+    state = nm.State(mesh)
 
-# cell-centre and node coordinates along x (x_c as backend tensor so the
-# conditions fed to state.add_domain are valid for both jax and torch)
-x_c = state.coordinates()[0]
+    x_c = state.coordinates()[0]
+    state.add_domain(1, abs(x_c) <= L0)
+    state.add_domain(2, abs(x_c) > L0)
+
+    state.material.Ms = nm.CellFunction(state).fill_by_domain([0.0, Ms, Ms])
+    state.material.A = nm.CellFunction(state).fill_by_domain([0.0, A, rho * A])
+    state.material.Db = nm.CellFunction(state).fill_by_domain([0.0, D, 0.0])
+    state.material.Ku = nm.CellFunction(state).fill_by_domain([0.0, Kc, Ku])
+    state.material.Ku_axis = nm.VectorCellFunction(state).fill_by_domain([[0, 0, 0], [1, 0, 0], [0, 1, 0]])
+    state.material.alpha = 1.0
+
+    phi_n = analytical_profile(x_n, p_val)
+    m_init = np.zeros((N + 1, 3))
+    m_init[:, 1] = np.cos(phi_n)
+    m_init[:, 2] = np.sin(phi_n)
+    state.m = nm.VectorFunction(state, tensor=state.tensor(m_init))
+
+    nm.ExchangeField().register(state, "exchange")
+    nm.BulkDMIField().register(state, "dmi")
+    nm.UniaxialAnisotropyField().register(state, "aniso")
+    nm.TotalField("exchange", "dmi", "aniso").register(state)
+
+    return state
+
+
 x_n = -L + np.arange(N + 1) * dx
 
 
@@ -131,47 +155,18 @@ x_n = -L + np.arange(N + 1) * dx
 #
 # The two regions (chiral and ferromagnetic) are introduced via domain labels, and the material parameters are assigned per domain using `fill_by_domain`. Domain `0` (the background) has zero material, domain `1` is the chiral slab and domain `2` is the ferromagnetic slab. The easy-axis direction of the anisotropy is $\hat{\mathbf x}$ (easy-plane $y$-$z$) in the chiral region and $\hat{\mathbf y}$ in the ferro region.
 
-state.add_domain(1, abs(x_c) <= L0)
-state.add_domain(2, abs(x_c) > L0)
-
-state.material.Ms = nm.CellFunction(state).fill_by_domain([0.0, Ms, Ms])
-state.material.A = nm.CellFunction(state).fill_by_domain([0.0, A, rho * A])
-state.material.Db = nm.CellFunction(state).fill_by_domain([0.0, D, 0.0])
-state.material.Ku = nm.CellFunction(state).fill_by_domain([0.0, Kc, Ku])
-state.material.Ku_axis = nm.VectorCellFunction(state).fill_by_domain([[0, 0, 0], [1, 0, 0], [0, 1, 0]])
-state.material.alpha = 1.0
-
-
-# ### Initial magnetisation
-#
-# We seed the simulation with the analytical helix profile. The phase is evaluated at cell centres, the resulting magnetisation is averaged onto the nodal mesh and renormalised. Starting from the analytical profile ensures that the LLG relaxation converges to the correct winding number.
-
-phi_n = analytical_profile(x_n, p_val)
-m_init = np.zeros((N + 1, 3))
-m_init[:, 1] = np.cos(phi_n)
-m_init[:, 2] = np.sin(phi_n)
-
-state.m = nm.VectorFunction(state, tensor=state.tensor(m_init))
-
-
-# ### Effective field and relaxation
-#
-# The total effective field contains contributions from exchange, bulk DMI and uniaxial anisotropy. After registering each contribution with the state, we relax the system to an energetic minimum with the Landau–Lifshitz–Gilbert solver.
-
-nm.ExchangeField().register(state, "exchange")
-nm.BulkDMIField().register(state, "dmi")
-nm.UniaxialAnisotropyField().register(state, "aniso")
-nm.TotalField("exchange", "dmi", "aniso").register(state)
-
-llg = nm.LLGSolver(state, rtol=1e-8, atol=1e-8)
-llg.relax()
+comparison = compare_static_methods(
+    build_state,
+    llg_builder=lambda state: nm.LLGSolver(state, rtol=1e-8, atol=1e-8),
+)
+print_static_method_summary("Composite chiral magnet benchmark", comparison)
 
 
 # ## Comparison with the analytical solution
 #
 # We interpolate the relaxed nodal magnetisation onto the cell centres and plot the $m_y$ and $m_z$ components against the analytical helix.
 
-m_np = nm.config.backend.to_numpy(state.m.tensor)
+simulation_data = {method: nm.config.backend.to_numpy(values["state"].m.tensor) for method, values in comparison.items()}
 
 phi_ref = analytical_profile(x_n, p_val)
 my_ref = np.cos(phi_ref)
@@ -179,14 +174,16 @@ mz_ref = np.sin(phi_ref)
 
 fig, axes = plt.subplots(2, 1, figsize=(7, 5), sharex=True)
 axes[0].plot(x_n * 1e9, my_ref, "k-", label="analytical")
-axes[0].plot(x_n * 1e9, m_np[:, 1], "r--", label="NeuralMag")
+axes[0].plot(x_n * 1e9, simulation_data["llg"][:, 1], "r--", label=SOLVER_LABELS["llg"])
+axes[0].plot(x_n * 1e9, simulation_data["bb"][:, 1], "b:", label=SOLVER_LABELS["bb"])
 axes[0].axvspan(-L * 1e9, -L0 * 1e9, color="orange", alpha=0.1)
 axes[0].axvspan(L0 * 1e9, L * 1e9, color="orange", alpha=0.1)
 axes[0].set_ylabel(r"$m_y$")
 axes[0].legend()
 
 axes[1].plot(x_n * 1e9, mz_ref, "k-", label="analytical")
-axes[1].plot(x_n * 1e9, m_np[:, 2], "r--", label="NeuralMag")
+axes[1].plot(x_n * 1e9, simulation_data["llg"][:, 2], "r--", label=SOLVER_LABELS["llg"])
+axes[1].plot(x_n * 1e9, simulation_data["bb"][:, 2], "b:", label=SOLVER_LABELS["bb"])
 axes[1].axvspan(-L * 1e9, -L0 * 1e9, color="orange", alpha=0.1)
 axes[1].axvspan(L0 * 1e9, L * 1e9, color="orange", alpha=0.1)
 axes[1].set_xlabel(r"$x$ [nm]")
@@ -199,15 +196,17 @@ plt.show()
 
 # The shaded regions indicate the ferromagnetic slabs. The simulated magnetisation matches the analytical helix to within the discretisation error of the nodal finite-difference method. For a quantitative assessment one can compute the phase $\varphi$ from the components and plot its deviation from the analytical profile.
 
-phi_sim = np.unwrap(np.arctan2(m_np[:, 2], m_np[:, 1]))
 phi_ref_u = np.unwrap(phi_ref)
-phi_sim += phi_ref_u[(N + 1) // 2] - phi_sim[(N + 1) // 2]
 
 plt.figure(figsize=(7, 3))
-plt.plot(x_n * 1e9, phi_sim - phi_ref_u)
+for method, data in simulation_data.items():
+    phi_sim = np.unwrap(np.arctan2(data[:, 2], data[:, 1]))
+    phi_sim += phi_ref_u[(N + 1) // 2] - phi_sim[(N + 1) // 2]
+    plt.plot(x_n * 1e9, phi_sim - phi_ref_u, label=SOLVER_LABELS[method])
 plt.axvspan(-L * 1e9, -L0 * 1e9, color="orange", alpha=0.1)
 plt.axvspan(L0 * 1e9, L * 1e9, color="orange", alpha=0.1)
 plt.xlabel(r"$x$ [nm]")
 plt.ylabel(r"$\varphi_{\mathrm{sim}} - \varphi_{\mathrm{ana}}$ [rad]")
+plt.legend()
 plt.tight_layout()
 plt.show()

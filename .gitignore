@@ -171,3 +171,4 @@ demos/*/
 docs/examples/*/
 experiments/*
 
+.venv-notebook
