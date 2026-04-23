@@ -54,6 +54,36 @@ def test_minimize_matches_llg_relaxation_for_uniaxial_state():
     assert be.to_numpy(state_min.E) == pytest.approx(be.to_numpy(state_llg.E), rel=1e-4)
 
 
+def test_jax_minimize_return_info_reports_early_stop():
+    if be.name != "jax":
+        pytest.skip()
+
+    state = _make_uniaxial_state([0.0, 0.0, 1.0])
+    solver = EnergyMinimizer(state, tol=1e-6, max_iter=10)
+
+    max_g, info = solver.minimize(return_info=True)
+
+    assert np.asarray(be.to_numpy(info["converged"])).item() is True
+    assert np.asarray(be.to_numpy(info["n_iter"])).item() == 0
+    assert be.to_numpy(info["max_g"]) == pytest.approx(be.to_numpy(max_g), abs=1e-12)
+
+
+def test_jax_reset_clears_history_without_changing_result():
+    if be.name != "jax":
+        pytest.skip()
+
+    state = _make_uniaxial_state()
+    solver = EnergyMinimizer(state, tol=1e-2, max_iter=200)
+    solver.step()
+    solver.reset()
+
+    _, info = solver.minimize(return_info=True)
+
+    assert solver.n_iter == np.asarray(be.to_numpy(info["n_iter"])).item()
+    assert np.asarray(be.to_numpy(info["converged"])).item() is True
+    assert be.to_numpy(state.m.avg()) == pytest.approx((0.0, 0.0, 1.0), abs=1e-3)
+
+
 def test_minimize_many_matches_looped_uniaxial_solves():
     if be.name != "jax":
         pytest.skip()
