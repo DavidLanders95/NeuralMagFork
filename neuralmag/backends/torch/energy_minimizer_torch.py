@@ -59,6 +59,23 @@ class EnergyMinimizerTorch:
     def n_iter(self):
         return self._iteration
 
+    @staticmethod
+    def _scalar_float(value):
+        if torch.is_tensor(value):
+            return float(value.detach().cpu())
+        return float(value)
+
+    @classmethod
+    def _log_minimization_status(cls, label, iteration, max_iter, max_g, tol):
+        max_g_value = cls._scalar_float(max_g)
+        tol_value = cls._scalar_float(tol)
+        converged = max_g_value <= tol_value
+        logging.info_blue(
+            f"[EnergyMinimizerTorch] {label} {iteration}/{max_iter}: "
+            f"max_g = {max_g_value:g} (tol = {tol_value:g}, converged = {converged})"
+        )
+        return converged
+
     def _effective_field(self, m):
         self._state.m.tensor[:] = m
         return self._state.h.tensor
@@ -142,13 +159,16 @@ class EnergyMinimizerTorch:
         logging.info_blue(f"[EnergyMinimizerTorch] Minimization started, initial energy E = {self._state.E:g} J")
 
         max_g = torch.linalg.norm(self._descent_direction(self._state.m.tensor, self._state.h.tensor), dim=-1).max()
-        while self._iteration < max_iter and max_g > tol:
+        converged = self._log_minimization_status("Initial state", self._iteration, max_iter, max_g, tol)
+        while self._iteration < max_iter and not converged:
             max_g = self.step()
             if logger is not None:
                 logger.log(self._state)
+            converged = self._log_minimization_status("Step", self._iteration, max_iter, max_g, tol)
 
         logging.info_blue(
-            f"[EnergyMinimizerTorch] Minimization finished after {self._iteration} steps, final energy E = {self._state.E:g} J"
+            f"[EnergyMinimizerTorch] Minimization finished after {self._iteration} steps, "
+            f"final energy E = {self._state.E:g} J, converged = {converged}"
         )
 
         return max_g

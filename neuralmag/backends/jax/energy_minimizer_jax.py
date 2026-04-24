@@ -324,6 +324,21 @@ class EnergyMinimizerJAX(object):
     def _build_info(n_iter, converged, max_g):
         return {"n_iter": n_iter, "converged": converged, "max_g": max_g}
 
+    @staticmethod
+    def _scalar_float(value):
+        return float(jax.device_get(value))
+
+    @classmethod
+    def _log_minimization_status(cls, label, iteration, max_iter, max_g, tol):
+        max_g_value = cls._scalar_float(max_g)
+        tol_value = cls._scalar_float(tol)
+        converged = max_g_value <= tol_value
+        logging.info_blue(
+            f"[EnergyMinimizerJAX] {label} {iteration}/{max_iter}: "
+            f"max_g = {max_g_value:g} (tol = {tol_value:g}, converged = {converged})"
+        )
+        return converged
+
     def step(self):
         m = self._state.m.tensor
         h, g, _ = self._compute_current_direction(m)
@@ -341,35 +356,26 @@ class EnergyMinimizerJAX(object):
 
     def minimize(self, tol=None, max_iter=None, logger=None, return_info=False):
         tol = self._tol if tol is None else tol
-        max_iter = self._max_iter if max_iter is None else max_iter
-        remaining_iter = max(0, int(max_iter) - self._iteration)
+        tol = jnp.asarray(tol, dtype=self._state.m.tensor.dtype)
+        max_iter = self._max_iter if max_iter is None else int(max_iter)
 
         logging.info_blue(f"[EnergyMinimizerJAX] Minimization started, initial energy E = {self._state.E:g} J")
 
-        if logger is None:
-            m_final, n_iter, converged, max_g, m_prev, g_prev, tau = self._compiled_minimize(
-                self._state.m.tensor, tol, remaining_iter
-            )
-            self._state.m.tensor = m_final
+        start_iter = self._iteration
+        _, _, max_g = self._compute_current_direction(self._state.m.tensor)
+        converged = self._log_minimization_status("Initial state", self._iteration, max_iter, max_g, tol)
 
-            n_iter = int(n_iter)
-            if n_iter > 0:
-                self._m_prev = m_prev
-                self._g_prev = g_prev
-                self._tau = tau
-                self._iteration += n_iter
-        else:
-            start_iter = self._iteration
-            _, _, max_g = self._compute_current_direction(self._state.m.tensor)
-            while self._iteration < max_iter and max_g > tol:
-                max_g = self.step()
+        while self._iteration < max_iter and not converged:
+            max_g = self.step()
+            if logger is not None:
                 logger.log(self._state)
+            converged = self._log_minimization_status("Step", self._iteration, max_iter, max_g, tol)
 
-            n_iter = self._iteration - start_iter
-            converged = max_g <= tol
+        n_iter = self._iteration - start_iter
 
         logging.info_blue(
-            f"[EnergyMinimizerJAX] Minimization finished after {self._iteration} steps, final energy E = {self._state.E:g} J"
+            f"[EnergyMinimizerJAX] Minimization finished after {self._iteration} steps, "
+            f"final energy E = {self._state.E:g} J, converged = {converged}"
         )
 
         if return_info:
